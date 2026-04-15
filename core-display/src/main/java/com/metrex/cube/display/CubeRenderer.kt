@@ -477,6 +477,25 @@ private fun DrawScope.drawCube(
             // 카메라를 향하지 않는 면의 스티커 → 스킵
             if (faceNormal.z <= 0f) continue
 
+            // ── 스티커 셀 배경 (검정, 레이어 회전과 함께 이동) ──
+            val bgR = face.right * 0.5f
+            val bgD = face.down  * 0.5f
+            val bgCorners = arrayOf(
+                q.center + bgR * -1f + bgD * -1f,
+                q.center + bgR *  1f + bgD * -1f,
+                q.center + bgR *  1f + bgD *  1f,
+                q.center + bgR * -1f + bgD *  1f,
+            )
+            val bgRot = Array(4) { i ->
+                val v = bgCorners[i]
+                if (inDragLayer && layerRotMat != null)
+                    v.transform(layerRotMat).transform(rotMatrix)
+                else
+                    v.transform(rotMatrix)
+            }
+            val bgAvgZ = (bgRot[0].z + bgRot[1].z + bgRot[2].z + bgRot[3].z) / 4f
+            projected.add(Projected(Color.Black, false, Array(4) { bgRot[it].proj() }, bgAvgZ - 0.001f))
+
             val isHighlighted = highlightedCubie != null &&
                 CubieKey(
                     q.center.x.roundToLayer(),
