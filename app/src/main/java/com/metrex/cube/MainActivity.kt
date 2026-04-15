@@ -1,22 +1,26 @@
 package com.metrex.cube
 
+import android.annotation.SuppressLint
 import android.os.Bundle
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import com.metrex.cube.feature.cube.CubeScreen
-import com.metrex.cube.ui.theme.CubeTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            CubeTheme {
-                CubeScreen()
-            }
+
+        val webView = WebView(this).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            webViewClient = WebViewClient()
+            loadUrl("file:///android_asset/cube.html")
         }
+
+        setContentView(webView)
     }
 }

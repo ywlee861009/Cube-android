@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Cube</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #111; overflow: hidden; font-family: sans-serif; }
+    canvas { display: block; }
+    #ui {
+      position: fixed; bottom: 40px; left: 0; right: 0;
+      display: flex; justify-content: center; gap: 16px;
+    }
+    button {
+      background: rgba(255,255,255,0.15);
+      color: #fff; border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 10px; padding: 12px 28px;
+      font-size: 15px; cursor: pointer;
+    }
+    button:active { background: rgba(255,255,255,0.3); }
+    #moves {
+      position: fixed; top: 20px; left: 0; right: 0;
+      text-align: center; color: rgba(255,255,255,0.6); font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+<div id="moves">Moves: 0</div>
+<div id="ui">
+  <button onclick="shuffleCube()">Shuffle</button>
+  <button onclick="resetCube()">Reset</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/constants.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/cubies.js"></script>
+<script src="js/logic.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/controls.js"></script>
+<script src="js/bridge.js"></script>
+</body>
+</html>
