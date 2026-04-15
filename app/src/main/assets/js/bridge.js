@@ -6,6 +6,7 @@ window.AndroidCube = {
   reset:       ()     => resetCube(),
   getFacelets: ()     => JSON.stringify(facelets),
   setInsets:   (top, bottom, left, right) => {
+    console.log(`[JS BRIDGE] setInsets called: top=${top}, bottom=${bottom}`);
     document.documentElement.style.setProperty('--safe-top', top + 'px');
     document.documentElement.style.setProperty('--safe-bottom', bottom + 'px');
     document.documentElement.style.setProperty('--safe-left', left + 'px');
