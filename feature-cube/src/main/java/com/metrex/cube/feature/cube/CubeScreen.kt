@@ -52,7 +52,7 @@ fun CubeScreen(
                 modifier = Modifier.padding(16.dp),
             )
 
-            if (uiState.isShuffling || uiState.isSolving) {
+            if (uiState.isShuffling) {
                 CircularProgressIndicator()
             } else {
                 CubeRenderer(
@@ -75,12 +75,6 @@ fun CubeScreen(
                 }
                 Button(onClick = { viewModel.processIntent(CubeIntent.Reset) }) {
                     Text("Reset")
-                }
-                Button(
-                    onClick = { viewModel.processIntent(CubeIntent.Solve) },
-                    enabled = !uiState.isSolving,
-                ) {
-                    Text("Solve")
                 }
             }
         }
