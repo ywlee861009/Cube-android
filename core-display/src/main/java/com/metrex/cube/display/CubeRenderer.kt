@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
-import com.metrex.cube.display.model.RotationState
 import com.metrex.cube.domain.model.CubeFace
 import com.metrex.cube.domain.model.DomainCubeState
 import kotlin.math.PI
@@ -30,13 +29,53 @@ private data class Vec3(val x: Float, val y: Float, val z: Float) {
     operator fun times(s: Float) = Vec3(x * s, y * s, z * s)
 }
 
-private fun Vec3.rotX(s: Float, c: Float) = Vec3(x, y * c - z * s, y * s + z * c)
-private fun Vec3.rotY(s: Float, c: Float) = Vec3(x * c + z * s, y, -x * s + z * c)
-
 private fun Vec3.project(scale: Float, camZ: Float, cx: Float, cy: Float): Offset {
     val depth = camZ + z
     val f = if (depth > 0.01f) scale * camZ / depth else scale
     return Offset(cx + x * f, cy + y * f)
+}
+
+// ── 회전 행렬 (행우선 3×3) ────────────────────────────────────────────────────
+//
+// 저장 형식: FloatArray(9), m[i*3+j] = row i, col j
+// 변환:     v' = M * v  →  v'.x = m[0]*v.x + m[1]*v.y + m[2]*v.z, …
+//
+// 드래그마다 화면(world) 좌표계에서 증분 회전을 앞에서 곱한다:
+//   M_new = Ry(dx) * Rx(dy) * M_current
+// → "위 스와이프 = 항상 위로 회전"이 큐브 방향과 무관하게 유지된다.
+
+/** v' = M * v */
+private fun Vec3.transform(m: FloatArray) = Vec3(
+    m[0] * x + m[1] * y + m[2] * z,
+    m[3] * x + m[4] * y + m[5] * z,
+    m[6] * x + m[7] * y + m[8] * z,
+)
+
+/** A * B (행렬 곱) */
+private fun matMul(a: FloatArray, b: FloatArray): FloatArray {
+    val r = FloatArray(9)
+    for (i in 0..2) for (j in 0..2) {
+        r[i * 3 + j] = a[i * 3] * b[j] + a[i * 3 + 1] * b[3 + j] + a[i * 3 + 2] * b[6 + j]
+    }
+    return r
+}
+
+/** X축 회전 행렬 (라디안) */
+private fun matRotX(rad: Float): FloatArray {
+    val s = sin(rad); val c = cos(rad)
+    return floatArrayOf(1f, 0f, 0f,   0f, c, -s,   0f, s, c)
+}
+
+/** Y축 회전 행렬 (라디안) */
+private fun matRotY(rad: Float): FloatArray {
+    val s = sin(rad); val c = cos(rad)
+    return floatArrayOf(c, 0f, s,   0f, 1f, 0f,   -s, 0f, c)
+}
+
+/** 초기 회전: rotX(-25°) 적용 후 rotY(45°) 적용과 동일한 행렬 */
+private fun defaultRotMatrix(): FloatArray {
+    val toRad = (PI / 180.0).toFloat()
+    return matMul(matRotY(45f * toRad), matRotX(-25f * toRad))
 }
 
 // ── 면 정의 ──────────────────────────────────────────────────────────────────
@@ -126,21 +165,16 @@ private fun faceBackgroundCorners(face: FaceDef): Array<Vec3> {
 
 private fun DrawScope.drawCube(
     stickers: Map<Int, List<StickerQuad>>,
-    rotation: RotationState,
+    rotMatrix: FloatArray,
+    cameraDistance: Float,
 ) {
-    val toRad = (PI / 180.0).toFloat()
-    val sX = sin(rotation.rotationX * toRad)
-    val cX = cos(rotation.rotationX * toRad)
-    val sY = sin(rotation.rotationY * toRad)
-    val cY = cos(rotation.rotationY * toRad)
-
     val scale = size.minDimension * 0.12f
-    val camZ  = rotation.cameraDistance * scale
+    val camZ  = cameraDistance * scale
     val cx    = size.width  / 2f
     val cy    = size.height / 2f
 
     // 로컬 확장 함수: 회전 · 투영
-    fun Vec3.rot()  = rotX(sX, cX).rotY(sY, cY)
+    fun Vec3.rot()  = transform(rotMatrix)
     fun Vec3.proj() = project(scale, camZ, cx, cy)
 
     // ① 백페이스 컬링: 법선 Z > 0 인 면만 표시
@@ -188,6 +222,7 @@ private fun DrawScope.drawCube(
  * - 면 배경: 각 면을 검은색으로 먼저 채워 스티커 틈새 투과 차단
  * - 스티커: halfSize=0.46 (gap=0.08), 검은 배경이 얇은 테두리로 보임
  * - 면 순서: 뒤→앞 (Painter's algorithm, 면 단위)
+ * - 회전: 3×3 행렬 누적 (world-space 증분 회전) → 방향 일관성 보장
  *
  * TODO(Phase 3): 레이어 스와이프 감지 → [onLayerRotate] 콜백 연결
  * TODO(Phase 4): Fling + Animatable 스냅 애니메이션
@@ -198,27 +233,30 @@ fun CubeRenderer(
     modifier: Modifier = Modifier,
     onLayerRotate: (face: CubeFace, clockwise: Boolean) -> Unit = { _, _ -> },
 ) {
-    var rotation by remember { mutableStateOf(RotationState()) }
-    val stickers  = remember(cubeState) { buildStickers(cubeState.facelets) }
+    var rotMatrix by remember { mutableStateOf(defaultRotMatrix()) }
+    val stickers   = remember(cubeState) { buildStickers(cubeState.facelets) }
 
     Canvas(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
+                val sensitivity = 0.4f * (PI / 180.0).toFloat()
                 awaitEachGesture {
                     awaitFirstDown()
                     do {
                         val event = awaitPointerEvent()
                         val delta = event.changes.firstOrNull()?.positionChange() ?: break
-                        rotation = rotation.copy(
-                            rotationX = rotation.rotationX - delta.y * 0.4f,
-                            rotationY = rotation.rotationY + delta.x * 0.4f,
-                        )
+                        // 화면(world) 좌표계에서 증분 회전을 앞에서 곱한다:
+                        //   M_new = Ry(dx) * Rx(-dy) * M
+                        // → 큐브가 어느 방향을 향하든 "위 스와이프 = 위로 회전"
+                        val rx = matRotX(-delta.y * sensitivity)
+                        val ry = matRotY( delta.x * sensitivity)
+                        rotMatrix = matMul(ry, matMul(rx, rotMatrix))
                         event.changes.forEach { it.consume() }
                     } while (event.changes.any { it.pressed })
                 }
             },
     ) {
-        drawCube(stickers, rotation)
+        drawCube(stickers, rotMatrix, cameraDistance = 12f)
     }
 }
