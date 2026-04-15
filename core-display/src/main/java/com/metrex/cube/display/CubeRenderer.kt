@@ -1,5 +1,7 @@
 package com.metrex.cube.display
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -8,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -18,9 +21,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import com.metrex.cube.domain.model.Move
 import com.metrex.cube.domain.model.DomainCubeState
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.sign
 import kotlin.math.sin
 
 // ── 3D 벡터 ──────────────────────────────────────────────────────────────────
@@ -62,6 +68,11 @@ private fun matRotY(rad: Float): FloatArray {
     return floatArrayOf(c, 0f, s,   0f, 1f, 0f,   -s, 0f, c)
 }
 
+private fun matRotZ(rad: Float): FloatArray {
+    val s = sin(rad); val c = cos(rad)
+    return floatArrayOf(c, -s, 0f,   s, c, 0f,   0f, 0f, 1f)
+}
+
 private fun defaultRotMatrix(): FloatArray {
     val toRad = (PI / 180.0).toFloat()
     return matMul(matRotY(45f * toRad), matRotX(-25f * toRad))
@@ -97,9 +108,31 @@ private val STICKER_COLORS = arrayOf(
     Color(0xFF0046AD),
 )
 
+// ── 레이어 드래그 보조 타입 ──────────────────────────────────────────────────
+
+private enum class RotAxis { X, Y, Z }
+
+private data class LayerInfo(
+    val axis: RotAxis,
+    val layerCoord: Int,    // -1, 0, +1
+    val visualSign: Float,  // +1 or -1: positive angle → CW rotation of this move
+)
+
+private data class CubieKey(val lx: Int, val ly: Int, val lz: Int)
+
+private data class LayerDragState(
+    val move: Move,
+    val layerInfo: LayerInfo,
+    val angleRad: Float,
+)
+
 // ── 스티커 데이터 ─────────────────────────────────────────────────────────────
 
-private class StickerQuad(val color: Color, val corners: Array<Vec3>)
+private class StickerQuad(
+    val color: Color,
+    val corners: Array<Vec3>,
+    val center: Vec3,  // cube-space 3D center (레이어 소속 판정, 큐비 식별에 사용)
+)
 
 private fun buildStickers(facelets: IntArray, halfSize: Float = 0.46f): Map<Int, List<StickerQuad>> =
     FACE_DEFS.associate { face ->
@@ -110,12 +143,16 @@ private fun buildStickers(facelets: IntArray, halfSize: Float = 0.46f): Map<Int,
                     val center = face.origin + face.right * col.toFloat() + face.down * row.toFloat()
                     val r = face.right * halfSize
                     val d = face.down  * halfSize
-                    add(StickerQuad(color, arrayOf(
-                        center + r * -1f + d * -1f,
-                        center + r *  1f + d * -1f,
-                        center + r *  1f + d *  1f,
-                        center + r * -1f + d *  1f,
-                    )))
+                    add(StickerQuad(
+                        color = color,
+                        corners = arrayOf(
+                            center + r * -1f + d * -1f,
+                            center + r *  1f + d * -1f,
+                            center + r *  1f + d *  1f,
+                            center + r * -1f + d *  1f,
+                        ),
+                        center = center,
+                    ))
                 }
             }
         }
@@ -131,6 +168,58 @@ private fun faceBackgroundCorners(face: FaceDef): Array<Vec3> {
         center + r *  1f + d *  1f,
         center + r * -1f + d *  1f,
     )
+}
+
+// ── 레이어 드래그 헬퍼 함수 ──────────────────────────────────────────────────
+
+/** cube-space 좌표를 레이어 인덱스 -1/0/+1 로 반올림 */
+private fun Float.roundToLayer(): Int = when {
+    this < -0.5f -> -1
+    this >  0.5f ->  1
+    else         ->  0
+}
+
+/**
+ * Move → (회전 축, 레이어 좌표, visualSign)
+ * visualSign: +1이면 positive angleRad → 해당 Move의 CW 방향 시각 회전
+ */
+private fun Move.toLayerInfo(): LayerInfo = when (this) {
+    Move.U       -> LayerInfo(RotAxis.Y, -1, +1f)
+    Move.U_PRIME -> LayerInfo(RotAxis.Y, -1, -1f)
+    Move.E       -> LayerInfo(RotAxis.Y,  0, -1f)  // E는 D 방향(Y 음수)
+    Move.E_PRIME -> LayerInfo(RotAxis.Y,  0, +1f)
+    Move.D       -> LayerInfo(RotAxis.Y, +1, -1f)
+    Move.D_PRIME -> LayerInfo(RotAxis.Y, +1, +1f)
+    Move.R       -> LayerInfo(RotAxis.X, +1, +1f)
+    Move.R_PRIME -> LayerInfo(RotAxis.X, +1, -1f)
+    Move.M       -> LayerInfo(RotAxis.X,  0, -1f)  // M은 L 방향(X 음수)
+    Move.M_PRIME -> LayerInfo(RotAxis.X,  0, +1f)
+    Move.L       -> LayerInfo(RotAxis.X, -1, -1f)
+    Move.L_PRIME -> LayerInfo(RotAxis.X, -1, +1f)
+    Move.F       -> LayerInfo(RotAxis.Z, +1, +1f)
+    Move.F_PRIME -> LayerInfo(RotAxis.Z, +1, -1f)
+    Move.S       -> LayerInfo(RotAxis.Z,  0, +1f)  // S는 F 방향
+    Move.S_PRIME -> LayerInfo(RotAxis.Z,  0, -1f)
+    Move.B       -> LayerInfo(RotAxis.Z, -1, -1f)
+    Move.B_PRIME -> LayerInfo(RotAxis.Z, -1, +1f)
+    else         -> LayerInfo(RotAxis.Y, -1, +1f)  // _2 무브 드래그 미사용
+}
+
+/** 스티커가 주어진 레이어에 속하는지 (center 좌표 기준) */
+private fun StickerQuad.isInLayer(layer: LayerInfo): Boolean {
+    val coord = when (layer.axis) {
+        RotAxis.X -> center.x
+        RotAxis.Y -> center.y
+        RotAxis.Z -> center.z
+    }
+    return coord.roundToLayer() == layer.layerCoord
+}
+
+/** (faceIdx, row, col) → 해당 스티커가 속한 큐비의 고유 키 */
+private fun cubieKeyOf(faceIdx: Int, row: Int, col: Int): CubieKey {
+    val face = FACE_DEFS[faceIdx]
+    val c = face.origin + face.right * col.toFloat() + face.down * row.toFloat()
+    return CubieKey(c.x.roundToLayer(), c.y.roundToLayer(), c.z.roundToLayer())
 }
 
 // ── 히트 테스트 ───────────────────────────────────────────────────────────────
@@ -265,13 +354,6 @@ private fun gestureToMove(
     }
 }
 
-/** cube-space 좌표 (-1.5~+1.5)를 레이어 인덱스 -1/0/+1 로 반올림 */
-private fun Float.roundToLayer(): Int = when {
-    this < -0.5f -> -1
-    this >  0.5f ->  1
-    else         ->  0
-}
-
 /**
  * Y축 슬라이스 (U / E / D)
  * layer: y ≈ -1 → U, y ≈ 0 → E, y ≈ +1 → D
@@ -337,6 +419,8 @@ private fun DrawScope.drawCube(
     stickers: Map<Int, List<StickerQuad>>,
     rotMatrix: FloatArray,
     cameraDistance: Float,
+    highlightedCubie: CubieKey? = null,
+    layerDrag: LayerDragState? = null,
 ) {
     val scale = size.minDimension * 0.12f
     val camZ  = cameraDistance * scale
@@ -346,6 +430,17 @@ private fun DrawScope.drawCube(
     fun Vec3.rot()  = transform(rotMatrix)
     fun Vec3.proj() = project(scale, camZ, cx, cy)
 
+    // 드래그 중 레이어 사전 회전 행렬 (cube-space에서 적용)
+    val layerRotMat: FloatArray? = layerDrag?.let { drag ->
+        val angle = drag.angleRad * drag.layerInfo.visualSign
+        when (drag.layerInfo.axis) {
+            RotAxis.X -> matRotX(angle)
+            RotAxis.Y -> matRotY(angle)
+            RotAxis.Z -> matRotZ(angle)
+        }
+    }
+
+    // ── Phase 1: 면 배경 (원래 보이는 면만, 정적) ────────────────────────────
     val visibleFaces = FACE_DEFS
         .filter { face -> face.normal.rot().z > 0f }
         .sortedBy  { face -> FACE_CENTERS[face.idx].rot().z }
@@ -359,20 +454,58 @@ private fun DrawScope.drawCube(
         for (i in 1..3) path.lineTo(bgProj[i].x, bgProj[i].y)
         path.close()
         drawPath(path, Color.Black)
+    }
 
+    // ── Phase 2: 6면 전체 스티커 수집 (레이어 회전 적용 + 가시성 판정) ─────
+    // 기존에는 visibleFaces만 순회했기 때문에 뒷면 레이어 스티커가 누락되었음.
+    // 이제 ALL 면의 스티커를 처리하되, 면 법선(레이어 회전 포함) 기반으로 가시성을 체크.
+    data class Projected(val color: Color, val highlighted: Boolean, val pts: Array<Offset>, val z: Float)
+    val projected = mutableListOf<Projected>()
+
+    for (face in FACE_DEFS) {
         val faceStickers = stickers[face.idx] ?: continue
-        val sorted = faceStickers.map { q ->
-            val rot = Array(4) { q.corners[it].rot() }
-            val avgZ = (rot[0].z + rot[1].z + rot[2].z + rot[3].z) / 4f
-            Triple(q.color, Array(4) { rot[it].proj() }, avgZ)
-        }.sortedBy { it.third }
 
-        for ((color, pts, _) in sorted) {
-            path.reset()
-            path.moveTo(pts[0].x, pts[0].y)
-            for (i in 1..3) path.lineTo(pts[i].x, pts[i].y)
-            path.close()
-            drawPath(path, color)
+        for (q in faceStickers) {
+            val inDragLayer = layerDrag != null && q.isInLayer(layerDrag.layerInfo)
+
+            // 이 스티커가 속한 면의 법선 → 레이어 회전 적용 후 카메라 방향인지 체크
+            val faceNormal = if (inDragLayer && layerRotMat != null)
+                face.normal.transform(layerRotMat).transform(rotMatrix)
+            else
+                face.normal.transform(rotMatrix)
+
+            // 카메라를 향하지 않는 면의 스티커 → 스킵
+            if (faceNormal.z <= 0f) continue
+
+            val isHighlighted = highlightedCubie != null &&
+                CubieKey(
+                    q.center.x.roundToLayer(),
+                    q.center.y.roundToLayer(),
+                    q.center.z.roundToLayer()
+                ) == highlightedCubie
+
+            val rot = Array(4) { i ->
+                val v = q.corners[i]
+                if (inDragLayer && layerRotMat != null)
+                    v.transform(layerRotMat).transform(rotMatrix)
+                else
+                    v.transform(rotMatrix)
+            }
+            val avgZ = (rot[0].z + rot[1].z + rot[2].z + rot[3].z) / 4f
+            projected.add(Projected(q.color, isHighlighted, Array(4) { rot[it].proj() }, avgZ))
+        }
+    }
+
+    // ── Phase 3: 깊이순 정렬 후 그리기 (back → front) ────────────────────────
+    projected.sortBy { it.z }
+    for ((color, isHighlighted, pts, _) in projected) {
+        path.reset()
+        path.moveTo(pts[0].x, pts[0].y)
+        for (i in 1..3) path.lineTo(pts[i].x, pts[i].y)
+        path.close()
+        drawPath(path, color)
+        if (isHighlighted) {
+            drawPath(path, Color.White.copy(alpha = 0.35f))
         }
     }
 }
@@ -386,9 +519,9 @@ private const val LAYER_DRAG_THRESHOLD_PX = 20f  // 레이어 회전 인식 최�
  *
  * ## 터치 동작
  * - 빈 영역 드래그: 큐브 전체 회전 (world-space 행렬 누적)
- * - 스티커 터치 후 드래그: 해당 레이어 회전 → [onLayerRotate] 호출
- *
- * TODO(Phase 4): Fling + Animatable 스냅 애니메이션
+ * - 스티커 터치: 해당 큐비 하이라이트
+ * - 스티커 터치 후 드래그: 해당 레이어가 손가락을 따라 실시간 부분 회전
+ * - 손가락 뗌: 가장 가까운 90°로 스냅 애니메이션 후 Move 커밋
  */
 @Composable
 fun CubeRenderer(
@@ -399,31 +532,45 @@ fun CubeRenderer(
     var rotMatrix by remember { mutableStateOf(defaultRotMatrix()) }
     val stickers   = remember(cubeState) { buildStickers(cubeState.facelets) }
 
-    // 히트 테스트에 필요한 투영 파라미터를 Composable 범위에서 캡처하기 위해 별도 상태로 관리
     var canvasSize by remember { mutableStateOf(Pair(0f, 0f)) }
+    var highlightedCubie by remember { mutableStateOf<CubieKey?>(null) }
+    var layerDrag        by remember { mutableStateOf<LayerDragState?>(null) }
+    val coroutineScope   = rememberCoroutineScope()
 
     Canvas(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 val sensitivity = 0.4f * (PI / 180.0).toFloat()
+                // 이전 스냅 애니메이션 Job 추적 (새 제스처 시 취소용)
+                var animJob: Job? = null
 
                 awaitEachGesture {
+                    // 새 제스처 시작 전 이전 애니메이션 취소 및 상태 초기화
+                    animJob?.cancel()
+                    animJob = null
+                    layerDrag = null
+
                     val down = awaitFirstDown()
                     val touchPt = down.position
 
-                    // 터치 다운 시점의 투영 파라미터 계산
                     val (w, h) = canvasSize
                     val scale = minOf(w, h) * 0.12f
                     val camZ  = 12f * scale
                     val cx    = w / 2f
                     val cy    = h / 2f
+                    // 드래그 거리(픽셀) → 회전 각도(라디안) 감도: 3*scale 픽셀 = 90°
+                    val dragSensitivity = if (scale > 0f) (PI.toFloat() / 2f) / (3f * scale) else 0.005f
 
-                    // 히트 테스트
                     val hit = hitTest(touchPt, rotMatrix, scale, camZ, cx, cy)
 
+                    // 터치 다운: 스티커에 닿았으면 즉시 큐비 하이라이트
+                    if (hit != null) {
+                        highlightedCubie = cubieKeyOf(hit.faceIdx, hit.row, hit.col)
+                    }
+
                     var totalDrag = Offset.Zero
-                    var layerMoved = false
+                    var dominantAxisWasRight = true  // 임계값 도달 시점에 캡처
 
                     do {
                         val event = awaitPointerEvent()
@@ -435,23 +582,88 @@ fun CubeRenderer(
                             val rx = matRotX(-delta.y * sensitivity)
                             val ry = matRotY( delta.x * sensitivity)
                             rotMatrix = matMul(ry, matMul(rx, rotMatrix))
-                        } else if (!layerMoved &&
-                            (abs(totalDrag.x) >= LAYER_DRAG_THRESHOLD_PX ||
-                             abs(totalDrag.y) >= LAYER_DRAG_THRESHOLD_PX)
-                        ) {
-                            // 충분히 드래그했을 때 레이어 회전 1회 발동
-                            gestureToMove(hit, totalDrag, rotMatrix)?.let { move ->
-                                onLayerRotate(move)
+                        } else {
+                            val currentDrag = layerDrag
+
+                            if (currentDrag == null) {
+                                // 아직 임계값 미도달: 임계값 도달 시 LayerDragState 수립
+                                if (abs(totalDrag.x) >= LAYER_DRAG_THRESHOLD_PX ||
+                                    abs(totalDrag.y) >= LAYER_DRAG_THRESHOLD_PX
+                                ) {
+                                    val move = gestureToMove(hit, totalDrag, rotMatrix)
+                                    if (move != null) {
+                                        // 주 드래그 축 결정 (face 로컬 좌표 기반 내적)
+                                        val face = FACE_DEFS[hit.faceIdx]
+                                        val fRight2 = face.right.transform(rotMatrix).let { Offset(it.x, it.y) }
+                                        val fDown2  = face.down.transform(rotMatrix).let  { Offset(it.x, it.y) }
+                                        fun dotOf(a: Offset, b: Offset) = a.x * b.x + a.y * b.y
+                                        dominantAxisWasRight = abs(dotOf(totalDrag, fRight2)) >= abs(dotOf(totalDrag, fDown2))
+
+                                        layerDrag = LayerDragState(
+                                            move      = move,
+                                            layerInfo = move.toLayerInfo(),
+                                            angleRad  = 0f,
+                                        )
+                                    }
+                                }
+                            } else {
+                                // 레이어 드래그 진행 중: 각도를 손가락 이동에 따라 실시간 업데이트
+                                val face = FACE_DEFS[hit.faceIdx]
+                                val fRight2 = face.right.transform(rotMatrix).let { Offset(it.x, it.y) }
+                                val fDown2  = face.down.transform(rotMatrix).let  { Offset(it.x, it.y) }
+                                fun dotOf(a: Offset, b: Offset) = a.x * b.x + a.y * b.y
+                                val rawComponent = if (dominantAxisWasRight)
+                                    dotOf(delta, fRight2) else dotOf(delta, fDown2)
+
+                                layerDrag = currentDrag.copy(
+                                    angleRad = currentDrag.angleRad + rawComponent * dragSensitivity
+                                )
                             }
-                            layerMoved = true
                         }
 
                         event.changes.forEach { it.consume() }
                     } while (event.changes.any { it.pressed })
+
+                    // ── 손가락 뗌: restricted scope 밖에서 스냅 애니메이션 실행 ──
+                    // AwaitPointerEventScope는 restricted 코루틴 스코프이므로
+                    // Animatable.animateTo()는 rememberCoroutineScope()에서 launch해야 함
+                    val finalDrag = layerDrag
+                    if (finalDrag != null) {
+                        val angle = finalDrag.angleRad
+                        val halfPi = PI.toFloat() / 2f
+                        val snapTarget = if (abs(angle) >= halfPi / 2f) halfPi * sign(angle) else 0f
+                        val shouldCommit = abs(snapTarget) > 0.01f
+
+                        animJob = coroutineScope.launch {
+                            val anim = Animatable(angle)
+                            anim.animateTo(
+                                targetValue   = snapTarget,
+                                animationSpec = spring(stiffness = 400f, dampingRatio = 0.8f),
+                            ) {
+                                // 매 프레임마다 angleRad 갱신 → Canvas 리드로우
+                                layerDrag = finalDrag.copy(angleRad = value)
+                            }
+                            // 스냅 완료 후: Move 커밋 및 상태 초기화
+                            layerDrag        = null
+                            highlightedCubie = null
+                            if (shouldCommit) {
+                                onLayerRotate(finalDrag.move)
+                            }
+                        }
+                    } else {
+                        // 레이어 드래그 미시작(임계값 미도달)으로 끝난 경우
+                        highlightedCubie = null
+                    }
                 }
             },
     ) {
         canvasSize = size.width to size.height
-        drawCube(stickers, rotMatrix, cameraDistance = 12f)
+        drawCube(
+            stickers         = stickers,
+            rotMatrix        = rotMatrix,
+            cameraDistance   = 12f,
+            highlightedCubie = highlightedCubie,
+            layerDrag        = layerDrag,
+        )
     }
 }
