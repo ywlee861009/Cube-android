@@ -112,17 +112,12 @@ private val STICKER_COLORS = arrayOf(
 
 private enum class RotAxis { X, Y, Z }
 
-private data class LayerInfo(
-    val axis: RotAxis,
-    val layerCoord: Int,    // -1, 0, +1
-    val visualSign: Float,  // +1 or -1: positive angle → CW rotation of this move
-)
-
 private data class CubieKey(val lx: Int, val ly: Int, val lz: Int)
 
 private data class LayerDragState(
-    val move: Move,
-    val layerInfo: LayerInfo,
+    val axis: RotAxis,
+    val layer: Int,
+    val directionSign: Float,   // +1 or -1: visual angle = angleRad * directionSign
     val angleRad: Float,
 )
 
@@ -179,40 +174,15 @@ private fun Float.roundToLayer(): Int = when {
     else         ->  0
 }
 
-/**
- * Move → (회전 축, 레이어 좌표, visualSign)
- * visualSign: +1이면 positive angleRad → 해당 Move의 CW 방향 시각 회전
- */
-private fun Move.toLayerInfo(): LayerInfo = when (this) {
-    Move.U       -> LayerInfo(RotAxis.Y, -1, +1f)
-    Move.U_PRIME -> LayerInfo(RotAxis.Y, -1, -1f)
-    Move.E       -> LayerInfo(RotAxis.Y,  0, -1f)  // E는 D 방향(Y 음수)
-    Move.E_PRIME -> LayerInfo(RotAxis.Y,  0, +1f)
-    Move.D       -> LayerInfo(RotAxis.Y, +1, -1f)
-    Move.D_PRIME -> LayerInfo(RotAxis.Y, +1, +1f)
-    Move.R       -> LayerInfo(RotAxis.X, +1, +1f)
-    Move.R_PRIME -> LayerInfo(RotAxis.X, +1, -1f)
-    Move.M       -> LayerInfo(RotAxis.X,  0, -1f)  // M은 L 방향(X 음수)
-    Move.M_PRIME -> LayerInfo(RotAxis.X,  0, +1f)
-    Move.L       -> LayerInfo(RotAxis.X, -1, -1f)
-    Move.L_PRIME -> LayerInfo(RotAxis.X, -1, +1f)
-    Move.F       -> LayerInfo(RotAxis.Z, +1, +1f)
-    Move.F_PRIME -> LayerInfo(RotAxis.Z, +1, -1f)
-    Move.S       -> LayerInfo(RotAxis.Z,  0, +1f)  // S는 F 방향
-    Move.S_PRIME -> LayerInfo(RotAxis.Z,  0, -1f)
-    Move.B       -> LayerInfo(RotAxis.Z, -1, -1f)
-    Move.B_PRIME -> LayerInfo(RotAxis.Z, -1, +1f)
-    else         -> LayerInfo(RotAxis.Y, -1, +1f)  // _2 무브 드래그 미사용
-}
 
 /** 스티커가 주어진 레이어에 속하는지 (center 좌표 기준) */
-private fun StickerQuad.isInLayer(layer: LayerInfo): Boolean {
-    val coord = when (layer.axis) {
+private fun StickerQuad.isInLayer(drag: LayerDragState): Boolean {
+    val coord = when (drag.axis) {
         RotAxis.X -> center.x
         RotAxis.Y -> center.y
         RotAxis.Z -> center.z
     }
-    return coord.roundToLayer() == layer.layerCoord
+    return coord.roundToLayer() == drag.layer
 }
 
 /** (faceIdx, row, col) → 해당 스티커가 속한 큐비의 고유 키 */
@@ -293,123 +263,89 @@ private fun hitTest(
 //   x ≈ -1 → L, x ≈ 0 → M, x ≈ +1 → R
 //   z ≈ -1 → B, z ≈ 0 → S, z ≈ +1 → F
 
-private fun gestureToMove(
+/**
+ * 터치 드래그 → 레이어 회전 축, 레이어 인덱스, 시각 방향 부호를 결정한다.
+ *
+ * ## 핵심 원리
+ * 스티커가 드래그 방향을 따라가려면, visual angle = angleRad × directionSign 이 되어야 한다.
+ *
+ * - ROW 드래그(face.right 방향): directionSign = sign(Axis · face.down)
+ * - COL 드래그(face.down 방향):  directionSign = −sign(Axis · face.right)
+ *
+ * 이 공식은 face.normal × face.right = face.down 항등식과 스칼라 삼중적으로부터 유도되며,
+ * 카메라 회전(rotMatrix)에 무관하게 항상 올바른 부호를 제공한다.
+ */
+private data class DragSetup(val axis: RotAxis, val layer: Int, val directionSign: Float)
+
+private fun gestureToDrag(
     hit: HitResult,
-    dragScreen: Offset,       // 스크린 드래그 벡터
+    dragScreen: Offset,
     rotMatrix: FloatArray,
-): Move? {
+): DragSetup? {
     val face = FACE_DEFS[hit.faceIdx]
 
-    // face.right / face.down 을 스크린 2D로 투영 (z 무시)
-    val fRight3 = face.right.transform(rotMatrix)
-    val fDown3  = face.down.transform(rotMatrix)
-    val fRight2 = Offset(fRight3.x, fRight3.y)
-    val fDown2  = Offset(fDown3.x,  fDown3.y)
+    val fRight2 = face.right.transform(rotMatrix).let { Offset(it.x, it.y) }
+    val fDown2  = face.down.transform(rotMatrix).let  { Offset(it.x, it.y) }
 
-    // 드래그와의 내적으로 어느 축인지 판단
     fun dot(a: Offset, b: Offset) = a.x * b.x + a.y * b.y
     val dotRight = dot(dragScreen, fRight2)
     val dotDown  = dot(dragScreen, fDown2)
 
+    val stickerPos = face.origin + face.right * hit.col.toFloat() + face.down * hit.row.toFloat()
+
     return if (abs(dotRight) >= abs(dotDown)) {
-        // ── ROW 슬라이스 회전 ─────────────────────────────────────
-        // 어느 y-레이어인지 → 스티커의 cube-space y 좌표
-        val stickerPos = face.origin + face.right * hit.col.toFloat() + face.down * hit.row.toFloat()
-        val posAlongDown = when {
-            face.down.y != 0f -> stickerPos.y   // F,R,L,B: down=(0,±1,0)
-            face.down.z != 0f -> stickerPos.z   // U: down=(0,0,1)
-            else              -> stickerPos.x   // 사용 안 됨
+        // ── ROW 슬라이스 ──────────────────────────────────────────
+        val axis = if (face.down.y != 0f) RotAxis.Y else RotAxis.Z
+        val layer = when (axis) {
+            RotAxis.Y -> stickerPos.y
+            RotAxis.Z -> stickerPos.z
+            else      -> stickerPos.x
+        }.roundToLayer()
+        val axisVec = when (axis) {
+            RotAxis.X -> Vec3(1f, 0f, 0f)
+            RotAxis.Y -> Vec3(0f, 1f, 0f)
+            RotAxis.Z -> Vec3(0f, 0f, 1f)
         }
-        // face.down이 Y인 경우: y ≈ -1→U, 0→E, +1→D
-        // face.down이 Z인 경우(U face): z ≈ -1→B, 0→S, +1→F
-        val posSigned = posAlongDown.roundToLayer() // -1, 0, +1
-        val dragPositive = dotRight > 0f
-
-        if (face.down.y != 0f) {
-            // Y-axis slice: U/E/D
-            yAxisMove(posSigned, dragPositive, face)
-        } else {
-            // Z-axis slice (U face row drag): B/S/F
-            zAxisMove(posSigned, dragPositive, face)
-        }
-
+        val dirSign = sign(axisVec.x * face.down.x + axisVec.y * face.down.y + axisVec.z * face.down.z)
+        if (dirSign == 0f) null else DragSetup(axis, layer, dirSign)
     } else {
-        // ── COL 슬라이스 회전 ─────────────────────────────────────
-        val stickerPos = face.origin + face.right * hit.col.toFloat() + face.down * hit.row.toFloat()
-        val posAlongRight = when {
-            face.right.x != 0f -> stickerPos.x   // U,F,D,B: right=(±1,0,0)
-            face.right.z != 0f -> stickerPos.z   // R,L: right=(0,0,±1)
-            else               -> stickerPos.y
+        // ── COL 슬라이스 ──────────────────────────────────────────
+        val axis = if (face.right.x != 0f) RotAxis.X else RotAxis.Z
+        val layer = when (axis) {
+            RotAxis.X -> stickerPos.x
+            RotAxis.Z -> stickerPos.z
+            else      -> stickerPos.y
+        }.roundToLayer()
+        val axisVec = when (axis) {
+            RotAxis.X -> Vec3(1f, 0f, 0f)
+            RotAxis.Y -> Vec3(0f, 1f, 0f)
+            RotAxis.Z -> Vec3(0f, 0f, 1f)
         }
-        val posSigned = posAlongRight.roundToLayer()
-        val dragPositive = dotDown > 0f
-
-        if (face.right.x != 0f) {
-            // X-axis slice: L/M/R
-            xAxisMove(posSigned, dragPositive, face)
-        } else {
-            // Z-axis slice (R/L face col drag): B/S/F
-            zAxisMove(posSigned, dragPositive, face)
-        }
+        val dirSign = -sign(axisVec.x * face.right.x + axisVec.y * face.right.y + axisVec.z * face.right.z)
+        if (dirSign == 0f) null else DragSetup(axis, layer, dirSign)
     }
 }
 
 /**
- * Y축 슬라이스 (U / E / D)
- * layer: y ≈ -1 → U, y ≈ 0 → E, y ≈ +1 → D
- * dragPositive: face.right 방향으로 드래그 중인지
+ * 커밋 시점: (축, 레이어, visual angle 부호) → Move 결정.
+ *
+ * positiveVisual = true 이면 matRot(+θ) 방향, 즉 positive rotation 에 해당하는 Move.
  */
-private fun yAxisMove(layer: Int, dragPositive: Boolean, face: FaceDef): Move {
-    // F face에서 rightward drag → U CW (layer=-1, dp=true)
-    // 각 face마다 "오른쪽" 드래그의 U-layer 방향이 다를 수 있으므로 face.right.x 부호로 보정
-    val rightIsPositiveX = face.right.x > 0f || face.right.z < 0f  // F,U / R 방향
-    val effectiveCw = if (rightIsPositiveX) dragPositive else !dragPositive
-
-    return when (layer) {
-        -1 -> if (effectiveCw) Move.U       else Move.U_PRIME
-         0 -> if (effectiveCw) Move.E_PRIME else Move.E       // E는 D 기준이라 방향 반전
-         1 -> if (effectiveCw) Move.D_PRIME else Move.D
-        else -> if (effectiveCw) Move.U else Move.U_PRIME
+private fun commitMove(axis: RotAxis, layer: Int, positiveVisual: Boolean): Move = when (axis) {
+    RotAxis.Y -> when (layer) {
+        -1   -> if (positiveVisual) Move.U       else Move.U_PRIME
+         0   -> if (positiveVisual) Move.E_PRIME else Move.E
+        else -> if (positiveVisual) Move.D_PRIME else Move.D
     }
-}
-
-/**
- * X축 슬라이스 (L / M / R)
- * layer: x ≈ -1 → L, x ≈ 0 → M, x ≈ +1 → R
- */
-private fun xAxisMove(layer: Int, dragPositive: Boolean, face: FaceDef): Move {
-    // F face에서 downward drag → R CW (layer=+1, dp=true)
-    val downIsPositiveY = face.down.y > 0f
-    val effectiveCw = if (downIsPositiveY) dragPositive else !dragPositive
-
-    return when (layer) {
-        -1 -> if (effectiveCw) Move.L_PRIME else Move.L
-         0 -> if (effectiveCw) Move.M       else Move.M_PRIME
-         1 -> if (effectiveCw) Move.R       else Move.R_PRIME
-        else -> if (effectiveCw) Move.R else Move.R_PRIME
+    RotAxis.X -> when (layer) {
+        -1   -> if (positiveVisual) Move.L_PRIME else Move.L
+         0   -> if (positiveVisual) Move.M_PRIME else Move.M
+        else -> if (positiveVisual) Move.R       else Move.R_PRIME
     }
-}
-
-/**
- * Z축 슬라이스 (B / S / F)
- * layer: z ≈ -1 → B, z ≈ 0 → S, z ≈ +1 → F
- */
-private fun zAxisMove(layer: Int, dragPositive: Boolean, face: FaceDef): Move {
-    // U face에서 rightward drag → F layer (layer=+1)
-    val rightIsPositiveX = face.right.x > 0f
-    val downIsPositiveZ  = face.down.z  > 0f
-    // 어느 쪽 드래그인지에 따라 기준 방향 결정
-    val effectiveCw = when {
-        face.down.z  != 0f -> if (rightIsPositiveX == dragPositive) true else false  // U face row drag
-        face.right.z != 0f -> if (downIsPositiveZ  == dragPositive) true else false  // R/L face col drag
-        else               -> dragPositive
-    }
-
-    return when (layer) {
-        -1 -> if (effectiveCw) Move.B_PRIME else Move.B
-         0 -> if (effectiveCw) Move.S       else Move.S_PRIME
-         1 -> if (effectiveCw) Move.F       else Move.F_PRIME
-        else -> if (effectiveCw) Move.F else Move.F_PRIME
+    RotAxis.Z -> when (layer) {
+        -1   -> if (positiveVisual) Move.B_PRIME else Move.B
+         0   -> if (positiveVisual) Move.S       else Move.S_PRIME
+        else -> if (positiveVisual) Move.F       else Move.F_PRIME
     }
 }
 
@@ -432,8 +368,8 @@ private fun DrawScope.drawCube(
 
     // 드래그 중 레이어 사전 회전 행렬 (cube-space에서 적용)
     val layerRotMat: FloatArray? = layerDrag?.let { drag ->
-        val angle = drag.angleRad * drag.layerInfo.visualSign
-        when (drag.layerInfo.axis) {
+        val angle = drag.angleRad * drag.directionSign
+        when (drag.axis) {
             RotAxis.X -> matRotX(angle)
             RotAxis.Y -> matRotY(angle)
             RotAxis.Z -> matRotZ(angle)
@@ -466,7 +402,7 @@ private fun DrawScope.drawCube(
         val faceStickers = stickers[face.idx] ?: continue
 
         for (q in faceStickers) {
-            val inDragLayer = layerDrag != null && q.isInLayer(layerDrag.layerInfo)
+            val inDragLayer = layerDrag != null && q.isInLayer(layerDrag)
 
             // 이 스티커가 속한 면의 법선 → 레이어 회전 적용 후 카메라 방향인지 체크
             val faceNormal = if (inDragLayer && layerRotMat != null)
@@ -612,8 +548,8 @@ fun CubeRenderer(
                                 if (abs(totalDrag.x) >= LAYER_DRAG_THRESHOLD_PX ||
                                     abs(totalDrag.y) >= LAYER_DRAG_THRESHOLD_PX
                                 ) {
-                                    val move = gestureToMove(hit, totalDrag, rotMatrix)
-                                    if (move != null) {
+                                    val setup = gestureToDrag(hit, totalDrag, rotMatrix)
+                                    if (setup != null) {
                                         // 주 드래그 축 결정 (face 로컬 좌표 기반 내적)
                                         val face = FACE_DEFS[hit.faceIdx]
                                         val fRight2 = face.right.transform(rotMatrix).let { Offset(it.x, it.y) }
@@ -622,9 +558,10 @@ fun CubeRenderer(
                                         dominantAxisWasRight = abs(dotOf(totalDrag, fRight2)) >= abs(dotOf(totalDrag, fDown2))
 
                                         layerDrag = LayerDragState(
-                                            move      = move,
-                                            layerInfo = move.toLayerInfo(),
-                                            angleRad  = 0f,
+                                            axis          = setup.axis,
+                                            layer         = setup.layer,
+                                            directionSign = setup.directionSign,
+                                            angleRad      = 0f,
                                         )
                                     }
                                 }
@@ -670,7 +607,9 @@ fun CubeRenderer(
                             layerDrag        = null
                             highlightedCubie = null
                             if (shouldCommit) {
-                                onLayerRotate(finalDrag.move)
+                                val visualAngle = snapTarget * finalDrag.directionSign
+                                val move = commitMove(finalDrag.axis, finalDrag.layer, visualAngle > 0f)
+                                onLayerRotate(move)
                             }
                         }
                     } else {
