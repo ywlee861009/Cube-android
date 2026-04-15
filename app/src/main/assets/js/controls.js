@@ -75,13 +75,14 @@ function initLayerRotation(cubie, normal, dx, dy) {
     const s2 = p2.project(camera);
     
     moveDirNDC.set(s2.x - s1.x, s2.y - s1.y).normalize();
-    startPointNDC.set(s1.x, s1.y);
+    // 터치 시작 위치 NDC를 기준점으로 사용 (큐브 중심 대신)
+    startPointNDC.set((startX / window.innerWidth) * 2 - 1, -(startY / window.innerHeight) * 2 + 1);
 
     // 4. 레이어 그룹화 (cx, cy, cz 사용)
     rotationGroup = new THREE.Group();
     cubieGroup.add(rotationGroup);
     cubies.forEach(c => {
-      if (c.userData['c' + axisLetter] === slice) rotationGroup.add(c.mesh);
+      if (c['c' + axisLetter] === slice) rotationGroup.add(c.mesh);
     });
     return true;
   } catch (e) {
