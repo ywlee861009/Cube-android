@@ -211,7 +211,7 @@ fun CubeRenderer(
                         val event = awaitPointerEvent()
                         val delta = event.changes.firstOrNull()?.positionChange() ?: break
                         rotation = rotation.copy(
-                            rotationX = (rotation.rotationX - delta.y * 0.4f).coerceIn(-90f, 90f),
+                            rotationX = rotation.rotationX - delta.y * 0.4f,
                             rotationY = rotation.rotationY + delta.x * 0.4f,
                         )
                         event.changes.forEach { it.consume() }
