@@ -52,12 +52,21 @@ class CubeLogicImpl : CubeLogic {
             Move.B       -> applyB(next)
             Move.B_PRIME -> repeat(3) { applyB(next) }
             Move.B2      -> repeat(2) { applyB(next) }
+            Move.M       -> applyM(next)
+            Move.M_PRIME -> repeat(3) { applyM(next) }
+            Move.M2      -> repeat(2) { applyM(next) }
+            Move.E       -> applyE(next)
+            Move.E_PRIME -> repeat(3) { applyE(next) }
+            Move.E2      -> repeat(2) { applyE(next) }
+            Move.S       -> applyS(next)
+            Move.S_PRIME -> repeat(3) { applyS(next) }
+            Move.S2      -> repeat(2) { applyS(next) }
         }
         return DomainCubeState(next)
     }
 
     override fun shuffle(state: DomainCubeState, moveCount: Int): Pair<DomainCubeState, List<Move>> {
-        val allMoves = Move.entries
+        val allMoves = Move.entries.filter { it.name[0] !in setOf('M', 'E', 'S') }
         val moves = mutableListOf<Move>()
         var current = state
         var lastMove: Move? = null
@@ -137,6 +146,39 @@ class CubeLogicImpl : CubeLogic {
             36, 39, 42,   // L left col
             33, 34, 35,   // D bottom row
             17, 14, 11,   // R right col reversed
+        )
+    }
+
+    // M: L/R 사이 중간 세로 슬라이스, L 방향 기준
+    // U[1,4,7] → F[1,4,7] → D[1,4,7] → B[7,4,1]  (B는 역순)
+    private fun applyM(f: IntArray) {
+        cycle4(f,
+             1,  4,  7,   // U center col
+            19, 22, 25,   // F center col
+            28, 31, 34,   // D center col
+            52, 49, 46,   // B center col reversed
+        )
+    }
+
+    // E: U/D 사이 중간 가로 슬라이스, D 방향 기준
+    // F[3,4,5] → L[3,4,5] → B[3,4,5] → R[3,4,5]
+    private fun applyE(f: IntArray) {
+        cycle4(f,
+            21, 22, 23,   // F center row
+            39, 40, 41,   // L center row
+            48, 49, 50,   // B center row
+            12, 13, 14,   // R center row
+        )
+    }
+
+    // S: F/B 사이 중간 앞뒤 슬라이스, F 방향 기준
+    // U[3,4,5] → R[1,4,7] → D[5,4,3] → L[7,4,1]
+    private fun applyS(f: IntArray) {
+        cycle4(f,
+             3,  4,  5,   // U center row
+            10, 13, 16,   // R center col
+            32, 31, 30,   // D center row reversed
+            43, 40, 37,   // L center col reversed
         )
     }
 
