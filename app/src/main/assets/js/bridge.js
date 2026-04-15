@@ -5,4 +5,10 @@ window.AndroidCube = {
   shuffle:     ()     => shuffleCube(),
   reset:       ()     => resetCube(),
   getFacelets: ()     => JSON.stringify(facelets),
+  setInsets:   (top, bottom, left, right) => {
+    document.documentElement.style.setProperty('--safe-top', top + 'px');
+    document.documentElement.style.setProperty('--safe-bottom', bottom + 'px');
+    document.documentElement.style.setProperty('--safe-left', left + 'px');
+    document.documentElement.style.setProperty('--safe-right', right + 'px');
+  }
 };

@@ -5,11 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Cube</title>
   <style>
+    :root {
+      --safe-top: 0px;
+      --safe-bottom: 0px;
+      --safe-left: 0px;
+      --safe-right: 0px;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #111; overflow: hidden; font-family: sans-serif; }
     canvas { display: block; }
     #ui {
-      position: fixed; bottom: 40px; left: 0; right: 0;
+      position: fixed; 
+      bottom: calc(40px + var(--safe-bottom)); 
+      left: var(--safe-left); 
+      right: var(--safe-right);
       display: flex; justify-content: center; gap: 16px;
     }
     button {
@@ -20,7 +29,10 @@
     }
     button:active { background: rgba(255,255,255,0.3); }
     #moves {
-      position: fixed; top: 20px; left: 0; right: 0;
+      position: fixed; 
+      top: calc(20px + var(--safe-top)); 
+      left: var(--safe-left); 
+      right: var(--safe-right);
       text-align: center; color: rgba(255,255,255,0.6); font-size: 14px;
     }
   </style>
