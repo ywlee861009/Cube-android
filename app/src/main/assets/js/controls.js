@@ -65,11 +65,11 @@ function initLayerRotation(screenDx, screenDy) {
   // 슬라이스 & 무브 결정 (mesh.userData = {cx, cy, cz})
   const sliceKey = 'c' + layerAxisName;
   const slice = hitMesh.userData[sliceKey];
-  if (slice === undefined || slice === 0) return false;
+  if (slice === undefined) return false;
 
-  if      (layerAxisName === 'y') layerMoveBase = slice > 0 ? 'U' : 'D';
-  else if (layerAxisName === 'x') layerMoveBase = slice > 0 ? 'R' : 'L';
-  else                            layerMoveBase = slice > 0 ? 'F' : 'B';
+  if      (layerAxisName === 'y') layerMoveBase = slice > 0 ? 'U' : slice < 0 ? 'D' : 'E';
+  else if (layerAxisName === 'x') layerMoveBase = slice > 0 ? 'R' : slice < 0 ? 'L' : 'M';
+  else                            layerMoveBase = slice > 0 ? 'F' : slice < 0 ? 'B' : 'S';
 
   // 회전 방향 부호
   layerSign = rotAxisVec[layerAxisName] > 0 ? 1 : -1;
@@ -99,7 +99,8 @@ function finishLayerRotation() {
     // Three.js: 양의 회전 = +축 방향에서 봤을 때 CCW
     // U/R/F = CW from outside = 음의 회전(snaps<0) → base move
     // D/L/B = CW from outside = 양의 회전(snaps>0) → base move
-    const isURF = ['U', 'R', 'F'].includes(layerMoveBase);
+    // S는 F방향(양의 z = CCW) → U/R/F/S 그룹
+    const isURF = ['U', 'R', 'F', 'S'].includes(layerMoveBase);
     const needsPrime = isURF ? snaps > 0 : snaps < 0;
     const moveName = layerMoveBase + (needsPrime ? "'" : "");
     for (let i = 0; i < Math.abs(snaps); i++) applyMove(moveName);
