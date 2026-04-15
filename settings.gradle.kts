@@ -21,7 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "Cube"
 include(":app")
-include(":feature-cube")
-include(":core-display")
-include(":core-domain")
-include(":core-solver")
