@@ -15,8 +15,6 @@ data class DomainCubeState(
 ) {
     fun isSolved(): Boolean = facelets.contentEquals(solvedFacelets())
 
-    fun copy(facelets: IntArray = this.facelets.copyOf()) = DomainCubeState(facelets)
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is DomainCubeState) return false
