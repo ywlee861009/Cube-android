@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.metrex.cube.feature.cube.CubeScreen
 import com.metrex.cube.ui.theme.CubeTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -14,7 +15,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CubeTheme {
-                CubeApp()
+                CubeScreen()
             }
         }
     }
