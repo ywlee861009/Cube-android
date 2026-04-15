@@ -546,12 +546,15 @@ fun CubeRenderer(
                 var animJob: Job? = null
 
                 awaitEachGesture {
-                    // 새 제스처 시작 전 이전 애니메이션 취소 및 상태 초기화
+                    val down = awaitFirstDown()
+
+                    // awaitFirstDown() 이후에 취소해야 함:
+                    // awaitEachGesture는 block() 리턴 후 잔여 이벤트를 소비하며 즉시 재진입하기 때문에,
+                    // awaitFirstDown() 전에 cancel()하면 방금 launch한 스냅 애니메이션이 즉시 취소됨.
                     animJob?.cancel()
                     animJob = null
                     layerDrag = null
 
-                    val down = awaitFirstDown()
                     val touchPt = down.position
 
                     val (w, h) = canvasSize
@@ -631,6 +634,7 @@ fun CubeRenderer(
                     if (finalDrag != null) {
                         val angle = finalDrag.angleRad
                         val halfPi = PI.toFloat() / 2f
+                        // 50% 기준: 45° 이상이면 90°까지 완주, 미만이면 원위치 복귀
                         val snapTarget = if (abs(angle) >= halfPi / 2f) halfPi * sign(angle) else 0f
                         val shouldCommit = abs(snapTarget) > 0.01f
 
