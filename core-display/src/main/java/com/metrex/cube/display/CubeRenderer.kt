@@ -485,12 +485,22 @@ fun CubeRenderer(
     onLayerRotate: (Move) -> Unit = {},
 ) {
     var rotMatrix by remember { mutableStateOf(defaultRotMatrix()) }
-    val stickers   = remember(cubeState) { buildStickers(cubeState.facelets) }
 
     var canvasSize by remember { mutableStateOf(Pair(0f, 0f)) }
     var highlightedCubie by remember { mutableStateOf<CubieKey?>(null) }
     var layerDrag        by remember { mutableStateOf<LayerDragState?>(null) }
+    var awaitingCommit   by remember { mutableStateOf(false) }
     val coroutineScope   = rememberCoroutineScope()
+
+    // cubeState 갱신 시 stickers 재생성 + 커밋 대기 중이면 layerDrag 동시 해제 (깜빡임 방지)
+    val stickers = remember(cubeState) {
+        if (awaitingCommit) {
+            layerDrag = null
+            highlightedCubie = null
+            awaitingCommit = false
+        }
+        buildStickers(cubeState.facelets)
+    }
 
     Canvas(
         modifier = modifier
@@ -508,6 +518,7 @@ fun CubeRenderer(
                     // awaitFirstDown() 전에 cancel()하면 방금 launch한 스냅 애니메이션이 즉시 취소됨.
                     animJob?.cancel()
                     animJob = null
+                    awaitingCommit = false
                     layerDrag = null
 
                     val touchPt = down.position
@@ -604,12 +615,15 @@ fun CubeRenderer(
                                 layerDrag = finalDrag.copy(angleRad = value)
                             }
                             // 스냅 완료 후: Move 커밋 및 상태 초기화
-                            layerDrag        = null
-                            highlightedCubie = null
                             if (shouldCommit) {
                                 val visualAngle = snapTarget * finalDrag.directionSign
                                 val move = commitMove(finalDrag.axis, finalDrag.layer, visualAngle > 0f)
+                                awaitingCommit = true
                                 onLayerRotate(move)
+                                // layerDrag는 cubeState 갱신 시 자동 해제 (깜빡임 방지)
+                            } else {
+                                layerDrag        = null
+                                highlightedCubie = null
                             }
                         }
                     } else {
