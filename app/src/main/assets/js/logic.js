@@ -37,6 +37,8 @@ const MOVES = {
 const ALL_MOVES = ['U',"U'","U2",'R',"R'","R2",'F',"F'","F2",'D',"D'","D2",'L',"L'","L2",'B',"B'",'B2'];
 
 function applyMoveInPlace(name, f) {
+  console.log(`[LOGIC] Applying move: ${name}`);
+  const before = [...f];
   if (name.endsWith("'")) {
     const base = name[0]; repeat(3, () => MOVES[base](f));
   } else if (name.endsWith('2')) {
@@ -44,4 +46,7 @@ function applyMoveInPlace(name, f) {
   } else {
     MOVES[name](f);
   }
+  console.log(`[LOGIC] Move ${name} finished. Changes:`, 
+    f.map((val, i) => val !== before[i] ? `${i}:${before[i]}->${val}` : null).filter(x => x)
+  );
 }

@@ -25,13 +25,15 @@ function findCubie(cx, cy, cz) {
 
 // ─── facelets → cubie 색상 적용 ────────────────────────────────────────────
 function applyFacelets() {
+  console.log(`[CUBIES] applyFacelets started. Facelets:`, facelets.join(','));
   cubies.forEach(({ mesh }) => {
     for (let i = 0; i < 6; i++) mesh.material[i].color.set(0x111111);
   });
 
   FACE_DEFS.forEach((faceDef, faceIdx) => {
     faceDef.slots.forEach((slot, pos) => {
-      const colorIdx = facelets[faceIdx * 9 + pos];
+      const faceletIdx = faceIdx * 9 + pos;
+      const colorIdx = facelets[faceletIdx];
       let cx, cy, cz;
       if (faceDef.fixedAxis === 'y') {
         cy = faceDef.fixedVal; cx = slot[0]; cz = slot[1];
@@ -41,7 +43,13 @@ function applyFacelets() {
         cz = faceDef.fixedVal; cx = slot[0]; cy = slot[1];
       }
       const cubie = findCubie(cx, cy, cz);
-      if (cubie) cubie.mesh.material[faceDef.matIdx].color.set(FACE_COLORS[colorIdx]);
+      if (cubie) {
+        // console.log(`[CUBIES] faceletIdx ${faceletIdx} -> cubie(${cx},${cy},${cz}) face ${faceDef.matIdx} color ${FACE_COLORS[colorIdx]}`);
+        cubie.mesh.material[faceDef.matIdx].color.set(FACE_COLORS[colorIdx]);
+      } else {
+        console.error(`[CUBIES] cubie not found at (${cx},${cy},${cz})`);
+      }
     });
   });
+  console.log(`[CUBIES] applyFacelets finished.`);
 }
