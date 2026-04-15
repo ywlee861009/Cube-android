@@ -9,17 +9,12 @@ function setMoveCount(n) {
 
 // ─── 단일 무브 적용 ────────────────────────────────────────────────────────
 function applyMove(name) {
-  console.log(`[ACTIONS] applyMove("${name}") called. Current moveCount: ${moveCount}`);
   const f = [...facelets];
-  if (!name || (!MOVES[name[0]])) {
-    console.error(`[ACTIONS] Invalid move name: ${name}`);
-    return;
-  }
+  if (!name || (!MOVES[name[0]])) return;
   applyMoveInPlace(name, f);
   facelets = f;
   setMoveCount(moveCount + 1);
   applyFacelets();
-  console.log(`[ACTIONS] applyMove("${name}") finished.`);
 }
 
 // ─── 셔플 ──────────────────────────────────────────────────────────────────
