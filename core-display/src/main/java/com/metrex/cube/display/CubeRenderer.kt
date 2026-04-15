@@ -41,19 +41,6 @@ private fun Vec3.project(scale: Float, camZ: Float, cx: Float, cy: Float): Offse
 
 // ── 면 정의 ──────────────────────────────────────────────────────────────────
 // 큐브는 각 축 -1.5 ~ +1.5 (총 3 단위). 스티커 간격 = 1 단위.
-//
-// origin = sticker[row=0, col=0] 의 3D 중심 (면 외부에서 바라봤을 때 좌상단)
-// right  = col 증가 방향 (단위 벡터)
-// down   = row 증가 방향 (단위 벡터)
-// normal = 면 외부 법선벡터
-//
-// 면별 sticker 인접 관계 (CubeLogicImpl TODO 주석과 일치):
-//   U CW : F[0,1,2]→R[0,1,2]→B[0,1,2]→L[0,1,2]
-//   R CW : U[2,5,8]→B[6,3,0]→D[2,5,8]→F[2,5,8]
-//   F CW : U[6,7,8]→R[0,3,6]→D[2,1,0]→L[8,5,2]
-//   D CW : F[6,7,8]→L[6,7,8]→B[6,7,8]→R[6,7,8]  (아래서 CW = 위서 CCW)
-//   L CW : U[0,3,6]→F[0,3,6]→D[0,3,6]→B[8,5,2]
-//   B CW : U[2,1,0]→L[0,3,6]→D[6,7,8]→R[8,5,2]
 
 private data class FaceDef(
     val idx: Int, val origin: Vec3, val right: Vec3, val down: Vec3, val normal: Vec3,
@@ -62,7 +49,7 @@ private data class FaceDef(
 private val FACE_DEFS = listOf(
     // U (0): y=-1.5, 위에서 내려다봄. row→+z(F쪽), col→+x(R쪽)
     FaceDef(0, Vec3(-1f, -1.5f, -1f), Vec3( 1f, 0f,  0f), Vec3(0f, 0f,  1f), Vec3( 0f,-1f, 0f)),
-    // R (1): x=+1.5, 오른쪽에서 봄. col→-z(B쪽), row→+y(D쪽)
+    // R (1): x=+1.5, 오른쪽에서 봄.  col→-z(B쪽), row→+y(D쪽)
     FaceDef(1, Vec3( 1.5f,-1f,  1f), Vec3( 0f, 0f, -1f), Vec3(0f, 1f,  0f), Vec3( 1f, 0f, 0f)),
     // F (2): z=+1.5, 정면에서 봄.   col→+x(R쪽), row→+y(D쪽)
     FaceDef(2, Vec3(-1f, -1f,  1.5f), Vec3( 1f, 0f,  0f), Vec3(0f, 1f,  0f), Vec3( 0f, 0f, 1f)),
@@ -70,9 +57,14 @@ private val FACE_DEFS = listOf(
     FaceDef(3, Vec3(-1f,  1.5f, 1f), Vec3( 1f, 0f,  0f), Vec3(0f, 0f, -1f), Vec3( 0f, 1f, 0f)),
     // L (4): x=-1.5, 왼쪽에서 봄.  col→+z(F쪽), row→+y(D쪽)
     FaceDef(4, Vec3(-1.5f,-1f, -1f), Vec3( 0f, 0f,  1f), Vec3(0f, 1f,  0f), Vec3(-1f, 0f, 0f)),
-    // B (5): z=-1.5, 뒤에서 봄.    col→-x(L쪽), row→+y(D쪽)
+    // B (5): z=-1.5, 뒤에서 봄.   col→-x(L쪽), row→+y(D쪽)
     FaceDef(5, Vec3( 1f, -1f, -1.5f), Vec3(-1f, 0f,  0f), Vec3(0f, 1f,  0f), Vec3( 0f, 0f,-1f)),
 )
+
+// 각 면의 3D 중심 (sticker grid 중앙 = row=1, col=1 위치)
+private val FACE_CENTERS: List<Vec3> = FACE_DEFS.map { f ->
+    f.origin + f.right * 1f + f.down * 1f
+}
 
 // ── 색상 매핑 (CubeColor.argb 기준) ─────────────────────────────────────────
 
@@ -85,19 +77,19 @@ private val STICKER_COLORS = arrayOf(
     Color(0xFF0046AD), // 5 = B = Blue
 )
 
-// ── 스티커 쿼드 ───────────────────────────────────────────────────────────────
+// ── 스티커 데이터 ─────────────────────────────────────────────────────────────
 
 private class StickerQuad(val color: Color, val corners: Array<Vec3>)
 
-private class Proj(val color: Color, val pts: Array<Offset>, val avgZ: Float)
-
 /**
- * 현재 큐브 상태([facelets])로부터 54개의 스티커 3D 사각형을 생성한다.
- * [halfSize]: 스티커 반변 길이 (간격 포함 0.5에서 약간 줄임).
+ * 면별로 9개 스티커 quad를 생성한다.
+ * [halfSize] = 스티커 중심에서 모서리까지의 거리 (단위: cube unit).
+ * 스티커 간격 = 1.0 unit이므로 gap = 1.0 - 2*halfSize.
+ * halfSize=0.46 → gap=0.08 (검은 배경이 보이는 얇은 테두리).
  */
-private fun buildStickers(facelets: IntArray, halfSize: Float = 0.42f): List<StickerQuad> =
-    buildList {
-        for (face in FACE_DEFS) {
+private fun buildStickers(facelets: IntArray, halfSize: Float = 0.46f): Map<Int, List<StickerQuad>> =
+    FACE_DEFS.associate { face ->
+        face.idx to buildList {
             for (row in 0..2) {
                 for (col in 0..2) {
                     val color = STICKER_COLORS[facelets[face.idx * 9 + row * 3 + col]]
@@ -107,19 +99,35 @@ private fun buildStickers(facelets: IntArray, halfSize: Float = 0.42f): List<Sti
                     val r = face.right * halfSize
                     val d = face.down  * halfSize
                     add(StickerQuad(color, arrayOf(
-                        center + r * -1f + d * -1f, // 좌상
-                        center + r *  1f + d * -1f, // 우상
-                        center + r *  1f + d *  1f, // 우하
-                        center + r * -1f + d *  1f, // 좌하
+                        center + r * -1f + d * -1f,
+                        center + r *  1f + d * -1f,
+                        center + r *  1f + d *  1f,
+                        center + r * -1f + d *  1f,
                     )))
                 }
             }
         }
     }
 
+/** 면 전체를 덮는 검은 배경 quad의 4 꼭짓점 (halfSize=1.5 → 스티커 외곽까지 커버). */
+private fun faceBackgroundCorners(face: FaceDef): Array<Vec3> {
+    val center = FACE_CENTERS[face.idx]
+    val r = face.right * 1.5f
+    val d = face.down  * 1.5f
+    return arrayOf(
+        center + r * -1f + d * -1f,
+        center + r *  1f + d * -1f,
+        center + r *  1f + d *  1f,
+        center + r * -1f + d *  1f,
+    )
+}
+
 // ── 렌더링 ────────────────────────────────────────────────────────────────────
 
-private fun DrawScope.drawCube(stickers: List<StickerQuad>, rotation: RotationState) {
+private fun DrawScope.drawCube(
+    stickers: Map<Int, List<StickerQuad>>,
+    rotation: RotationState,
+) {
     val toRad = (PI / 180.0).toFloat()
     val sX = sin(rotation.rotationX * toRad)
     val cX = cos(rotation.rotationX * toRad)
@@ -131,36 +139,42 @@ private fun DrawScope.drawCube(stickers: List<StickerQuad>, rotation: RotationSt
     val cx    = size.width  / 2f
     val cy    = size.height / 2f
 
-    // 1) 회전 · 투영
-    val projected = stickers.map { q ->
-        val rot = Array(4) { q.corners[it].rotX(sX, cX).rotY(sY, cY) }
-        val avgZ = (rot[0].z + rot[1].z + rot[2].z + rot[3].z) / 4f
-        Proj(q.color, Array(4) { rot[it].project(scale, camZ, cx, cy) }, avgZ)
-    }
+    // 로컬 확장 함수: 회전 · 투영
+    fun Vec3.rot()  = rotX(sX, cX).rotY(sY, cY)
+    fun Vec3.proj() = project(scale, camZ, cx, cy)
 
-    // 2) Painter's algorithm: Z 오름차순 (뒤→앞)
-    val sorted = projected.sortedBy { it.avgZ }
+    // ① 백페이스 컬링: 법선 Z > 0 인 면만 표시
+    //    (카메라 방향으로 향하는 면만 렌더링 → 뒷면 완전히 제거)
+    val visibleFaces = FACE_DEFS
+        .filter { face -> face.normal.rot().z > 0f }
+        .sortedBy  { face -> FACE_CENTERS[face.idx].rot().z }  // 뒤→앞 순서
 
     val path = Path()
-    for (p in sorted) {
-        // 검은 테두리: 쿼드 전체를 검정으로
+
+    for (face in visibleFaces) {
+        // ② 검은 배경: 면 전체를 먼저 채워 스티커 틈새가 보이지 않게 한다
+        val bgProj = faceBackgroundCorners(face).map { it.rot().proj() }
         path.reset()
-        path.moveTo(p.pts[0].x, p.pts[0].y)
-        for (i in 1..3) path.lineTo(p.pts[i].x, p.pts[i].y)
+        path.moveTo(bgProj[0].x, bgProj[0].y)
+        for (i in 1..3) path.lineTo(bgProj[i].x, bgProj[i].y)
         path.close()
         drawPath(path, Color.Black)
 
-        // 스티커 색: 중심 기준 88% 축소 (검은 테두리 노출)
-        val qcx = (p.pts[0].x + p.pts[1].x + p.pts[2].x + p.pts[3].x) / 4f
-        val qcy = (p.pts[0].y + p.pts[1].y + p.pts[2].y + p.pts[3].y) / 4f
-        path.reset()
-        for (i in 0..3) {
-            val px = qcx + (p.pts[i].x - qcx) * 0.88f
-            val py = qcy + (p.pts[i].y - qcy) * 0.88f
-            if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
+        // ③ 스티커: Z 오름차순 정렬 후 면 색상 그리기
+        val faceStickers = stickers[face.idx] ?: continue
+        val sorted = faceStickers.map { q ->
+            val rot = Array(4) { q.corners[it].rot() }
+            val avgZ = (rot[0].z + rot[1].z + rot[2].z + rot[3].z) / 4f
+            Triple(q.color, Array(4) { rot[it].proj() }, avgZ)
+        }.sortedBy { it.third }
+
+        for ((color, pts, _) in sorted) {
+            path.reset()
+            path.moveTo(pts[0].x, pts[0].y)
+            for (i in 1..3) path.lineTo(pts[i].x, pts[i].y)
+            path.close()
+            drawPath(path, color)
         }
-        path.close()
-        drawPath(path, p.color)
     }
 }
 
@@ -169,9 +183,11 @@ private fun DrawScope.drawCube(stickers: List<StickerQuad>, rotation: RotationSt
 /**
  * 전체 큐브를 3D로 렌더링한다.
  *
- * - Canvas에 수동 3D 투영(원근법)으로 6면 × 9 스티커를 그린다.
- * - 드래그로 rotationX/Y를 갱신하여 시점을 변경할 수 있다.
- * - Painter's algorithm으로 깊이 정렬 → Z-fighting 없이 올바른 면 노출.
+ * ## 렌더링 전략
+ * - 백페이스 컬링: 카메라를 향하는 3개 면만 렌더링 (뒷면 완전 제거)
+ * - 면 배경: 각 면을 검은색으로 먼저 채워 스티커 틈새 투과 차단
+ * - 스티커: halfSize=0.46 (gap=0.08), 검은 배경이 얇은 테두리로 보임
+ * - 면 순서: 뒤→앞 (Painter's algorithm, 면 단위)
  *
  * TODO(Phase 3): 레이어 스와이프 감지 → [onLayerRotate] 콜백 연결
  * TODO(Phase 4): Fling + Animatable 스냅 애니메이션
