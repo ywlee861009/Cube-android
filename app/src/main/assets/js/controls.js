@@ -1,180 +1,197 @@
+// ─── 레이캐스터 & 상수 ─────────────────────────────────────────────────────────
 const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-
-// ─── 상태 ──────────────────────────────────────────────────────────────────
-let isDragging = false;
-let dragMode = null; // 'view' or 'layer'
-let viewRotationAxis = null; // 'x' or 'y'
-let startX = 0, startY = 0;
-let prevX = 0, prevY = 0;
-
-let startCubie = null;
-let startNormal = null;
-let startPointNDC = new THREE.Vector2();
-let moveDirNDC = new THREE.Vector2();
-let rotationAxisName = null; 
-let rotationGroup = null;
-let currentMoveBase = null; 
-let totalAngle = 0;
-let moveDirNDC_local = new THREE.Vector3();
-
 const CAM_MIN = 4, CAM_MAX = 20;
+
+// ─── 터치 상태 ────────────────────────────────────────────────────────────────
+let touchStartX = 0, touchStartY = 0, prevX = 0, prevY = 0;
+let dragMode = null;      // null | 'layer' | 'view' | 'pinch'
+let hitMesh   = null;
+let hitNormal = null;     // 큐브 로컬 공간의 면 법선
 let prevPinchDist = null;
 
-function getTouchDist(touches) {
-  const dx = touches[0].clientX - touches[1].clientX;
-  const dy = touches[0].clientY - touches[1].clientY;
-  return Math.hypot(dx, dy);
+// 레이어 회전 상태
+let layerGroup    = null;
+let layerAxisName = null; // 'x' | 'y' | 'z'
+let layerMoveBase = null; // 'U' | 'D' | 'R' | 'L' | 'F' | 'B'
+let layerSign     = 1;
+let layerAngle    = 0;
+const moveDirNDC  = new THREE.Vector2();
+
+// ─── 유틸 ─────────────────────────────────────────────────────────────────────
+function toNDC(px, py) {
+  return new THREE.Vector2(
+     px / window.innerWidth  * 2 - 1,
+    -py / window.innerHeight * 2 + 1
+  );
 }
 
-function getIntersect(x, y) {
-  mouse.x = (x / window.innerWidth) * 2 - 1;
-  mouse.y = -(y / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(cubieGroup.children);
-  if (intersects.length > 0) {
-    const intersect = intersects[0];
-    return { mesh: intersect.object, normal: intersect.face.normal.clone() };
+function getTouchDist(t) {
+  return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+}
+
+function raycastCubies(px, py) {
+  raycaster.setFromCamera(toNDC(px, py), camera);
+  const hits = raycaster.intersectObjects(cubieGroup.children, true);
+  return hits.length > 0 ? hits[0] : null;
+}
+
+// ─── 레이어 회전 초기화 ────────────────────────────────────────────────────────
+function initLayerRotation(screenDx, screenDy) {
+  if (!hitMesh) return false;
+
+  // 카메라 right / up 벡터 (월드 공간)
+  const camRight = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+  const camUp    = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+
+  // 드래그 방향: 스크린 → 월드 → 큐브 로컬
+  const worldDrag = camRight.clone().multiplyScalar(screenDx)
+                             .addScaledVector(camUp, -screenDy).normalize();
+  const localDrag = worldDrag.clone()
+                             .applyQuaternion(cubieGroup.quaternion.clone().invert())
+                             .normalize();
+
+  // 면 평면에 투영 (법선 성분 제거)
+  const n = hitNormal;
+  const dragOnFace = localDrag.clone()
+                              .sub(n.clone().multiplyScalar(localDrag.dot(n)));
+  if (dragOnFace.length() < 0.01) return false;
+  dragOnFace.normalize();
+
+  // 회전축 = 법선 × 드래그방향
+  const rotAxisVec = new THREE.Vector3().crossVectors(n, dragOnFace);
+  const ax = Math.abs(rotAxisVec.x), ay = Math.abs(rotAxisVec.y), az = Math.abs(rotAxisVec.z);
+  layerAxisName = ax > ay && ax > az ? 'x' : ay > az ? 'y' : 'z';
+
+  // 슬라이스 & 무브 결정 (mesh.userData = {cx, cy, cz})
+  const sliceKey = 'c' + layerAxisName;
+  const slice = hitMesh.userData[sliceKey];
+  if (slice === undefined || slice === 0) return false;
+
+  if      (layerAxisName === 'y') layerMoveBase = slice > 0 ? 'U' : 'D';
+  else if (layerAxisName === 'x') layerMoveBase = slice > 0 ? 'R' : 'L';
+  else                            layerMoveBase = slice > 0 ? 'F' : 'B';
+
+  // 회전 방향 부호
+  layerSign = rotAxisVec[layerAxisName] > 0 ? 1 : -1;
+
+  // 스크린 → 각도 변환용 NDC 방향 벡터
+  cubieGroup.updateMatrixWorld();
+  const wp  = hitMesh.position.clone().applyMatrix4(cubieGroup.matrixWorld).project(camera);
+  const wp2 = hitMesh.position.clone().add(dragOnFace).applyMatrix4(cubieGroup.matrixWorld).project(camera);
+  moveDirNDC.set(wp2.x - wp.x, wp2.y - wp.y).normalize();
+
+  // 해당 슬라이스 큐비들을 임시 그룹으로 묶기
+  layerGroup = new THREE.Group();
+  cubieGroup.add(layerGroup);
+  cubies.forEach(c => {
+    if (c[sliceKey] === slice) layerGroup.add(c.mesh);
+  });
+
+  return true;
+}
+
+// ─── 스냅 & 논리 상태 적용 ─────────────────────────────────────────────────────
+function finishLayerRotation() {
+  if (!layerGroup) return;
+
+  const snaps = Math.round(layerAngle / (Math.PI / 2));
+  if (snaps !== 0) {
+    // Three.js: 양의 회전 = +축 방향에서 봤을 때 CCW
+    // U/R/F = CW from outside = 음의 회전(snaps<0) → base move
+    // D/L/B = CW from outside = 양의 회전(snaps>0) → base move
+    const isURF = ['U', 'R', 'F'].includes(layerMoveBase);
+    const needsPrime = isURF ? snaps > 0 : snaps < 0;
+    const moveName = layerMoveBase + (needsPrime ? "'" : "");
+    for (let i = 0; i < Math.abs(snaps); i++) applyMove(moveName);
   }
-  return null;
+
+  // 큐비들을 원래 그룹으로 복원
+  [...layerGroup.children].forEach(child => {
+    cubieGroup.add(child);
+    child.rotation.set(0, 0, 0);
+    const c = cubies.find(cb => cb.mesh === child);
+    if (c) child.position.set(c.cx * GAP, c.cy * GAP, c.cz * GAP);
+  });
+  cubieGroup.remove(layerGroup);
+  layerGroup = null;
+  applyFacelets();
 }
 
-function initLayerRotation(cubie, normal, dx, dy) {
-  try {
-    totalAngle = 0;
-    // 1. 드래그 방향 결정 (NDC -> World -> Local)
-    const vStart = new THREE.Vector3(startX / window.innerWidth * 2 - 1, -(startY / window.innerHeight) * 2 + 1, 0.5).unproject(camera);
-    const vEnd = new THREE.Vector3((startX + dx) / window.innerWidth * 2 - 1, -((startY + dy) / window.innerHeight) * 2 + 1, 0.5).unproject(camera);
-    const viewDir = vEnd.sub(vStart).normalize();
-    
-    const localDir = viewDir.clone().applyQuaternion(cubieGroup.quaternion.clone().invert());
-    const dragV = localDir.sub(normal.clone().multiplyScalar(localDir.dot(normal))).normalize();
-    moveDirNDC_local.copy(dragV);
-    
-    // 2. 회전축 결정
-    const axisV = new THREE.Vector3().crossVectors(normal, dragV);
-    const absX = Math.abs(axisV.x), absY = Math.abs(axisV.y), absZ = Math.abs(axisV.z);
-    
-    // 주축 결정
-    let axisLetter = absX > absY && absX > absZ ? 'x' : (absY > absZ ? 'y' : 'z');
-    rotationAxisName = axisLetter;
-    
-    // userData 키는 cx, cy, cz로 저장되어 있음
-    const slice = cubie.userData['c' + axisLetter];
-    if (slice === undefined || slice === 0) return false;
-
-    if (axisLetter === 'y') currentMoveBase = (slice === 1 ? 'U' : 'D');
-    else if (axisLetter === 'x') currentMoveBase = (slice === 1 ? 'R' : 'L');
-    else if (axisLetter === 'z') currentMoveBase = (slice === 1 ? 'F' : 'B');
-
-    // 3. NDC 공간 매핑 (드래그 감도용)
-    cubieGroup.updateMatrixWorld();
-    const p1 = cubie.position.clone().applyMatrix4(cubieGroup.matrixWorld);
-    const p2 = cubie.position.clone().add(dragV).applyMatrix4(cubieGroup.matrixWorld);
-    const s1 = p1.project(camera);
-    const s2 = p2.project(camera);
-    
-    moveDirNDC.set(s2.x - s1.x, s2.y - s1.y).normalize();
-    // 터치 시작 위치 NDC를 기준점으로 사용 (큐브 중심 대신)
-    startPointNDC.set((startX / window.innerWidth) * 2 - 1, -(startY / window.innerHeight) * 2 + 1);
-
-    // 4. 레이어 그룹화 (cx, cy, cz 사용)
-    rotationGroup = new THREE.Group();
-    cubieGroup.add(rotationGroup);
-    cubies.forEach(c => {
-      if (c['c' + axisLetter] === slice) rotationGroup.add(c.mesh);
-    });
-    return true;
-  } catch (e) {
-    console.error("initLayerRotation error:", e);
-    return false;
-  }
-}
-
+// ─── touchstart ───────────────────────────────────────────────────────────────
 renderer.domElement.addEventListener('touchstart', e => {
   e.preventDefault();
   if (e.touches.length === 1) {
-    isDragging = true;
+    touchStartX = prevX = e.touches[0].clientX;
+    touchStartY = prevY = e.touches[0].clientY;
     dragMode = null;
-    viewRotationAxis = null;
-    startX = prevX = e.touches[0].clientX;
-    startY = prevY = e.touches[0].clientY;
-    const hit = getIntersect(startX, startY);
+    layerAngle = 0;
+    prevPinchDist = null;
+
+    const hit = raycastCubies(touchStartX, touchStartY);
     if (hit) {
-      startCubie = hit.mesh;
-      startNormal = hit.normal;
+      hitMesh   = hit.object;
+      // face.normal은 mesh 로컬 공간 (= cubieGroup 로컬, mesh 회전 없음)
+      hitNormal = hit.face.normal.clone();
     } else {
-      startCubie = null;
+      hitMesh = null;
     }
   } else if (e.touches.length === 2) {
     prevPinchDist = getTouchDist(e.touches);
   }
 }, { passive: false });
 
+// ─── touchmove ────────────────────────────────────────────────────────────────
 renderer.domElement.addEventListener('touchmove', e => {
   e.preventDefault();
-  if (e.touches.length === 1 && isDragging) {
-    const x = e.touches[0].clientX, y = e.touches[0].clientY;
-    const totalDx = x - startX, totalDy = y - startY;
 
-    if (!dragMode) {
-      if (Math.hypot(totalDx, totalDy) > 8) {
-        if (startCubie && initLayerRotation(startCubie, startNormal, totalDx, totalDy)) {
-          dragMode = 'layer';
-        } else {
-          dragMode = 'view';
-          viewRotationAxis = Math.abs(totalDx) > Math.abs(totalDy) ? 'y' : 'x';
-        }
-      }
-    }
-
-    if (dragMode === 'view') {
-      if (viewRotationAxis === 'y') {
-        cubieGroup.rotation.y += (x - prevX) * 0.01;
-      } else {
-        cubieGroup.rotation.x += (y - prevY) * 0.01;
-      }
-    } else if (dragMode === 'layer' && rotationGroup) {
-      const currentNDC = new THREE.Vector2((x / window.innerWidth) * 2 - 1, -(y / window.innerHeight) * 2 + 1);
-      const dot = currentNDC.sub(startPointNDC).dot(moveDirNDC);
-      
-      const axisV = new THREE.Vector3().crossVectors(startNormal, moveDirNDC_local);
-      const sign = axisV[rotationAxisName] > 0 ? 1 : -1;
-      
-      totalAngle = dot * 4 * sign; 
-      rotationGroup.rotation.set(0, 0, 0);
-      rotationGroup.rotation[rotationAxisName] = totalAngle;
-    }
-    prevX = x; prevY = y;
-  } else if (e.touches.length === 2 && prevPinchDist !== null) {
+  // 핀치 줌
+  if (e.touches.length === 2) {
+    dragMode = 'pinch';
     const dist = getTouchDist(e.touches);
-    camDist *= prevPinchDist / dist;
-    camDist = Math.max(CAM_MIN, Math.min(CAM_MAX, camDist));
-    updateCamera();
+    if (prevPinchDist) {
+      camDist = Math.max(CAM_MIN, Math.min(CAM_MAX, camDist * prevPinchDist / dist));
+      updateCamera();
+    }
     prevPinchDist = dist;
+    return;
   }
+
+  if (e.touches.length !== 1 || dragMode === 'pinch') return;
+  const x = e.touches[0].clientX, y = e.touches[0].clientY;
+
+  // 드래그 모드 결정 (12px 임계값)
+  if (!dragMode) {
+    const dx = x - touchStartX, dy = y - touchStartY;
+    if (Math.hypot(dx, dy) > 12) {
+      dragMode = (hitMesh && initLayerRotation(dx, dy)) ? 'layer' : 'view';
+    }
+  }
+
+  if (dragMode === 'view') {
+    cubieGroup.rotation.y += (x - prevX) * 0.01;
+    cubieGroup.rotation.x += (y - prevY) * 0.01;
+  } else if (dragMode === 'layer' && layerGroup) {
+    const s = toNDC(touchStartX, touchStartY);
+    const c = toNDC(x, y);
+    const progress = new THREE.Vector2(c.x - s.x, c.y - s.y).dot(moveDirNDC);
+    layerAngle = progress * layerSign * Math.PI * 2;
+    layerGroup.rotation.set(0, 0, 0);
+    layerGroup.rotation[layerAxisName] = layerAngle;
+  }
+
+  prevX = x; prevY = y;
 }, { passive: false });
 
-renderer.domElement.addEventListener('touchend', () => {
-  if (dragMode === 'layer' && rotationGroup) {
-    const snaps = Math.round(totalAngle / (Math.PI / 2));
-    if (snaps !== 0) {
-      let reverse = (rotationAxisName === 'y' && currentMoveBase === 'U') ||
-                    (rotationAxisName === 'x' && currentMoveBase === 'R') ||
-                    (rotationAxisName === 'z' && currentMoveBase === 'F');
-      let moveName = currentMoveBase + ( (reverse ? -snaps : snaps) < 0 ? "'" : "" );
-      for(let i=0; i < Math.abs(snaps); i++) applyMove(moveName);
-    }
-    
-    const GAP = 1.04;
-    [...rotationGroup.children].forEach(child => {
-      cubieGroup.add(child);
-      child.rotation.set(0,0,0);
-      const c = cubies.find(cb => cb.mesh === child);
-      if (c) child.position.set(c.cx * GAP, c.cy * GAP, c.cz * GAP);
-    });
-    cubieGroup.remove(rotationGroup);
-    applyFacelets();
+// ─── touchend ─────────────────────────────────────────────────────────────────
+renderer.domElement.addEventListener('touchend', e => {
+  if (dragMode === 'layer') finishLayerRotation();
+
+  if (e.touches.length === 0) {
+    dragMode = null; hitMesh = null; prevPinchDist = null;
+  } else if (e.touches.length === 1) {
+    if (dragMode === 'pinch') dragMode = null;
+    prevX = e.touches[0].clientX;
+    prevY = e.touches[0].clientY;
+    prevPinchDist = null;
   }
-  isDragging = false; dragMode = null; viewRotationAxis = null; rotationGroup = null; startCubie = null;
 });
