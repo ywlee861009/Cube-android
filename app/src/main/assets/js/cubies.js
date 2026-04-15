@@ -11,6 +11,7 @@ for (let cx = -1; cx <= 1; cx++) {
       const mats = Array.from({ length: 6 }, () => blackMat.clone());
       const mesh = new THREE.Mesh(geo, mats);
       mesh.position.set(cx * GAP, cy * GAP, cz * GAP);
+      mesh.userData = { cx, cy, cz };
       cubieGroup.add(mesh);
       cubies.push({ mesh, cx, cy, cz });
     }
