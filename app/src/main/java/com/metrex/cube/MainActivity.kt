@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
         val webView = WebView(this).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
-            backgroundColor = Color.TRANSPARENT
+            setBackgroundColor(Color.TRANSPARENT)
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
