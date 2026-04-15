@@ -58,8 +58,8 @@ fun CubeScreen(
                 CubeRenderer(
                     cubeState = uiState.cubeState,
                     modifier = Modifier.weight(1f),
-                    onLayerRotate = { face, clockwise ->
-                        // TODO(Phase 3): 터치 스와이프에서 감지된 레이어 회전 → Move 변환
+                    onLayerRotate = { move ->
+                        viewModel.processIntent(CubeIntent.RotateLayer(move))
                     },
                 )
             }

@@ -16,9 +16,10 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
-import com.metrex.cube.domain.model.CubeFace
+import com.metrex.cube.domain.model.Move
 import com.metrex.cube.domain.model.DomainCubeState
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -36,22 +37,13 @@ private fun Vec3.project(scale: Float, camZ: Float, cx: Float, cy: Float): Offse
 }
 
 // ── 회전 행렬 (행우선 3×3) ────────────────────────────────────────────────────
-//
-// 저장 형식: FloatArray(9), m[i*3+j] = row i, col j
-// 변환:     v' = M * v  →  v'.x = m[0]*v.x + m[1]*v.y + m[2]*v.z, …
-//
-// 드래그마다 화면(world) 좌표계에서 증분 회전을 앞에서 곱한다:
-//   M_new = Ry(dx) * Rx(dy) * M_current
-// → "위 스와이프 = 항상 위로 회전"이 큐브 방향과 무관하게 유지된다.
 
-/** v' = M * v */
 private fun Vec3.transform(m: FloatArray) = Vec3(
     m[0] * x + m[1] * y + m[2] * z,
     m[3] * x + m[4] * y + m[5] * z,
     m[6] * x + m[7] * y + m[8] * z,
 )
 
-/** A * B (행렬 곱) */
 private fun matMul(a: FloatArray, b: FloatArray): FloatArray {
     val r = FloatArray(9)
     for (i in 0..2) for (j in 0..2) {
@@ -60,81 +52,62 @@ private fun matMul(a: FloatArray, b: FloatArray): FloatArray {
     return r
 }
 
-/** X축 회전 행렬 (라디안) */
 private fun matRotX(rad: Float): FloatArray {
     val s = sin(rad); val c = cos(rad)
     return floatArrayOf(1f, 0f, 0f,   0f, c, -s,   0f, s, c)
 }
 
-/** Y축 회전 행렬 (라디안) */
 private fun matRotY(rad: Float): FloatArray {
     val s = sin(rad); val c = cos(rad)
     return floatArrayOf(c, 0f, s,   0f, 1f, 0f,   -s, 0f, c)
 }
 
-/** 초기 회전: rotX(-25°) 적용 후 rotY(45°) 적용과 동일한 행렬 */
 private fun defaultRotMatrix(): FloatArray {
     val toRad = (PI / 180.0).toFloat()
     return matMul(matRotY(45f * toRad), matRotX(-25f * toRad))
 }
 
 // ── 면 정의 ──────────────────────────────────────────────────────────────────
-// 큐브는 각 축 -1.5 ~ +1.5 (총 3 단위). 스티커 간격 = 1 단위.
 
 private data class FaceDef(
     val idx: Int, val origin: Vec3, val right: Vec3, val down: Vec3, val normal: Vec3,
 )
 
 private val FACE_DEFS = listOf(
-    // U (0): y=-1.5, 위에서 내려다봄. row→+z(F쪽), col→+x(R쪽)
     FaceDef(0, Vec3(-1f, -1.5f, -1f), Vec3( 1f, 0f,  0f), Vec3(0f, 0f,  1f), Vec3( 0f,-1f, 0f)),
-    // R (1): x=+1.5, 오른쪽에서 봄.  col→-z(B쪽), row→+y(D쪽)
     FaceDef(1, Vec3( 1.5f,-1f,  1f), Vec3( 0f, 0f, -1f), Vec3(0f, 1f,  0f), Vec3( 1f, 0f, 0f)),
-    // F (2): z=+1.5, 정면에서 봄.   col→+x(R쪽), row→+y(D쪽)
     FaceDef(2, Vec3(-1f, -1f,  1.5f), Vec3( 1f, 0f,  0f), Vec3(0f, 1f,  0f), Vec3( 0f, 0f, 1f)),
-    // D (3): y=+1.5, 아래에서 봄.  col→+x(R쪽), row→-z(B쪽)
     FaceDef(3, Vec3(-1f,  1.5f, 1f), Vec3( 1f, 0f,  0f), Vec3(0f, 0f, -1f), Vec3( 0f, 1f, 0f)),
-    // L (4): x=-1.5, 왼쪽에서 봄.  col→+z(F쪽), row→+y(D쪽)
     FaceDef(4, Vec3(-1.5f,-1f, -1f), Vec3( 0f, 0f,  1f), Vec3(0f, 1f,  0f), Vec3(-1f, 0f, 0f)),
-    // B (5): z=-1.5, 뒤에서 봄.   col→-x(L쪽), row→+y(D쪽)
     FaceDef(5, Vec3( 1f, -1f, -1.5f), Vec3(-1f, 0f,  0f), Vec3(0f, 1f,  0f), Vec3( 0f, 0f,-1f)),
 )
 
-// 각 면의 3D 중심 (sticker grid 중앙 = row=1, col=1 위치)
 private val FACE_CENTERS: List<Vec3> = FACE_DEFS.map { f ->
     f.origin + f.right * 1f + f.down * 1f
 }
 
-// ── 색상 매핑 (CubeColor.argb 기준) ─────────────────────────────────────────
+// ── 색상 ─────────────────────────────────────────────────────────────────────
 
 private val STICKER_COLORS = arrayOf(
-    Color(0xFFFFFFFF), // 0 = U = White
-    Color(0xFFB71234), // 1 = R = Red
-    Color(0xFF009B48), // 2 = F = Green
-    Color(0xFFFFD500), // 3 = D = Yellow
-    Color(0xFFFF5800), // 4 = L = Orange
-    Color(0xFF0046AD), // 5 = B = Blue
+    Color(0xFFFFFFFF),
+    Color(0xFFB71234),
+    Color(0xFF009B48),
+    Color(0xFFFFD500),
+    Color(0xFFFF5800),
+    Color(0xFF0046AD),
 )
 
 // ── 스티커 데이터 ─────────────────────────────────────────────────────────────
 
 private class StickerQuad(val color: Color, val corners: Array<Vec3>)
 
-/**
- * 면별로 9개 스티커 quad를 생성한다.
- * [halfSize] = 스티커 중심에서 모서리까지의 거리 (단위: cube unit).
- * 스티커 간격 = 1.0 unit이므로 gap = 1.0 - 2*halfSize.
- * halfSize=0.46 → gap=0.08 (검은 배경이 보이는 얇은 테두리).
- */
 private fun buildStickers(facelets: IntArray, halfSize: Float = 0.46f): Map<Int, List<StickerQuad>> =
     FACE_DEFS.associate { face ->
         face.idx to buildList {
             for (row in 0..2) {
                 for (col in 0..2) {
                     val color = STICKER_COLORS[facelets[face.idx * 9 + row * 3 + col]]
-                    val center = face.origin +
-                        face.right * col.toFloat() +
-                        face.down  * row.toFloat()
+                    val center = face.origin + face.right * col.toFloat() + face.down * row.toFloat()
                     val r = face.right * halfSize
                     val d = face.down  * halfSize
                     add(StickerQuad(color, arrayOf(
@@ -148,7 +121,6 @@ private fun buildStickers(facelets: IntArray, halfSize: Float = 0.46f): Map<Int,
         }
     }
 
-/** 면 전체를 덮는 검은 배경 quad의 4 꼭짓점 (halfSize=1.5 → 스티커 외곽까지 커버). */
 private fun faceBackgroundCorners(face: FaceDef): Array<Vec3> {
     val center = FACE_CENTERS[face.idx]
     val r = face.right * 1.5f
@@ -159,6 +131,204 @@ private fun faceBackgroundCorners(face: FaceDef): Array<Vec3> {
         center + r *  1f + d *  1f,
         center + r * -1f + d *  1f,
     )
+}
+
+// ── 히트 테스트 ───────────────────────────────────────────────────────────────
+
+private data class HitResult(val faceIdx: Int, val row: Int, val col: Int)
+
+/** 2D 스크린 좌표 pt 가 볼록 사각형 quad 안에 있는지 검사 (cross product 부호 일치). */
+private fun pointInQuad(pt: Offset, quad: Array<Offset>): Boolean {
+    fun cross(o: Offset, a: Offset, b: Offset) =
+        (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
+    val s0 = cross(quad[0], quad[1], pt) >= 0f
+    val s1 = cross(quad[1], quad[2], pt) >= 0f
+    val s2 = cross(quad[2], quad[3], pt) >= 0f
+    val s3 = cross(quad[3], quad[0], pt) >= 0f
+    return s0 == s1 && s1 == s2 && s2 == s3
+}
+
+/**
+ * 터치 포인트가 어느 스티커 위에 있는지 반환한다.
+ * 앞쪽(z 큰) 면부터 검사해 가장 먼저 히트되는 스티커를 반환.
+ */
+private fun hitTest(
+    pt: Offset,
+    rotMatrix: FloatArray,
+    scale: Float,
+    camZ: Float,
+    cx: Float,
+    cy: Float,
+): HitResult? {
+    fun Vec3.rot()  = transform(rotMatrix)
+    fun Vec3.proj() = project(scale, camZ, cx, cy)
+
+    // 앞→뒤 순서로 정렬된 가시 면만 검사 (뒤집어서 앞쪽 면이 먼저)
+    val visibleFaces = FACE_DEFS
+        .filter { face -> face.normal.rot().z > 0f }
+        .sortedByDescending { face -> FACE_CENTERS[face.idx].rot().z }
+
+    for (face in visibleFaces) {
+        for (row in 0..2) {
+            for (col in 0..2) {
+                val center = face.origin + face.right * col.toFloat() + face.down * row.toFloat()
+                val r = face.right * 0.5f
+                val d = face.down  * 0.5f
+                val quad = arrayOf(
+                    (center + r * -1f + d * -1f).rot().proj(),
+                    (center + r *  1f + d * -1f).rot().proj(),
+                    (center + r *  1f + d *  1f).rot().proj(),
+                    (center + r * -1f + d *  1f).rot().proj(),
+                )
+                if (pointInQuad(pt, quad)) return HitResult(face.idx, row, col)
+            }
+        }
+    }
+    return null
+}
+
+// ── 제스처 → Move 매핑 ───────────────────────────────────────────────────────
+//
+// 스티커 위치(face, row, col) + 드래그 방향(screen dx/dy) → Move
+//
+// 원리:
+//   face.right / face.down 벡터를 회전 행렬로 스크린 좌표로 투영한 뒤,
+//   드래그 벡터가 두 방향 중 어느 쪽에 더 가까운지 판단한다.
+//   - 드래그 ∥ face.right → sticker의 ROW 슬라이스 회전 (axis = face.down 방향)
+//   - 드래그 ∥ face.down  → sticker의 COL 슬라이스 회전 (axis = face.right 방향)
+//
+// 각 face별 ROW 슬라이스(행) 드래그 → y좌표로 레이어 결정:
+//   y ≈ -1 → U, y ≈ 0 → E, y ≈ +1 → D
+//
+// 각 face별 COL 슬라이스(열) 드래그 → x 또는 z 좌표로 레이어 결정:
+//   x ≈ -1 → L, x ≈ 0 → M, x ≈ +1 → R
+//   z ≈ -1 → B, z ≈ 0 → S, z ≈ +1 → F
+
+private fun gestureToMove(
+    hit: HitResult,
+    dragScreen: Offset,       // 스크린 드래그 벡터
+    rotMatrix: FloatArray,
+): Move? {
+    val face = FACE_DEFS[hit.faceIdx]
+
+    // face.right / face.down 을 스크린 2D로 투영 (z 무시)
+    val fRight3 = face.right.transform(rotMatrix)
+    val fDown3  = face.down.transform(rotMatrix)
+    val fRight2 = Offset(fRight3.x, fRight3.y)
+    val fDown2  = Offset(fDown3.x,  fDown3.y)
+
+    // 드래그와의 내적으로 어느 축인지 판단
+    fun dot(a: Offset, b: Offset) = a.x * b.x + a.y * b.y
+    val dotRight = dot(dragScreen, fRight2)
+    val dotDown  = dot(dragScreen, fDown2)
+
+    return if (abs(dotRight) >= abs(dotDown)) {
+        // ── ROW 슬라이스 회전 ─────────────────────────────────────
+        // 어느 y-레이어인지 → 스티커의 cube-space y 좌표
+        val stickerPos = face.origin + face.right * hit.col.toFloat() + face.down * hit.row.toFloat()
+        val posAlongDown = when {
+            face.down.y != 0f -> stickerPos.y   // F,R,L,B: down=(0,±1,0)
+            face.down.z != 0f -> stickerPos.z   // U: down=(0,0,1)
+            else              -> stickerPos.x   // 사용 안 됨
+        }
+        // face.down이 Y인 경우: y ≈ -1→U, 0→E, +1→D
+        // face.down이 Z인 경우(U face): z ≈ -1→B, 0→S, +1→F
+        val posSigned = posAlongDown.roundToLayer() // -1, 0, +1
+        val dragPositive = dotRight > 0f
+
+        if (face.down.y != 0f) {
+            // Y-axis slice: U/E/D
+            yAxisMove(posSigned, dragPositive, face)
+        } else {
+            // Z-axis slice (U face row drag): B/S/F
+            zAxisMove(posSigned, dragPositive, face)
+        }
+
+    } else {
+        // ── COL 슬라이스 회전 ─────────────────────────────────────
+        val stickerPos = face.origin + face.right * hit.col.toFloat() + face.down * hit.row.toFloat()
+        val posAlongRight = when {
+            face.right.x != 0f -> stickerPos.x   // U,F,D,B: right=(±1,0,0)
+            face.right.z != 0f -> stickerPos.z   // R,L: right=(0,0,±1)
+            else               -> stickerPos.y
+        }
+        val posSigned = posAlongRight.roundToLayer()
+        val dragPositive = dotDown > 0f
+
+        if (face.right.x != 0f) {
+            // X-axis slice: L/M/R
+            xAxisMove(posSigned, dragPositive, face)
+        } else {
+            // Z-axis slice (R/L face col drag): B/S/F
+            zAxisMove(posSigned, dragPositive, face)
+        }
+    }
+}
+
+/** cube-space 좌표 (-1.5~+1.5)를 레이어 인덱스 -1/0/+1 로 반올림 */
+private fun Float.roundToLayer(): Int = when {
+    this < -0.5f -> -1
+    this >  0.5f ->  1
+    else         ->  0
+}
+
+/**
+ * Y축 슬라이스 (U / E / D)
+ * layer: y ≈ -1 → U, y ≈ 0 → E, y ≈ +1 → D
+ * dragPositive: face.right 방향으로 드래그 중인지
+ */
+private fun yAxisMove(layer: Int, dragPositive: Boolean, face: FaceDef): Move {
+    // F face에서 rightward drag → U CW (layer=-1, dp=true)
+    // 각 face마다 "오른쪽" 드래그의 U-layer 방향이 다를 수 있으므로 face.right.x 부호로 보정
+    val rightIsPositiveX = face.right.x > 0f || face.right.z < 0f  // F,U / R 방향
+    val effectiveCw = if (rightIsPositiveX) dragPositive else !dragPositive
+
+    return when (layer) {
+        -1 -> if (effectiveCw) Move.U       else Move.U_PRIME
+         0 -> if (effectiveCw) Move.E_PRIME else Move.E       // E는 D 기준이라 방향 반전
+         1 -> if (effectiveCw) Move.D_PRIME else Move.D
+        else -> if (effectiveCw) Move.U else Move.U_PRIME
+    }
+}
+
+/**
+ * X축 슬라이스 (L / M / R)
+ * layer: x ≈ -1 → L, x ≈ 0 → M, x ≈ +1 → R
+ */
+private fun xAxisMove(layer: Int, dragPositive: Boolean, face: FaceDef): Move {
+    // F face에서 downward drag → R CW (layer=+1, dp=true)
+    val downIsPositiveY = face.down.y > 0f
+    val effectiveCw = if (downIsPositiveY) dragPositive else !dragPositive
+
+    return when (layer) {
+        -1 -> if (effectiveCw) Move.L_PRIME else Move.L
+         0 -> if (effectiveCw) Move.M       else Move.M_PRIME
+         1 -> if (effectiveCw) Move.R       else Move.R_PRIME
+        else -> if (effectiveCw) Move.R else Move.R_PRIME
+    }
+}
+
+/**
+ * Z축 슬라이스 (B / S / F)
+ * layer: z ≈ -1 → B, z ≈ 0 → S, z ≈ +1 → F
+ */
+private fun zAxisMove(layer: Int, dragPositive: Boolean, face: FaceDef): Move {
+    // U face에서 rightward drag → F layer (layer=+1)
+    val rightIsPositiveX = face.right.x > 0f
+    val downIsPositiveZ  = face.down.z  > 0f
+    // 어느 쪽 드래그인지에 따라 기준 방향 결정
+    val effectiveCw = when {
+        face.down.z  != 0f -> if (rightIsPositiveX == dragPositive) true else false  // U face row drag
+        face.right.z != 0f -> if (downIsPositiveZ  == dragPositive) true else false  // R/L face col drag
+        else               -> dragPositive
+    }
+
+    return when (layer) {
+        -1 -> if (effectiveCw) Move.B_PRIME else Move.B
+         0 -> if (effectiveCw) Move.S       else Move.S_PRIME
+         1 -> if (effectiveCw) Move.F       else Move.F_PRIME
+        else -> if (effectiveCw) Move.F else Move.F_PRIME
+    }
 }
 
 // ── 렌더링 ────────────────────────────────────────────────────────────────────
@@ -173,20 +343,16 @@ private fun DrawScope.drawCube(
     val cx    = size.width  / 2f
     val cy    = size.height / 2f
 
-    // 로컬 확장 함수: 회전 · 투영
     fun Vec3.rot()  = transform(rotMatrix)
     fun Vec3.proj() = project(scale, camZ, cx, cy)
 
-    // ① 백페이스 컬링: 법선 Z > 0 인 면만 표시
-    //    (카메라 방향으로 향하는 면만 렌더링 → 뒷면 완전히 제거)
     val visibleFaces = FACE_DEFS
         .filter { face -> face.normal.rot().z > 0f }
-        .sortedBy  { face -> FACE_CENTERS[face.idx].rot().z }  // 뒤→앞 순서
+        .sortedBy  { face -> FACE_CENTERS[face.idx].rot().z }
 
     val path = Path()
 
     for (face in visibleFaces) {
-        // ② 검은 배경: 면 전체를 먼저 채워 스티커 틈새가 보이지 않게 한다
         val bgProj = faceBackgroundCorners(face).map { it.rot().proj() }
         path.reset()
         path.moveTo(bgProj[0].x, bgProj[0].y)
@@ -194,7 +360,6 @@ private fun DrawScope.drawCube(
         path.close()
         drawPath(path, Color.Black)
 
-        // ③ 스티커: Z 오름차순 정렬 후 면 색상 그리기
         val faceStickers = stickers[face.idx] ?: continue
         val sorted = faceStickers.map { q ->
             val rot = Array(4) { q.corners[it].rot() }
@@ -214,49 +379,79 @@ private fun DrawScope.drawCube(
 
 // ── 공개 컴포저블 ──────────────────────────────────────────────────────────────
 
+private const val LAYER_DRAG_THRESHOLD_PX = 20f  // 레이어 회전 인식 최소 드래그 거리
+
 /**
  * 전체 큐브를 3D로 렌더링한다.
  *
- * ## 렌더링 전략
- * - 백페이스 컬링: 카메라를 향하는 3개 면만 렌더링 (뒷면 완전 제거)
- * - 면 배경: 각 면을 검은색으로 먼저 채워 스티커 틈새 투과 차단
- * - 스티커: halfSize=0.46 (gap=0.08), 검은 배경이 얇은 테두리로 보임
- * - 면 순서: 뒤→앞 (Painter's algorithm, 면 단위)
- * - 회전: 3×3 행렬 누적 (world-space 증분 회전) → 방향 일관성 보장
+ * ## 터치 동작
+ * - 빈 영역 드래그: 큐브 전체 회전 (world-space 행렬 누적)
+ * - 스티커 터치 후 드래그: 해당 레이어 회전 → [onLayerRotate] 호출
  *
- * TODO(Phase 3): 레이어 스와이프 감지 → [onLayerRotate] 콜백 연결
  * TODO(Phase 4): Fling + Animatable 스냅 애니메이션
  */
 @Composable
 fun CubeRenderer(
     cubeState: DomainCubeState,
     modifier: Modifier = Modifier,
-    onLayerRotate: (face: CubeFace, clockwise: Boolean) -> Unit = { _, _ -> },
+    onLayerRotate: (Move) -> Unit = {},
 ) {
     var rotMatrix by remember { mutableStateOf(defaultRotMatrix()) }
     val stickers   = remember(cubeState) { buildStickers(cubeState.facelets) }
+
+    // 히트 테스트에 필요한 투영 파라미터를 Composable 범위에서 캡처하기 위해 별도 상태로 관리
+    var canvasSize by remember { mutableStateOf(Pair(0f, 0f)) }
 
     Canvas(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 val sensitivity = 0.4f * (PI / 180.0).toFloat()
+
                 awaitEachGesture {
-                    awaitFirstDown()
+                    val down = awaitFirstDown()
+                    val touchPt = down.position
+
+                    // 터치 다운 시점의 투영 파라미터 계산
+                    val (w, h) = canvasSize
+                    val scale = minOf(w, h) * 0.12f
+                    val camZ  = 12f * scale
+                    val cx    = w / 2f
+                    val cy    = h / 2f
+
+                    // 히트 테스트
+                    val hit = hitTest(touchPt, rotMatrix, scale, camZ, cx, cy)
+
+                    var totalDrag = Offset.Zero
+                    var layerMoved = false
+
                     do {
                         val event = awaitPointerEvent()
                         val delta = event.changes.firstOrNull()?.positionChange() ?: break
-                        // 화면(world) 좌표계에서 증분 회전을 앞에서 곱한다:
-                        //   M_new = Ry(dx) * Rx(-dy) * M
-                        // → 큐브가 어느 방향을 향하든 "위 스와이프 = 위로 회전"
-                        val rx = matRotX(-delta.y * sensitivity)
-                        val ry = matRotY( delta.x * sensitivity)
-                        rotMatrix = matMul(ry, matMul(rx, rotMatrix))
+                        totalDrag += delta
+
+                        if (hit == null) {
+                            // 스티커 밖 → 큐브 전체 회전
+                            val rx = matRotX(-delta.y * sensitivity)
+                            val ry = matRotY( delta.x * sensitivity)
+                            rotMatrix = matMul(ry, matMul(rx, rotMatrix))
+                        } else if (!layerMoved &&
+                            (abs(totalDrag.x) >= LAYER_DRAG_THRESHOLD_PX ||
+                             abs(totalDrag.y) >= LAYER_DRAG_THRESHOLD_PX)
+                        ) {
+                            // 충분히 드래그했을 때 레이어 회전 1회 발동
+                            gestureToMove(hit, totalDrag, rotMatrix)?.let { move ->
+                                onLayerRotate(move)
+                            }
+                            layerMoved = true
+                        }
+
                         event.changes.forEach { it.consume() }
                     } while (event.changes.any { it.pressed })
                 }
             },
     ) {
+        canvasSize = size.width to size.height
         drawCube(stickers, rotMatrix, cameraDistance = 12f)
     }
 }
