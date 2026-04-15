@@ -175,7 +175,7 @@ renderer.domElement.addEventListener('touchmove', e => {
     const s = toNDC(touchStartX, touchStartY);
     const c = toNDC(x, y);
     const progress = new THREE.Vector2(c.x - s.x, c.y - s.y).dot(moveDirNDC);
-    layerAngle = progress * layerSign * Math.PI * 2;
+    layerAngle = progress * layerSign * Math.PI;
     layerGroup.rotation.set(0, 0, 0);
     layerGroup.rotation[layerAxisName] = layerAngle;
   }
