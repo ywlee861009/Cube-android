@@ -95,15 +95,18 @@ function finishLayerRotation() {
   if (!layerGroup) return;
 
   const snaps = Math.round(layerAngle / (Math.PI / 2));
+  console.log(`[SNAP] axis=${layerAxisName} move=${layerMoveBase} angle=${layerAngle.toFixed(3)} snaps=${snaps}`);
+
   if (snaps !== 0) {
-    // Three.js: 양의 회전 = +축 방향에서 봤을 때 CCW
-    // U/R/F = CW from outside = 음의 회전(snaps<0) → base move
-    // D/L/B = CW from outside = 양의 회전(snaps>0) → base move
-    // S는 F방향(양의 z = CCW) → U/R/F/S 그룹
     const isURF = ['U', 'R', 'F', 'S'].includes(layerMoveBase);
     const needsPrime = isURF ? snaps > 0 : snaps < 0;
     const moveName = layerMoveBase + (needsPrime ? "'" : "");
+    console.log(`[MOVE] applying "${moveName}" x${Math.abs(snaps)}`);
+    console.log(`[BEFORE] facelets=[${facelets.join(',')}]`);
     for (let i = 0; i < Math.abs(snaps); i++) applyMove(moveName);
+    console.log(`[AFTER]  facelets=[${facelets.join(',')}]`);
+  } else {
+    console.log(`[SNAP] snaps=0, no move applied`);
   }
 
   // 큐비들을 원래 그룹으로 복원
