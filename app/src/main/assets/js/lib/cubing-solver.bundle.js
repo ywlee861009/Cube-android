@@ -13206,7 +13206,6 @@ Alg B BR F' BR' B' F BL F BL' F'
 
   // entry.js
   async function solveFromFacelets(facelets) {
-    const kpuzzle = new KPuzzle(cube3x3x3KPuzzle);
     const state = faceletsToKPuzzleState(facelets);
     const solution = await experimentalSolve3x3x3IgnoringCenters(state);
     return solution.toString();
@@ -13214,21 +13213,21 @@ Alg B BR F' BR' B' F BL F BL' F'
   function faceletsToKPuzzleState(f) {
     const CORNER_STICKERS = [
       [8, 20, 9],
-      // UFR: U-face slot8, F-face slot20, R-face slot9  → [U,F,R]
+      // UFR: [U[8], F[2], R[0]]
       [2, 11, 45],
-      // UBR: U-face slot2, R-face slot11, B-face slot45 → [U,R,B]
+      // UBR: [U[2], R[2], B[0]]
       [0, 47, 36],
-      // UBL: U-face slot0, B-face slot47, L-face slot36 → [U,B,L]
+      // UBL: [U[0], B[2], L[0]]
       [6, 38, 18],
-      // UFL: U-face slot6, L-face slot38, F-face slot18 → [U,L,F]
-      [29, 26, 15],
-      // DFR: D-face slot29, F-face slot26, R-face slot15→ [D,F,R]
-      [27, 44, 24],
-      // DFL: D-face slot27, L-face slot44, F-face slot24→ [D,L,F]
+      // UFL: [U[6], L[2], F[0]]
+      [29, 15, 26],
+      // DFR: [D[2], R[6], F[8]]
+      [27, 24, 44],
+      // DFL: [D[0], F[6], L[8]]
       [33, 42, 53],
-      // DBL: D-face slot33, L-face slot42, B-face slot53→ [D,L... wait
+      // DBL: [D[6], L[6], B[8]]
       [35, 51, 17]
-      // DBR: D-face slot35, R-face slot51, B-face slot17→ [D,R,B]  -- wait
+      // DBR: [D[8], B[6], R[8]]
     ];
     const CORNER_FACE_CYCLES = [
       [0, 2, 1],
@@ -13239,40 +13238,57 @@ Alg B BR F' BR' B' F BL F BL' F'
       // UBL: [U, B, L]
       [0, 4, 2],
       // UFL: [U, L, F]
-      [3, 2, 1],
-      // DFR: [D, F, R]
-      [3, 4, 2],
-      // DFL: [D, L, F]
+      [3, 1, 2],
+      // DFR: [D, R, F]
+      [3, 2, 4],
+      // DFL: [D, F, L]
       [3, 4, 5],
       // DBL: [D, L, B]
-      [3, 1, 5]
-      // DBR: [D, R, B]
+      [3, 5, 1]
+      // DBR: [D, B, R]
     ];
     const EDGE_STICKERS = [
       [7, 19],
-      // UF:  U-slot7,  F-slot19
+      // UF:  U[7],  F[1]
       [5, 10],
-      // UR:  U-slot5,  R-slot10
+      // UR:  U[5],  R[1]
       [1, 46],
-      // UB:  U-slot1,  B-slot46
+      // UB:  U[1],  B[1]
       [3, 37],
-      // UL:  U-slot3,  L-slot37
+      // UL:  U[3],  L[1]
       [28, 25],
-      // DF:  D-slot28, F-slot25
+      // DF:  D[1],  F[7]
       [32, 16],
-      // DR:  D-slot32, R-slot16
+      // DR:  D[5],  R[7]
       [34, 52],
-      // DB:  D-slot34, B-slot52
+      // DB:  D[7],  B[7]
       [30, 43],
-      // DL:  D-slot30, L-slot43
+      // DL:  D[3],  L[7]
       [23, 12],
-      // FR:  F-slot23, R-slot12
+      // FR:  F[5],  R[3]
       [21, 41],
-      // FL:  F-slot21, L-slot41
+      // FL:  F[3],  L[5]
       [48, 14],
-      // BR:  B-slot48, R-slot14
+      // BR:  B[3],  R[5]
       [50, 39]
-      // BL:  B-slot50, L-slot39
+      // BL:  B[5],  L[3]
+    ];
+    const EDGE_FACE_CYCLES = [
+      [0, 2],
+      [0, 1],
+      [0, 5],
+      [0, 4],
+      // UF, UR, UB, UL
+      [3, 2],
+      [3, 1],
+      [3, 5],
+      [3, 4],
+      // DF, DR, DB, DL
+      [2, 1],
+      [2, 4],
+      [5, 1],
+      [5, 4]
+      // FR, FL, BR, BL
     ];
     const cornerPermutation = new Array(8);
     const cornerOrientation = new Array(8);
@@ -13280,7 +13296,7 @@ Alg B BR F' BR' B' F BL F BL' F'
       const [s0, s1, s2] = CORNER_STICKERS[pos];
       const colors = [f[s0], f[s1], f[s2]];
       const udIdx = colors.findIndex((c) => c === 0 || c === 3);
-      cornerOrientation[pos] = udIdx;
+      cornerOrientation[pos] = (3 - udIdx) % 3;
       const normColors = [
         colors[udIdx],
         colors[(udIdx + 1) % 3],
@@ -13298,41 +13314,16 @@ Alg B BR F' BR' B' F BL F BL' F'
     }
     const edgePermutation = new Array(12);
     const edgeOrientation = new Array(12);
-    const EDGE_FACE_CYCLES = [
-      [0, 2],
-      // UF
-      [0, 1],
-      // UR
-      [0, 5],
-      // UB
-      [0, 4],
-      // UL
-      [3, 2],
-      // DF
-      [3, 1],
-      // DR
-      [3, 5],
-      // DB
-      [3, 4],
-      // DL
-      [2, 1],
-      // FR
-      [2, 4],
-      // FL
-      [5, 1],
-      // BR
-      [5, 4]
-      // BL
-    ];
     for (let pos = 0; pos < 12; pos++) {
       const [s0, s1] = EDGE_STICKERS[pos];
       const c0 = f[s0], c1 = f[s1];
-      let ori;
-      if (pos < 8) {
-        ori = c0 === 0 || c0 === 3 ? 0 : 1;
+      let piecePrimary;
+      if (c0 === 0 || c0 === 3 || c1 === 0 || c1 === 3) {
+        piecePrimary = c0 === 0 || c0 === 3 ? c0 : c1;
       } else {
-        ori = c1 === 2 || c1 === 5 ? 0 : 1;
+        piecePrimary = c0 === 2 || c0 === 5 ? c0 : c1;
       }
+      const ori = piecePrimary === c0 ? 0 : 1;
       edgeOrientation[pos] = ori;
       const normC0 = ori === 0 ? c0 : c1;
       const normC1 = ori === 0 ? c1 : c0;
