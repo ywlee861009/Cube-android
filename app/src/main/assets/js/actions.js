@@ -19,16 +19,38 @@ function applyMove(name) {
 
 // ─── 셔플 ──────────────────────────────────────────────────────────────────
 function shuffleCube() {
+  if (isShuffling) return;
+  isShuffling = true;
+  document.getElementById('btn-shuffle').disabled = true;
+  document.getElementById('btn-reset').disabled   = true;
+
+  // 완성 상태에서 시작
   facelets = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
-  let last = '';
-  for (let i = 0; i < 20; i++) {
-    const candidates = ALL_MOVES.filter(m => m[0] !== last[0]);
-    const m = candidates[Math.floor(Math.random() * candidates.length)];
-    applyMoveInPlace(m, facelets);
-    last = m;
-  }
   setMoveCount(0);
   applyFacelets();
+
+  // 랜덤 무브 시퀀스 생성 (같은 면 연속 방지)
+  const moves = [];
+  let last = '';
+  for (let i = 0; i < 25; i++) {
+    const candidates = ALL_MOVES.filter(m => m[0] !== last[0]);
+    const m = candidates[Math.floor(Math.random() * candidates.length)];
+    moves.push(m);
+    last = m;
+  }
+
+  // 한 수씩 순차 애니메이션
+  function next(i) {
+    if (i >= moves.length) {
+      setMoveCount(0);
+      isShuffling = false;
+      document.getElementById('btn-shuffle').disabled = false;
+      document.getElementById('btn-reset').disabled   = false;
+      return;
+    }
+    performAnimatedMove(moves[i], () => next(i + 1));
+  }
+  next(0);
 }
 
 // ─── 리셋 ──────────────────────────────────────────────────────────────────
