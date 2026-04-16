@@ -1,5 +1,6 @@
 // ─── renderer ──────────────────────────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setClearColor(0xffffff, 1);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -8,7 +9,7 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
 
-let camDist = 10;
+let camDist = 13;
 const camDir = new THREE.Vector3(4.5, 4, 5.5).normalize();
 
 function updateCamera() {

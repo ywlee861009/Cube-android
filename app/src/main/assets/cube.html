@@ -12,29 +12,29 @@
       --safe-right: 0px;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #111; overflow: hidden; font-family: sans-serif; }
+    body { background: #fff; overflow: hidden; font-family: sans-serif; }
     canvas { display: block; }
     #ui {
-      position: fixed; 
-      bottom: calc(40px + var(--safe-bottom)); 
-      left: var(--safe-left); 
+      position: fixed;
+      bottom: calc(40px + var(--safe-bottom));
+      left: var(--safe-left);
       right: var(--safe-right);
       display: flex; justify-content: center; gap: 16px;
     }
     button {
-      background: rgba(255,255,255,0.15);
-      color: #fff; border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(0,0,0,0.07);
+      color: #222; border: 1px solid rgba(0,0,0,0.18);
       border-radius: 10px; padding: 12px 28px;
       font-size: 15px; cursor: pointer;
     }
-    button:active { background: rgba(255,255,255,0.3); }
+    button:active { background: rgba(0,0,0,0.15); }
     button:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
     #moves {
-      position: fixed; 
-      top: calc(20px + var(--safe-top)); 
-      left: var(--safe-left); 
+      position: fixed;
+      top: calc(20px + var(--safe-top));
+      left: var(--safe-left);
       right: var(--safe-right);
-      text-align: center; color: rgba(255,255,255,0.6); font-size: 14px;
+      text-align: center; color: rgba(0,0,0,0.45); font-size: 14px;
     }
   </style>
 </head>
