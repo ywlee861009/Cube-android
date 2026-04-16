@@ -199,7 +199,7 @@ function finishLayerRotation() {
 // ─── touchstart ───────────────────────────────────────────────────────────────
 renderer.domElement.addEventListener('touchstart', e => {
   e.preventDefault();
-  if (isShuffling) return; // 셔플 애니메이션 중 터치 차단
+  if (isShuffling || isSolving) return; // 애니메이션 중 터치 차단
   cancelFling(); // 진행 중인 fling 즉시 중단
 
   if (e.touches.length === 1) {
