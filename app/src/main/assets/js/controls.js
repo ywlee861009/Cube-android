@@ -126,6 +126,7 @@ function commitLayerRotation(snaps) {
     const needsPrime = isURF ? snaps > 0 : snaps < 0;
     const moveName = moveBase + (needsPrime ? "'" : "");
     for (let i = 0; i < Math.abs(snaps); i++) applyMove(moveName);
+    console.log('[Haptic] AndroidBridge exists:', !!window.AndroidBridge, '/ hapticFeedback fn:', typeof window.AndroidBridge?.hapticFeedback);
     window.AndroidBridge?.hapticFeedback();
   }
 

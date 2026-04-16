@@ -20,8 +20,13 @@ class MainActivity : ComponentActivity() {
     inner class CubeBridge(private val webView: WebView) {
         @JavascriptInterface
         fun hapticFeedback() {
+            Log.d("Haptic", "hapticFeedback() called from JS")
             webView.post {
-                webView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                val result = webView.performHapticFeedback(
+                    HapticFeedbackConstants.VIRTUAL_KEY,
+                    HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                )
+                Log.d("Haptic", "performHapticFeedback result=$result, isHapticFeedbackEnabled=${webView.isHapticFeedbackEnabled}")
             }
         }
     }
