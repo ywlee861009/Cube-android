@@ -55,42 +55,56 @@ function shuffleCube() {
 }
 
 // ─── 솔브 ──────────────────────────────────────────────────────────────────
+function setStatus(msg) {
+  document.getElementById('moves').textContent = msg;
+}
+
+function resetButtons() {
+  isSolving = false;
+  document.getElementById('btn-solve').disabled   = false;
+  document.getElementById('btn-shuffle').disabled = false;
+  document.getElementById('btn-reset').disabled   = false;
+}
+
 async function solveCube() {
   if (isShuffling || isSolving) return;
 
-  const solver = SolverFactory.create();
-  if (!solver.isReady()) {
-    console.warn('Solver not ready');
-    return;
-  }
-
-  isSolving = true;
-  document.getElementById('btn-solve').disabled   = true;
-  document.getElementById('btn-shuffle').disabled = true;
-  document.getElementById('btn-reset').disabled   = true;
-
   try {
+    const solver = SolverFactory.create();
+    if (!solver.isReady()) {
+      setStatus('Solver loading...');
+      return;
+    }
+
+    isSolving = true;
+    document.getElementById('btn-solve').disabled   = true;
+    document.getElementById('btn-shuffle').disabled = true;
+    document.getElementById('btn-reset').disabled   = true;
+    setStatus('Solving...');
+
     const solution = await solver.solve([...facelets]);
     const moves = solution.trim().split(/\s+/).filter(Boolean);
+
+    if (moves.length === 0) {
+      setStatus('Already solved!');
+      resetButtons();
+      return;
+    }
+
+    setStatus('Moves: ' + moves.length);
 
     function next(i) {
       if (i >= moves.length) {
         setMoveCount(0);
-        isSolving = false;
-        document.getElementById('btn-solve').disabled   = false;
-        document.getElementById('btn-shuffle').disabled = false;
-        document.getElementById('btn-reset').disabled   = false;
+        resetButtons();
         return;
       }
       performAnimatedMove(moves[i], () => next(i + 1));
     }
     next(0);
   } catch (e) {
-    console.error('Solve failed:', e);
-    isSolving = false;
-    document.getElementById('btn-solve').disabled   = false;
-    document.getElementById('btn-shuffle').disabled = false;
-    document.getElementById('btn-reset').disabled   = false;
+    setStatus('Error: ' + e.message);
+    resetButtons();
   }
 }
 
