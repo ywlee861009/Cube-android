@@ -28,6 +28,7 @@
       font-size: 15px; cursor: pointer;
     }
     button:active { background: rgba(255,255,255,0.3); }
+    button:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
     #moves {
       position: fixed; 
       top: calc(20px + var(--safe-top)); 
@@ -40,8 +41,9 @@
 <body>
 <div id="moves">Moves: 0</div>
 <div id="ui">
-  <button onclick="shuffleCube()">Shuffle</button>
-  <button onclick="resetCube()">Reset</button>
+  <button id="btn-shuffle" onclick="shuffleCube()">Shuffle</button>
+  <button id="btn-solve"   onclick="solveCube()">Solve</button>
+  <button id="btn-reset"   onclick="resetCube()">Reset</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -49,6 +51,10 @@
 <script src="js/scene.js"></script>
 <script src="js/cubies.js"></script>
 <script src="js/logic.js"></script>
+<script src="js/lib/cubing-solver.bundle.js"></script>
+<script src="js/solver/solver-base.js"></script>
+<script src="js/solver/solver-cubing.js"></script>
+<script src="js/solver/solver-factory.js"></script>
 <script src="js/actions.js"></script>
 <script src="js/controls.js"></script>
 <script src="js/bridge.js"></script>

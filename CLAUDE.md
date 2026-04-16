@@ -8,77 +8,130 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # 전체 빌드
 ./gradlew assembleDebug
 
-# 특정 모듈 빌드
-./gradlew :core-domain:build
-./gradlew :feature-cube:assembleDebug
-
-# 단위 테스트 전체
-./gradlew test
-
-# 특정 모듈 테스트
-./gradlew :core-domain:test
-
-# 특정 클래스 테스트
-./gradlew :core-domain:test --tests "com.metrex.cube.domain.logic.CubeLogicTest"
+# 디바이스 설치
+./gradlew installDebug
 
 # 린트
 ./gradlew lint
-./gradlew :core-domain:lint
-
-# 디바이스 설치
-./gradlew installDebug
 
 # 클린
 ./gradlew clean
 ```
 
-## 모듈 구조 및 의존성
+## 모듈 구조
+
+현재 `:app` 단일 모듈만 존재한다. (구 멀티모듈 Compose + Hilt 구조는 WebView 전환 시 제거됨)
 
 ```
-:app  ──────────────────────────────── Hilt 진입점, MainActivity
-  └── :feature-cube ─────────────────  MVI 컨테이너, CubeScreen, CubeViewModel
-        ├── :core-display ───────────  graphicsLayer 기반 3D 렌더러
-        │     └── :core-domain        큐브 논리 모델 (Pure Kotlin)
-        ├── :core-domain
-        └── :core-solver ────────────  Kociemba 해법 엔진 (Pure Kotlin)
-              └── :core-domain
+:app
+ ├── MainActivity.kt          — WebView 초기화, Edge-to-Edge, 시스템 인셋 처리
+ ├── CubeApplication.kt       — Application 클래스 (최소 구성)
+ └── assets/
+      ├── cube.html            — 진입점, UI 레이아웃 (버튼, 캔버스)
+      └── js/
+           ├── constants.js    — 면 색상(RGBA), face 정의, slot 매핑
+           ├── logic.js        — 큐브 논리: rotateFaceCW(), cycle4(), 18개 이동 + E/M/S
+           ├── scene.js        — Three.js 씬 (카메라, 조명, 렌더 루프)
+           ├── cubies.js       — 26개 Cubie 메시 생성 및 applyFacelets()
+           ├── controls.js     — 터치 처리: 레이어 회전, Fling, 핀치 줌, 뷰 회전
+           ├── actions.js      — shuffle(), reset(), moveCount 추적
+           └── bridge.js       — Android ↔ JS 브릿지 (window.AndroidCube)
 ```
-
-의존 방향: `:app` → `:feature-cube` → `:core-display` / `:core-solver` → `:core-domain`
 
 ## 아키텍처
 
-**패턴:** MVI (Model-View-Intent)
-- `CubeIntent` — 사용자 액션 (레이어 회전, 셔플, 솔브, 리셋)
-- `CubeUiState` — 불변 UI 상태 (StateFlow)
-- `CubeSideEffect` — 일회성 효과 (Channel → Flow)
+**현재 스택:** Android WebView + Three.js (WebGL)
 
-**핵심 데이터 모델 (`:core-domain`):**
-- `DomainCubeState.facelets`: `IntArray(54)`. `face * 9 + position` 인덱스 규칙.
-  - 완성 상태: `IntArray(54) { it / 9 }` (각 원소 = 면 인덱스)
+```
+MainActivity (Kotlin)
+  └── WebView
+        └── cube.html
+              ├── scene.js    — Three.js 씬 관리
+              ├── cubies.js   — Cubie 메시 & 색상 갱신
+              ├── logic.js    — facelets 상태 & 이동 논리
+              ├── controls.js — 터치 입력 & 애니메이션
+              └── actions.js  — 사용자 액션 (shuffle / reset)
+```
+
+**핵심 데이터 모델 (logic.js):**
+- `facelets`: `Int32Array(54)`. `face * 9 + position` 인덱스 규칙.
+  - 완성 상태: 각 원소 = 면 인덱스 (0~5)
   - 면 순서: U(0), R(1), F(2), D(3), L(4), B(5)
-- `Move`: 18개 표준 이동. `U/U'/U2`, `R/R'/R2`, …
-- `CubeLogicImpl.applyMove`: `rotateFaceCW` + 인접 면 순환 치환 패턴
+- `MOVES` 객체: 18개 표준 이동 (`U/U'`, `R/R'`, …) + 중간 레이어 (`E/M/S`)
+- `applyMove(name)`: `rotateFaceCW` + `cycle4` 인접 면 순환 치환
 
-**3D 렌더링 전략 (`:core-display`):**
-- `Modifier.graphicsLayer { rotationX / rotationY / cameraDistance }` 로 하드웨어 가속 3D 표현
-- `RotationState`를 graphicsLayer 람다 내에서 읽어 Recomposition 없이 즉각 반영
-- `CubeRenderer`: 터치 → `RotationState` 업데이트 → `CubeFaceLayout` 렌더
+**3D 렌더링 (Three.js r128, CDN):**
+- 26개 `BoxGeometry` Cubie, 각 면에 6개 `MeshLambertMaterial`
+- `cubieGroup`: 전체 큐브 회전용 루트 그룹
+- `layerGroup`: 레이어 드래그 시 임시 생성, 스냅 확정 후 해제
+- Raycasting으로 터치된 Cubie & 면 법선 검출 → 회전축 결정
 
-## 개발 로드맵
+**Android ↔ JS 브릿지 (bridge.js):**
+- `window.AndroidCube.applyMove(name)` — 이동 적용
+- `window.AndroidCube.shuffle()` — 셔플
+- `window.AndroidCube.reset()` — 리셋
+- `window.AndroidCube.getFacelets()` — 현재 facelets 반환
+- `window.AndroidCube.setInsets(top, right, bottom, left)` — 시스템 인셋 전달
 
-| Phase | 목표 | 주요 파일 |
+---
+
+## 개발 현황
+
+### 완료된 작업 ✅
+
+| Phase | 내용 | 주요 파일 |
 |-------|------|-----------|
-| 1 | 큐브 논리 모델 + 유닛 테스트 | `CubeLogicImpl`, `CubeLogicTest` |
-| 2 | graphicsLayer 단일 정육면체 3D + 터치 회전 | `CubeRenderer`, `RotationState` |
-| 3 | 27개 Cubie 배치 + 레이어 회전 시각화 | `CubeRenderer`, `CubeFaceLayout` |
-| 4 | 스냅 애니메이션 + Fling 관성 | `Animatable`, `CubeViewModel` |
-| 5 | Kociemba 솔버 + (검토) 카메라 인식 | `KociembaSolver` |
+| 1 | 큐브 논리 모델 (18 이동, cycle4, facelets) | `logic.js`, `constants.js` |
+| 2 | Three.js 3D 렌더링 + 뷰 터치 회전 | `scene.js`, `cubies.js` |
+| 3 | 26개 Cubie 배치 + 레이어 회전 시각화 | `cubies.js`, `controls.js` |
+| 3 | E/M/S 중간 레이어 회전 지원 | `logic.js`, `controls.js` |
+| 3 | 핀치 줌 (CAM_MIN=4 ~ CAM_MAX=20) | `controls.js` |
+| 4 | 레이어 스냅 시 cubic ease-out 애니메이션 (220ms) | `controls.js` |
+| 4 | 레이어 Fling: EMA 속도 추적 → 목표 스냅 예측 | `controls.js` |
+| 4 | 뷰 Fling: 관성 감쇠 (FRICTION=0.92/16ms) | `controls.js` |
+| 4 | Fling 중 재터치 시 즉시 스냅 확정 (cancelFling) | `controls.js` |
+| -  | Edge-to-Edge 레이아웃 + 시스템 인셋 대응 | `MainActivity.kt` |
+| -  | Shuffle (랜덤 20수) / Reset 버튼 | `actions.js`, `cube.html` |
 
-## Phase 1 주요 TODO
+---
 
-`CubeLogicImpl`의 각 면 회전 함수에서 인접 면 순환 치환을 완성해야 한다.
-`cycle3` 헬퍼를 사용하고, `CubeLogicTest` 기준으로 모든 테스트가 통과해야 한다.
+## 다음에 할 것들 (우선순위 순)
+
+### Phase 5 — 솔버
+
+| 항목 | 내용 | 난이도 |
+|------|------|--------|
+| **Kociemba 2-phase 솔버** | facelets → 최적 해법 이동 시퀀스 반환. JS 구현 또는 Kotlin 네이티브 후 브릿지로 연결 | 상 |
+| **솔브 UI** | "Solve" 버튼 → 이동 시퀀스 한 수씩 자동 적용 (딜레이 애니메이션) | 중 |
+
+### 인터랙션 개선
+
+| 항목 | 내용 | 난이도 |
+|------|------|--------|
+| **햅틱 피드백** | 레이어 스냅 확정 시 Android 진동 (`HapticFeedbackConstants`) | 하 |
+| **Undo / Redo** | 이동 히스토리 스택 유지, 되돌리기 버튼 | 하 |
+| **이동 시퀀스 실행** | 알고리즘 문자열 파싱 → 순차 자동 적용 | 중 |
+| **제스처 민감도 조정** | Fling 임계값, 애니메이션 속도 설정 UI | 하 |
+
+### 안정성 & 품질
+
+| 항목 | 내용 | 난이도 |
+|------|------|--------|
+| **Three.js 로컬 번들** | 현재 CDN(`cdnjs.cloudflare.com/r128`) 의존 → 오프라인 미동작 위험. assets에 번들 | 하 |
+| **JS 유닛 테스트** | `logic.js` 이동 정확성 검증 (Jest 등) | 중 |
+| **facelets 유효성 검사** | shuffle/reset 후 54개 원소 합산 검증 | 하 |
+| **멀티터치 엣지 케이스** | 핀치 중 세 번째 손가락 추가 등 비정상 터치 방어 | 중 |
+
+### UX / 비주얼
+
+| 항목 | 내용 | 난이도 |
+|------|------|--------|
+| **이동 카운터 표시** | 현재 `moveCount` 변수 있음 → 화면에 표시 | 하 |
+| **솔브 타이머** | 첫 번째 이동부터 완성까지 경과 시간 측정 | 하 |
+| **큐브 완성 감지 & 축하 연출** | facelets 완성 상태 체크 → 파티클 또는 애니메이션 | 중 |
+| **다크/라이트 테마** | 배경색, 버튼 스타일 Android 시스템 테마 연동 | 하 |
+
+---
 
 ## 의존성 관리
 
@@ -92,6 +145,5 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | AGP | 8.7.3 |
 | Kotlin | 2.0.21 |
 | Gradle | 8.9 |
-| Compose BOM | 2024.12.01 |
-| Hilt | 2.52 |
+| Three.js | r128 (CDN) |
 | Min SDK | 26 / Target SDK 35 / JVM 17 |
