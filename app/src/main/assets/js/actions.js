@@ -1,6 +1,7 @@
 // ─── 큐브 상태 ─────────────────────────────────────────────────────────────
 let facelets = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
 let moveCount = 0;
+let isSolving = false;
 
 function setMoveCount(n) {
   moveCount = n;
@@ -51,6 +52,46 @@ function shuffleCube() {
     performAnimatedMove(moves[i], () => next(i + 1));
   }
   next(0);
+}
+
+// ─── 솔브 ──────────────────────────────────────────────────────────────────
+async function solveCube() {
+  if (isShuffling || isSolving) return;
+
+  const solver = SolverFactory.create();
+  if (!solver.isReady()) {
+    console.warn('Solver not ready');
+    return;
+  }
+
+  isSolving = true;
+  document.getElementById('btn-solve').disabled   = true;
+  document.getElementById('btn-shuffle').disabled = true;
+  document.getElementById('btn-reset').disabled   = true;
+
+  try {
+    const solution = await solver.solve([...facelets]);
+    const moves = solution.trim().split(/\s+/).filter(Boolean);
+
+    function next(i) {
+      if (i >= moves.length) {
+        setMoveCount(0);
+        isSolving = false;
+        document.getElementById('btn-solve').disabled   = false;
+        document.getElementById('btn-shuffle').disabled = false;
+        document.getElementById('btn-reset').disabled   = false;
+        return;
+      }
+      performAnimatedMove(moves[i], () => next(i + 1));
+    }
+    next(0);
+  } catch (e) {
+    console.error('Solve failed:', e);
+    isSolving = false;
+    document.getElementById('btn-solve').disabled   = false;
+    document.getElementById('btn-shuffle').disabled = false;
+    document.getElementById('btn-reset').disabled   = false;
+  }
 }
 
 // ─── 리셋 ──────────────────────────────────────────────────────────────────
