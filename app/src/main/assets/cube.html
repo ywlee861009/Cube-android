@@ -139,7 +139,7 @@
     }
     #solved-stats {
       display: flex; gap: 28px;
-      justify-content: center; margin-bottom: 26px;
+      justify-content: center; margin-bottom: 16px;
     }
     .s-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
     .s-val  { font-size: 22px; font-weight: 700; color: #1a1a1a; }
@@ -147,6 +147,27 @@
       font-size: 10px; font-weight: 600;
       color: rgba(0,0,0,0.38); text-transform: uppercase; letter-spacing: 0.9px;
     }
+
+    #solved-new-best {
+      background: #FFB800; color: #fff;
+      border-radius: 999px; padding: 4px 14px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.8px; text-transform: uppercase;
+      margin-bottom: 14px; display: inline-block;
+    }
+    #solved-new-best.hidden { display: none; }
+
+    #solved-pb { margin-bottom: 20px; }
+    #solved-pb.hidden { display: none; }
+    .pb-divider {
+      height: 1px; background: rgba(0,0,0,0.08); margin-bottom: 12px;
+    }
+    #solved-pb-stats {
+      display: flex; gap: 28px; justify-content: center;
+    }
+    .s-val.pb-new { color: #FFB800; }
+    .s-lbl.pb-lbl { color: rgba(0,0,0,0.25); }
+
     #btn-play-again {
       width: 100%; padding: 13px 0; font-size: 15px;
       background: #5B5FEF; color: #fff; border-radius: 16px;
@@ -177,6 +198,20 @@
       <div class="s-stat">
         <span class="s-val" id="s-moves">—</span>
         <span class="s-lbl">Moves</span>
+      </div>
+    </div>
+    <div id="solved-new-best" class="hidden">New Best!</div>
+    <div id="solved-pb" class="hidden">
+      <div class="pb-divider"></div>
+      <div id="solved-pb-stats">
+        <div class="s-stat">
+          <span class="s-val" id="s-pb-time">—</span>
+          <span class="s-lbl pb-lbl">Best Time</span>
+        </div>
+        <div class="s-stat">
+          <span class="s-val" id="s-pb-moves">—</span>
+          <span class="s-lbl pb-lbl">Best Moves</span>
+        </div>
       </div>
     </div>
     <button id="btn-play-again" onclick="playAgain()">⇄ Play Again</button>
