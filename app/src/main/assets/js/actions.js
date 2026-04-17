@@ -137,6 +137,9 @@ function applyMove(name) {
 // ─── 셔플 ──────────────────────────────────────────────────────────────────
 function shuffleCube() {
   if (isShuffling) return;
+  if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {
+    AndroidBridge.onShuffleOrReset();
+  }
   isShuffling = true;
   document.getElementById('btn-shuffle').disabled = true;
   document.getElementById('btn-reset').disabled   = true;
@@ -180,6 +183,9 @@ function shuffleCube() {
 // ─── 리셋 ──────────────────────────────────────────────────────────────────
 function resetCube() {
   if (isShuffling || isSolving) return;
+  if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {
+    AndroidBridge.onShuffleOrReset();
+  }
   resetSolution();
   facelets = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
   setMoveCount(0);
