@@ -98,6 +98,15 @@
       background: rgba(0,0,0,0.065);
       color: #444;
     }
+
+    .btn-lb {
+      flex: 1;
+      padding: 9px 0;
+      font-size: 12px;
+      background: rgba(0,0,0,0.042);
+      color: #888;
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -111,6 +120,10 @@
     <button id="btn-shuffle" onclick="shuffleCube()">⇄ Shuffle</button>
     <button id="btn-solve"   onclick="solveCube()">⚡ Solve</button>
     <button id="btn-reset"   onclick="resetCube()">↺ Reset</button>
+  </div>
+  <div class="ui-row">
+    <button class="btn-lb" onclick="showLeaderboard('time')">⏱ Best Times</button>
+    <button class="btn-lb" onclick="showLeaderboard('moves')">🎯 Fewest Moves</button>
   </div>
 </div>
 

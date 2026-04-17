@@ -23,6 +23,7 @@ window.onSolveGranted = function() {
 // ─── 솔브 진입점 ───────────────────────────────────────────────────────────
 function solveCube() {
   if (isShuffling || isSolving) return;
+  usedSolver = true;  // 솔버 사용 → 이 판은 리더보드 점수 제출 안 함
 
   // 모든 탭을 Android에 위임 — 광고 여부는 Android가 판단
   if (window.AndroidBridge && window.AndroidBridge.requestSolve) {

@@ -46,6 +46,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity)
     implementation(libs.google.admob)
+    implementation(libs.google.play.games)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
