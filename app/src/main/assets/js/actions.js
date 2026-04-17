@@ -4,14 +4,20 @@ let moveCount = 0;
 let isSolving = false;
 
 // ─── Undo / Redo 히스토리 ──────────────────────────────────────────────────
-const undoStack = [];
+const undoStack = [];  // { moveName, moveCount } — 적용된 이동 이름 저장
 const redoStack = [];
+let isUndoRedo = false;
+
+function inverseMoveOf(name) {
+  return name.endsWith("'") ? name.slice(0, -1) : name + "'";
+}
 
 function updateUndoRedoButtons() {
   const btnUndo = document.getElementById('btn-undo');
   const btnRedo = document.getElementById('btn-redo');
-  if (btnUndo) btnUndo.disabled = undoStack.length === 0 || isShuffling || isSolving;
-  if (btnRedo) btnRedo.disabled = redoStack.length === 0 || isShuffling || isSolving;
+  const busy = isShuffling || isSolving || isUndoRedo;
+  if (btnUndo) btnUndo.disabled = undoStack.length === 0 || busy;
+  if (btnRedo) btnRedo.disabled = redoStack.length === 0 || busy;
 }
 
 function setMoveCount(n) {
@@ -23,8 +29,8 @@ function setMoveCount(n) {
 function applyMove(name) {
   const f = [...facelets];
   if (!name || (!MOVES[name[0]])) return;
-  if (!isShuffling && !isSolving) {
-    undoStack.push({ facelets: [...facelets], moveCount });
+  if (!isShuffling && !isSolving && !isUndoRedo) {
+    undoStack.push({ moveName: name, moveCount });
     redoStack.length = 0;
     updateUndoRedoButtons();
   }
@@ -36,24 +42,29 @@ function applyMove(name) {
 
 // ─── Undo ──────────────────────────────────────────────────────────────────
 function undoCube() {
-  if (undoStack.length === 0 || isShuffling || isSolving) return;
-  redoStack.push({ facelets: [...facelets], moveCount });
-  const prev = undoStack.pop();
-  facelets = [...prev.facelets];
-  setMoveCount(prev.moveCount);
-  applyFacelets();
+  if (undoStack.length === 0 || isShuffling || isSolving || isUndoRedo) return;
+  isUndoRedo = true;
   updateUndoRedoButtons();
+  const entry = undoStack.pop();
+  performAnimatedMove(inverseMoveOf(entry.moveName), () => {
+    setMoveCount(entry.moveCount);
+    redoStack.push(entry);
+    isUndoRedo = false;
+    updateUndoRedoButtons();
+  });
 }
 
 // ─── Redo ──────────────────────────────────────────────────────────────────
 function redoCube() {
-  if (redoStack.length === 0 || isShuffling || isSolving) return;
-  undoStack.push({ facelets: [...facelets], moveCount });
-  const next = redoStack.pop();
-  facelets = [...next.facelets];
-  setMoveCount(next.moveCount);
-  applyFacelets();
+  if (redoStack.length === 0 || isShuffling || isSolving || isUndoRedo) return;
+  isUndoRedo = true;
   updateUndoRedoButtons();
+  const entry = redoStack.pop();
+  performAnimatedMove(entry.moveName, () => {
+    undoStack.push(entry);
+    isUndoRedo = false;
+    updateUndoRedoButtons();
+  });
 }
 
 // ─── 셔플 ──────────────────────────────────────────────────────────────────
