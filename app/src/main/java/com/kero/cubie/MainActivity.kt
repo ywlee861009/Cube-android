@@ -1,7 +1,6 @@
 package com.kero.cubie
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
@@ -24,9 +23,6 @@ import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import com.google.android.gms.games.PlayGames
 
 private const val AD_UNIT_ID = "ca-app-pub-2103375309908918/6311668222"
-private const val PREF_NAME = "cube_prefs"
-private const val KEY_SOLVE_COUNT = "solve_count"
-private const val AD_INTERVAL = 5  // 5번마다 광고
 
 // TODO: Play Console > 게임 서비스 > 리더보드 생성 후 실제 ID로 교체
 private const val LEADERBOARD_TIME  = "CgkI_REPLACE_TIME_ID"
@@ -39,6 +35,7 @@ class MainActivity : ComponentActivity() {
 
     private var rewardedAd: RewardedAd? = null
     private var isAdLoading = false
+    private var solveGranted = false  // 광고 시청 후 true, 셔플/리셋 시 false
 
     private val leaderboardLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -58,22 +55,24 @@ class MainActivity : ComponentActivity() {
 
         /**
          * JS의 solveCube()에서 호출.
-         * - (count % AD_INTERVAL == AD_INTERVAL - 1) 이면 광고 표시
-         * - 아니면 바로 onSolveGranted() 콜백
+         * - 이미 광고 허가된 상태면 바로 onSolveGranted()
+         * - 아니면 광고 표시 후 허가
          */
         @JavascriptInterface
         fun requestSolve() {
-            val prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-            val count = prefs.getInt(KEY_SOLVE_COUNT, 0)
-
-            if (count % AD_INTERVAL == AD_INTERVAL - 1) {
-                // 광고 필요
-                runOnUiThread { showRewardedAd(prefs, count) }
-            } else {
-                // 광고 불필요 → 바로 진행
-                prefs.edit().putInt(KEY_SOLVE_COUNT, count + 1).apply()
+            if (solveGranted) {
                 runOnUiThread { callJs("window.onSolveGranted()") }
+            } else {
+                runOnUiThread { showRewardedAd() }
             }
+        }
+
+        /**
+         * 셔플 또는 리셋 시 JS에서 호출 → 광고 허가 초기화
+         */
+        @JavascriptInterface
+        fun onShuffleOrReset() {
+            solveGranted = false
         }
 
         /**
@@ -170,10 +169,9 @@ class MainActivity : ComponentActivity() {
 
     // ── RewardedAd 표시 ──────────────────────────────────────────────────────
 
-    private fun showRewardedAd(prefs: android.content.SharedPreferences, currentCount: Int) {
+    private fun showRewardedAd() {
         val ad = rewardedAd
         if (ad == null) {
-            // 광고 미준비 → 거부와 동일 처리
             Log.w("AdMob", "Ad not ready, denying solve")
             callJs("window.onSolveDenied()")
             loadRewardedAd()
@@ -184,9 +182,9 @@ class MainActivity : ComponentActivity() {
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdDismissedFullScreenContent() {
                 rewardedAd = null
-                loadRewardedAd()  // 다음 광고 미리 로드
+                loadRewardedAd()
                 if (rewarded) {
-                    prefs.edit().putInt(KEY_SOLVE_COUNT, currentCount + 1).apply()
+                    solveGranted = true
                     callJs("window.onSolveGranted()")
                 } else {
                     callJs("window.onSolveDenied()")

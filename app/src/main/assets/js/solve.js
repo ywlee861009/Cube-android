@@ -11,13 +11,9 @@ window.onSolveDenied = function() {
   document.getElementById('btn-reset').disabled   = false;
 };
 
-// 광고 허가 후 실행 — 진행 중인 솔루션이 있으면 step, 없으면 새로 계산
+// 광고 허가 후 실행 — 솔루션 계산 후 전체 자동 실행
 window.onSolveGranted = function() {
-  if (solutionMoves !== null) {
-    stepSolution();
-  } else {
-    _runSolve();
-  }
+  _runSolve();
 };
 
 // ─── 솔브 진입점 ───────────────────────────────────────────────────────────
@@ -25,11 +21,11 @@ function solveCube() {
   if (isShuffling || isSolving) return;
   usedSolver = true;  // 솔버 사용 → 이 판은 리더보드 점수 제출 안 함
 
-  // 모든 탭을 Android에 위임 — 광고 여부는 Android가 판단
+  document.getElementById('btn-solve').disabled   = true;
+  document.getElementById('btn-shuffle').disabled = true;
+  document.getElementById('btn-reset').disabled   = true;
+
   if (window.AndroidBridge && window.AndroidBridge.requestSolve) {
-    document.getElementById('btn-solve').disabled   = true;
-    document.getElementById('btn-shuffle').disabled = true;
-    document.getElementById('btn-reset').disabled   = true;
     AndroidBridge.requestSolve();
   } else {
     // 브릿지 없음 (브라우저 테스트 환경) → 바로 실행
@@ -82,7 +78,7 @@ async function _runSolve() {
   }
 }
 
-// ─── 솔루션 한 수씩 실행 ───────────────────────────────────────────────────
+// ─── 솔루션 전체 자동 실행 ─────────────────────────────────────────────────
 function stepSolution() {
   if (!solutionMoves || solutionIndex >= solutionMoves.length) {
     setStatus('Solved!');
@@ -103,17 +99,13 @@ function stepSolution() {
   setStatus(step + ' / ' + total + '  ' + moveName);
 
   performAnimatedMove(moveName, () => {
-    isSolving = false;
-
     if (solutionIndex >= solutionMoves.length) {
+      isSolving = false;
       setStatus('Solved!');
       setMoveCount(0);
       resetButtons();
     } else {
-      document.getElementById('btn-solve').textContent = 'Next  ' + (solutionIndex + 1) + '/' + total;
-      document.getElementById('btn-solve').disabled   = false;
-      document.getElementById('btn-shuffle').disabled = true;
-      document.getElementById('btn-reset').disabled   = false;
+      stepSolution(); // 자동으로 다음 수 실행
     }
   });
 }
