@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.metrex.cube"
+    namespace = "com.kero.cubie"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.metrex.cube"
+        applicationId = "com.kero.cubie"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
