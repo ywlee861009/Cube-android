@@ -186,6 +186,7 @@ function shuffleCube() {
   if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {
     AndroidBridge.onShuffleOrReset();
   }
+  resetSolution();  // 진행 중인 솔브 초기화
   isShuffling = true;
   document.getElementById('btn-shuffle').disabled = true;
   document.getElementById('btn-solve').disabled   = true;

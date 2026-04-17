@@ -18,6 +18,13 @@ window.onSolveGranted = function() {
 // ─── 솔브 진입점 ───────────────────────────────────────────────────────────
 function solveCube() {
   if (isShuffling || isSolving) return;
+
+  // 솔루션이 이미 계산된 상태 → 탭할 때마다 1수씩 실행
+  if (solutionMoves && solutionIndex < solutionMoves.length) {
+    stepSolution();
+    return;
+  }
+
   usedSolver = true;  // 솔버 사용 → 이 판은 리더보드 점수 제출 안 함
 
   document.getElementById('btn-solve').disabled   = true;
@@ -64,9 +71,10 @@ async function _runSolve() {
 
     solutionMoves = moves;
     solutionIndex = 0;
+    // 솔루션 준비 완료 → 버튼에 첫 수 표시 후 탭 대기
+    document.getElementById('btn-solve').textContent = '1 / ' + moves.length;
     document.getElementById('btn-solve').disabled = false;
-
-    stepSolution(); // 첫 번째 수 즉시 실행
+    setMoveCount(moveCount);
   } catch (e) {
     setStatus('Error: ' + e.message);
     resetButtons();
@@ -93,13 +101,16 @@ function stepSolution() {
   setStatus(step + ' / ' + total + '  ' + moveName);
 
   performAnimatedMove(moveName, () => {
+    isSolving = false;
     if (solutionIndex >= solutionMoves.length) {
-      isSolving = false;
       setStatus('Solved!');
       setMoveCount(0);
       resetButtons();
     } else {
-      stepSolution(); // 자동으로 다음 수 실행
+      // 다음 수 대기: 버튼에 진행 상황 표시 후 탭 대기
+      document.getElementById('btn-solve').textContent = (solutionIndex + 1) + ' / ' + total;
+      document.getElementById('btn-solve').disabled = false;
+      setMoveCount(moveCount);
     }
   });
 }
