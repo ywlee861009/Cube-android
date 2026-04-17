@@ -83,6 +83,10 @@
       font-size: 14px;
       background: #5B5FEF;
       color: #fff;
+      position: relative;
+    }
+    #btn-shuffle.long-press-active {
+      background: #E05252;
     }
     #btn-solve {
       flex: 1;
@@ -90,22 +94,6 @@
       font-size: 14px;
       background: #17B06B;
       color: #fff;
-    }
-    #btn-reset {
-      flex: 1;
-      padding: 14px 0;
-      font-size: 14px;
-      background: rgba(0,0,0,0.065);
-      color: #444;
-    }
-
-    .btn-lb {
-      flex: 1;
-      padding: 9px 0;
-      font-size: 12px;
-      background: rgba(0,0,0,0.042);
-      color: #888;
-      font-weight: 500;
     }
 
     /* ── Solved Overlay ────────────────────────────────────────────── */
@@ -204,11 +192,6 @@
   <div class="ui-row">
     <button id="btn-shuffle" onclick="shuffleCube()">⇄ Shuffle</button>
     <button id="btn-solve"   onclick="solveCube()">⚡ Solve</button>
-    <button id="btn-reset"   onclick="resetCube()">↺ Reset</button>
-  </div>
-  <div class="ui-row">
-    <button class="btn-lb" onclick="showLeaderboard('time')">⏱ Best Times</button>
-    <button class="btn-lb" onclick="showLeaderboard('moves')">🎯 Fewest Moves</button>
   </div>
 </div>
 
@@ -228,5 +211,38 @@
 <script src="js/layer-rotation.js"></script>
 <script src="js/touch.js"></script>
 <script src="js/bridge.js"></script>
+<script>
+  (function () {
+    var LONG_PRESS_MS = 600;
+    var btn = document.getElementById('btn-shuffle');
+    var timer = null;
+    var triggered = false;
+
+    function startLongPress(e) {
+      triggered = false;
+      timer = setTimeout(function () {
+        triggered = true;
+        btn.classList.add('long-press-active');
+        setTimeout(function () { btn.classList.remove('long-press-active'); }, 200);
+        resetCube();
+      }, LONG_PRESS_MS);
+    }
+
+    function cancelLongPress() {
+      clearTimeout(timer);
+      timer = null;
+    }
+
+    btn.addEventListener('touchstart', startLongPress, { passive: true });
+    btn.addEventListener('touchend', cancelLongPress);
+    btn.addEventListener('touchcancel', cancelLongPress);
+    btn.addEventListener('touchmove', cancelLongPress, { passive: true });
+
+    // Prevent normal click firing after long-press triggered
+    btn.addEventListener('click', function (e) {
+      if (triggered) { e.stopImmediatePropagation(); triggered = false; }
+    }, true);
+  })();
+</script>
 </body>
 </html>
