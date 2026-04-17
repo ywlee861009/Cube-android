@@ -34,6 +34,12 @@ function raycastCubies(px, py) {
 
 // ─── touchstart ──────────────────────────────────────────────────────────
 renderer.domElement.addEventListener('touchstart', e => {
+  // Android WebView는 버튼 위를 탭해도 캔버스에 touchstart를 전달할 수 있음.
+  // 그 상태에서 e.preventDefault()를 호출하면 버튼의 click 이벤트가 억제됨.
+  // → 터치 좌표의 최상위 엘리먼트가 캔버스가 아니면 조기 반환하여 UI 클릭 허용.
+  const _t0 = e.changedTouches[0];
+  if (document.elementFromPoint(_t0.clientX, _t0.clientY) !== renderer.domElement) return;
+
   e.preventDefault();
   if (isShuffling || isSolving || isUndoRedo) return; // 애니메이션 중 터치 차단
   cancelFling(); // 진행 중인 fling 즉시 중단
