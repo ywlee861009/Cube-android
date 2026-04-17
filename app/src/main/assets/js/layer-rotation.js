@@ -106,7 +106,7 @@ function commitLayerRotation(snaps) {
     if (c) child.position.set(c.cx * GAP, c.cy * GAP, c.cz * GAP);
   });
   cubieGroup.remove(group);
-  applyFacelets();
+  // applyFacelets()는 위 applyMove() 내부에서 이미 호출됨 — 중복 제거
 }
 
 // ─── 스냅 & Fling 애니메이션 ─────────────────────────────────────────────
