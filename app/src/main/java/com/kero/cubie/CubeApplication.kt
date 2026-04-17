@@ -1,4 +1,4 @@
-package com.metrex.cube
+package com.kero.cubie
 
 import android.app.Application
 
