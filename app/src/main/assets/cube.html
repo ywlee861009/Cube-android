@@ -12,34 +12,91 @@
       --safe-right: 0px;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #f0f0f0; overflow: hidden; font-family: sans-serif; }
+    body { background: #e8eaf0; overflow: hidden; font-family: 'Roboto', sans-serif; }
     canvas { display: block; }
-    #ui {
-      position: fixed;
-      bottom: calc(40px + var(--safe-bottom));
-      left: var(--safe-left);
-      right: var(--safe-right);
-      display: flex; flex-direction: column; align-items: center; gap: 10px;
-    }
-    .ui-row { display: flex; justify-content: center; gap: 12px; }
-    button {
-      background: rgba(0,0,0,0.07);
-      color: #222; border: 1px solid rgba(0,0,0,0.18);
-      border-radius: 10px; padding: 12px 28px;
-      font-size: 15px; cursor: pointer;
-    }
-    #btn-undo, #btn-redo {
-      padding: 10px 24px;
-      font-size: 18px;
-    }
-    button:active { background: rgba(0,0,0,0.15); }
-    button:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+
     #moves {
       position: fixed;
-      top: calc(20px + var(--safe-top));
-      left: var(--safe-left);
-      right: var(--safe-right);
-      text-align: center; color: rgba(0,0,0,0.45); font-size: 14px;
+      top: calc(16px + var(--safe-top));
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 999px;
+      padding: 6px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.5);
+      letter-spacing: 0.4px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      white-space: nowrap;
+    }
+
+    #ui {
+      position: fixed;
+      bottom: calc(20px + var(--safe-bottom));
+      left: calc(14px + var(--safe-left));
+      right: calc(14px + var(--safe-right));
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.9);
+      border: 1px solid rgba(255,255,255,0.65);
+      padding: 12px 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .ui-row { display: flex; gap: 8px; }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: transform 0.1s ease, opacity 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+    button:active { transform: scale(0.93); opacity: 0.72; }
+    button:disabled { opacity: 0.28; pointer-events: none; }
+
+    #btn-undo, #btn-redo {
+      flex: 1;
+      padding: 11px 0;
+      font-size: 15px;
+      background: rgba(0,0,0,0.055);
+      color: #333;
+    }
+
+    #btn-shuffle {
+      flex: 1;
+      padding: 14px 0;
+      font-size: 14px;
+      background: #5B5FEF;
+      color: #fff;
+    }
+    #btn-solve {
+      flex: 1;
+      padding: 14px 0;
+      font-size: 14px;
+      background: #17B06B;
+      color: #fff;
+    }
+    #btn-reset {
+      flex: 1;
+      padding: 14px 0;
+      font-size: 14px;
+      background: rgba(0,0,0,0.065);
+      color: #444;
     }
   </style>
 </head>
@@ -51,9 +108,9 @@
     <button id="btn-redo" onclick="redoCube()" disabled>Redo ↪</button>
   </div>
   <div class="ui-row">
-    <button id="btn-shuffle" onclick="shuffleCube()">Shuffle</button>
-    <button id="btn-solve"   onclick="solveCube()">Solve</button>
-    <button id="btn-reset"   onclick="resetCube()">Reset</button>
+    <button id="btn-shuffle" onclick="shuffleCube()">⇄ Shuffle</button>
+    <button id="btn-solve"   onclick="solveCube()">⚡ Solve</button>
+    <button id="btn-reset"   onclick="resetCube()">↺ Reset</button>
   </div>
 </div>
 
