@@ -38,7 +38,6 @@ function resetButtons() {
   resetSolution();
   document.getElementById('btn-solve').disabled   = false;
   document.getElementById('btn-shuffle').disabled = false;
-  document.getElementById('btn-reset').disabled   = false;
   updateUndoRedoButtons();
 }
 
@@ -182,12 +181,13 @@ function applyMove(name) {
 // ─── 셔플 ──────────────────────────────────────────────────────────────────
 function shuffleCube() {
   if (isShuffling) return;
+  cancelFling();                           // 진행 중인 fling RAF 취소 + flingGroup 정리
+  if (layerGroup) commitLayerRotation(0);  // mid-drag 상태 정리 (fling 없는 경우)
   if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {
     AndroidBridge.onShuffleOrReset();
   }
   isShuffling = true;
   document.getElementById('btn-shuffle').disabled = true;
-  document.getElementById('btn-reset').disabled   = true;
 
   facelets = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
   setMoveCount(0);
@@ -216,7 +216,6 @@ function shuffleCube() {
       manualMoveCount = 0;
       usedSolver      = false;
       document.getElementById('btn-shuffle').disabled = false;
-      document.getElementById('btn-reset').disabled   = false;
       updateUndoRedoButtons();
       return;
     }
@@ -241,7 +240,6 @@ function resetCube() {
   usedSolver      = false;
   applyFacelets();
   document.getElementById('btn-shuffle').disabled = false;
-  document.getElementById('btn-reset').disabled   = false;
   updateUndoRedoButtons();
 }
 

@@ -8,7 +8,6 @@ window.onSolveDenied = function() {
   setStatus('광고를 시청해야 Solve를 사용할 수 있어요.');
   document.getElementById('btn-solve').disabled   = false;
   document.getElementById('btn-shuffle').disabled = false;
-  document.getElementById('btn-reset').disabled   = false;
 };
 
 // 광고 허가 후 실행 — 솔루션 계산 후 전체 자동 실행
@@ -23,7 +22,6 @@ function solveCube() {
 
   document.getElementById('btn-solve').disabled   = true;
   document.getElementById('btn-shuffle').disabled = true;
-  document.getElementById('btn-reset').disabled   = true;
 
   if (window.AndroidBridge && window.AndroidBridge.requestSolve) {
     AndroidBridge.requestSolve();
@@ -41,7 +39,6 @@ async function _runSolve() {
       setStatus('Solver loading...');
       // btn-solve는 비활성 유지 — 준비 완료 후 자동 재활성화
       document.getElementById('btn-shuffle').disabled = false;
-      document.getElementById('btn-reset').disabled   = false;
       setTimeout(() => {
         if (!isSolving && !isShuffling) {
           document.getElementById('btn-solve').disabled = false;
@@ -53,7 +50,6 @@ async function _runSolve() {
 
     document.getElementById('btn-solve').disabled   = true;
     document.getElementById('btn-shuffle').disabled = true;
-    document.getElementById('btn-reset').disabled   = true;
     setStatus('Calculating...');
 
     const solution = await solver.solve([...facelets]);
@@ -63,7 +59,6 @@ async function _runSolve() {
       setStatus('Already solved!');
       document.getElementById('btn-solve').disabled   = false;
       document.getElementById('btn-shuffle').disabled = false;
-      document.getElementById('btn-reset').disabled   = false;
       return;
     }
 
@@ -95,7 +90,6 @@ function stepSolution() {
   isSolving = true;
   document.getElementById('btn-solve').disabled   = true;
   document.getElementById('btn-shuffle').disabled = true;
-  document.getElementById('btn-reset').disabled   = true;
   setStatus(step + ' / ' + total + '  ' + moveName);
 
   performAnimatedMove(moveName, () => {
