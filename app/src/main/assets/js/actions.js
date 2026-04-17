@@ -3,6 +3,23 @@ let facelets = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
 let moveCount = 0;
 let isSolving = false;
 
+// ─── Undo / Redo 히스토리 ──────────────────────────────────────────────────
+const undoStack = [];  // { moveName, moveCount } — 적용된 이동 이름 저장
+const redoStack = [];
+let isUndoRedo = false;
+
+function inverseMoveOf(name) {
+  return name.endsWith("'") ? name.slice(0, -1) : name + "'";
+}
+
+function updateUndoRedoButtons() {
+  const btnUndo = document.getElementById('btn-undo');
+  const btnRedo = document.getElementById('btn-redo');
+  const busy = isShuffling || isSolving || isUndoRedo;
+  if (btnUndo) btnUndo.disabled = undoStack.length === 0 || busy;
+  if (btnRedo) btnRedo.disabled = redoStack.length === 0 || busy;
+}
+
 function setMoveCount(n) {
   moveCount = n;
   document.getElementById('moves').textContent = 'Moves: ' + moveCount;
@@ -12,10 +29,42 @@ function setMoveCount(n) {
 function applyMove(name) {
   const f = [...facelets];
   if (!name || (!MOVES[name[0]])) return;
+  if (!isShuffling && !isSolving && !isUndoRedo) {
+    undoStack.push({ moveName: name, moveCount });
+    redoStack.length = 0;
+    updateUndoRedoButtons();
+  }
   applyMoveInPlace(name, f);
   facelets = f;
   setMoveCount(moveCount + 1);
   applyFacelets();
+}
+
+// ─── Undo ──────────────────────────────────────────────────────────────────
+function undoCube() {
+  if (undoStack.length === 0 || isShuffling || isSolving || isUndoRedo) return;
+  isUndoRedo = true;
+  updateUndoRedoButtons();
+  const entry = undoStack.pop();
+  performAnimatedMove(inverseMoveOf(entry.moveName), () => {
+    setMoveCount(entry.moveCount);
+    redoStack.push(entry);
+    isUndoRedo = false;
+    updateUndoRedoButtons();
+  });
+}
+
+// ─── Redo ──────────────────────────────────────────────────────────────────
+function redoCube() {
+  if (redoStack.length === 0 || isShuffling || isSolving || isUndoRedo) return;
+  isUndoRedo = true;
+  updateUndoRedoButtons();
+  const entry = redoStack.pop();
+  performAnimatedMove(entry.moveName, () => {
+    undoStack.push(entry);
+    isUndoRedo = false;
+    updateUndoRedoButtons();
+  });
 }
 
 // ─── 셔플 ──────────────────────────────────────────────────────────────────
@@ -28,6 +77,9 @@ function shuffleCube() {
   // 완성 상태에서 시작
   facelets = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
   setMoveCount(0);
+  undoStack.length = 0;
+  redoStack.length = 0;
+  updateUndoRedoButtons();
   applyFacelets();
 
   // 랜덤 무브 시퀀스 생성 (같은 면 연속 방지)
@@ -47,6 +99,7 @@ function shuffleCube() {
       isShuffling = false;
       document.getElementById('btn-shuffle').disabled = false;
       document.getElementById('btn-reset').disabled   = false;
+      updateUndoRedoButtons();
       return;
     }
     performAnimatedMove(moves[i], () => next(i + 1));
@@ -74,6 +127,7 @@ function resetButtons() {
   document.getElementById('btn-solve').disabled   = false;
   document.getElementById('btn-shuffle').disabled = false;
   document.getElementById('btn-reset').disabled   = false;
+  updateUndoRedoButtons();
 }
 
 async function solveCube() {
@@ -162,9 +216,12 @@ function resetCube() {
   resetSolution();
   facelets = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
   setMoveCount(0);
+  undoStack.length = 0;
+  redoStack.length = 0;
   applyFacelets();
   document.getElementById('btn-shuffle').disabled = false;
   document.getElementById('btn-reset').disabled   = false;
+  updateUndoRedoButtons();
 }
 
 // 초기 렌더
