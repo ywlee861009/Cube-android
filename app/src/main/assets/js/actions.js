@@ -53,6 +53,28 @@ function isCubeSolved() {
   return true;
 }
 
+// ─── 개인 최고 기록 (PB) ───────────────────────────────────────────────────
+function _checkAndSavePB(timeMs, moves) {
+  const _t = parseInt(localStorage.getItem('pb_time'),  10);
+  const _m = parseInt(localStorage.getItem('pb_moves'), 10);
+  const pbTime  = Number.isFinite(_t) ? _t : null;
+  const pbMoves = Number.isFinite(_m) ? _m : null;
+
+  const isNewTime  = pbTime  === null || timeMs < pbTime;
+  const isNewMoves = pbMoves === null || moves  < pbMoves;
+
+  if (isNewTime)  localStorage.setItem('pb_time',  String(timeMs));
+  if (isNewMoves) localStorage.setItem('pb_moves', String(moves));
+
+  return {
+    isNew:      isNewTime || isNewMoves,
+    isNewTime,
+    isNewMoves,
+    pbTime:     isNewTime  ? timeMs : pbTime,
+    pbMoves:    isNewMoves ? moves  : pbMoves,
+  };
+}
+
 function checkSolvedAndSubmit() {
   if (!isCubeSolved()) return;
   if (usedSolver || solveStartTime === null) return;
@@ -60,7 +82,8 @@ function checkSolvedAndSubmit() {
   const elapsed = Date.now() - solveStartTime;
   solveStartTime = null;
 
-  showSolvedOverlay(elapsed, manualMoveCount);
+  const pbResult = _checkAndSavePB(elapsed, manualMoveCount);
+  showSolvedOverlay(elapsed, manualMoveCount, pbResult);
 
   if (window.AndroidBridge && window.AndroidBridge.submitScore) {
     AndroidBridge.submitScore(elapsed, manualMoveCount);
@@ -70,9 +93,31 @@ function checkSolvedAndSubmit() {
 }
 
 // ─── 축하 오버레이 ──────────────────────────────────────────────────────────
-function showSolvedOverlay(elapsedMs, moves) {
+function showSolvedOverlay(elapsedMs, moves, pbResult) {
   document.getElementById('s-time').textContent  = (elapsedMs / 1000).toFixed(1) + 's';
   document.getElementById('s-moves').textContent = moves;
+
+  // New Best 배지
+  const badge = document.getElementById('solved-new-best');
+  badge.classList.toggle('hidden', !(pbResult && pbResult.isNew));
+
+  // PB 행: pbResult가 있으면 항상 표시 (첫 솔브 포함)
+  const pbSection = document.getElementById('solved-pb');
+  if (pbResult) {
+    const pbTimeEl  = document.getElementById('s-pb-time');
+    const pbMovesEl = document.getElementById('s-pb-moves');
+
+    pbTimeEl.textContent  = (pbResult.pbTime  / 1000).toFixed(1) + 's';
+    pbMovesEl.textContent = pbResult.pbMoves;
+
+    pbTimeEl.classList.toggle('pb-new',  pbResult.isNewTime);
+    pbMovesEl.classList.toggle('pb-new', pbResult.isNewMoves);
+
+    pbSection.classList.remove('hidden');
+  } else {
+    pbSection.classList.add('hidden');
+  }
+
   document.getElementById('solved-overlay').classList.remove('hidden');
   _spawnConfetti();
 }
