@@ -4,6 +4,11 @@ let moveCount = 0;
 let isShuffling = false;
 let isSolving = false;
 
+// ─── 리더보드 스코어링 상태 ────────────────────────────────────────────────
+let solveStartTime  = null;   // 셔플 완료 시각 (ms), null이면 타이머 비활성
+let manualMoveCount = 0;      // 사용자가 직접 입력한 이동 수 (셔플/솔버 제외)
+let usedSolver      = false;  // 솔버 사용 여부 — true면 점수 제출 안 함
+
 // ─── UI 헬퍼 ───────────────────────────────────────────────────────────────
 function setMoveCount(n) {
   moveCount = n;
@@ -37,6 +42,41 @@ function resetButtons() {
   updateUndoRedoButtons();
 }
 
+// ─── 완성 감지 ─────────────────────────────────────────────────────────────
+function isCubeSolved() {
+  for (let f = 0; f < 6; f++) {
+    const base = facelets[f * 9];
+    for (let i = 1; i < 9; i++) {
+      if (facelets[f * 9 + i] !== base) return false;
+    }
+  }
+  return true;
+}
+
+function checkSolvedAndSubmit() {
+  if (!isCubeSolved()) return;
+  if (usedSolver || solveStartTime === null) return;
+
+  const elapsed = Date.now() - solveStartTime;
+  solveStartTime = null;
+
+  const secs = (elapsed / 1000).toFixed(1);
+  setStatus('Solved!  ' + secs + 's  ' + manualMoveCount + ' moves');
+
+  if (window.AndroidBridge && window.AndroidBridge.submitScore) {
+    AndroidBridge.submitScore(elapsed, manualMoveCount);
+  }
+
+  manualMoveCount = 0;
+}
+
+// ─── 리더보드 열기 ─────────────────────────────────────────────────────────
+function showLeaderboard(which) {
+  if (window.AndroidBridge && window.AndroidBridge.showLeaderboard) {
+    AndroidBridge.showLeaderboard(which);
+  }
+}
+
 // ─── 단일 무브 적용 ────────────────────────────────────────────────────────
 function applyMove(name) {
   const f = [...facelets];
@@ -45,11 +85,13 @@ function applyMove(name) {
     undoStack.push({ moveName: name, moveCount });
     redoStack.length = 0;
     updateUndoRedoButtons();
+    manualMoveCount++;
   }
   applyMoveInPlace(name, f);
   facelets = f;
   setMoveCount(moveCount + 1);
   applyFacelets();
+  if (!isShuffling && !isSolving) checkSolvedAndSubmit();
 }
 
 // ─── 셔플 ──────────────────────────────────────────────────────────────────
@@ -81,6 +123,10 @@ function shuffleCube() {
     if (i >= moves.length) {
       setMoveCount(0);
       isShuffling = false;
+      // 셔플 완료 → 타이머/카운터 초기화 후 시작
+      solveStartTime  = Date.now();
+      manualMoveCount = 0;
+      usedSolver      = false;
       document.getElementById('btn-shuffle').disabled = false;
       document.getElementById('btn-reset').disabled   = false;
       updateUndoRedoButtons();
@@ -99,6 +145,9 @@ function resetCube() {
   setMoveCount(0);
   undoStack.length = 0;
   redoStack.length = 0;
+  solveStartTime  = null;
+  manualMoveCount = 0;
+  usedSolver      = false;
   applyFacelets();
   document.getElementById('btn-shuffle').disabled = false;
   document.getElementById('btn-reset').disabled   = false;

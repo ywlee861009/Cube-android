@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Cubie</string>
+    <!-- TODO: Play Console에서 게임 등록 후 발급받은 숫자 APP_ID로 교체 -->
+    <string name="game_services_project_id" translatable="false">000000000000</string>
 </resources>

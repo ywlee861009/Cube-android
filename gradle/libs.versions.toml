@@ -7,11 +7,13 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 activity = "1.9.3"
 admob = "23.6.0"
+playGames = "20.1.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-activity = { group = "androidx.activity", name = "activity-ktx", version.ref = "activity" }
 google-admob = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "admob" }
+google-play-games = { group = "com.google.android.gms", name = "play-services-games-v2", version.ref = "playGames" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
