@@ -130,20 +130,46 @@ function resetButtons() {
   updateUndoRedoButtons();
 }
 
-async function solveCube() {
+// Android 광고 콜백: 광고 거부/실패 → 솔브 차단
+window.onSolveDenied = function() {
+  setStatus('광고를 시청해야 Solve를 사용할 수 있어요.');
+  document.getElementById('btn-solve').disabled   = false;
+  document.getElementById('btn-shuffle').disabled = false;
+  document.getElementById('btn-reset').disabled   = false;
+};
+
+function solveCube() {
   if (isShuffling || isSolving) return;
 
-  // 솔루션이 이미 계산된 경우 → 다음 한 수 실행
+  // 모든 탭을 Android에 위임 — 광고 여부는 Android가 판단
+  if (window.AndroidBridge && window.AndroidBridge.requestSolve) {
+    document.getElementById('btn-solve').disabled   = true;
+    document.getElementById('btn-shuffle').disabled = true;
+    document.getElementById('btn-reset').disabled   = true;
+    AndroidBridge.requestSolve();
+  } else {
+    // 브릿지 없음 (브라우저 테스트 환경) → 바로 실행
+    _runSolveStep();
+  }
+}
+
+// 광고 허가 후 실행 — 진행 중인 솔루션이 있으면 step, 없으면 새로 계산
+window.onSolveGranted = function() {
   if (solutionMoves !== null) {
     stepSolution();
-    return;
+  } else {
+    _runSolve();
   }
+};
 
-  // 솔루션 새로 계산
+async function _runSolve() {
   try {
     const solver = SolverFactory.create();
     if (!solver.isReady()) {
       setStatus('Solver loading...');
+      document.getElementById('btn-solve').disabled   = false;
+      document.getElementById('btn-shuffle').disabled = false;
+      document.getElementById('btn-reset').disabled   = false;
       return;
     }
 
