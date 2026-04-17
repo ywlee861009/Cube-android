@@ -132,6 +132,10 @@ renderer.domElement.addEventListener('touchmove', e => {
 
 // ─── touchend ────────────────────────────────────────────────────────────
 renderer.domElement.addEventListener('touchend', e => {
+  if (isShuffling || isSolving) { // 애니메이션 중 레이어 확정 차단
+    if (e.touches.length === 0) { dragMode = null; hitMesh = null; prevPinchDist = null; }
+    return;
+  }
   if (dragMode === 'layer') {
     finishLayerRotation(); // fling 포함 스냅 애니메이션 시작
   } else if (dragMode === 'view') {
