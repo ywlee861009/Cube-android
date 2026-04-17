@@ -42,9 +42,15 @@ async function _runSolve() {
     const solver = SolverFactory.create();
     if (!solver.isReady()) {
       setStatus('Solver loading...');
-      document.getElementById('btn-solve').disabled   = false;
+      // btn-solve는 비활성 유지 — 준비 완료 후 자동 재활성화
       document.getElementById('btn-shuffle').disabled = false;
       document.getElementById('btn-reset').disabled   = false;
+      setTimeout(() => {
+        if (!isSolving && !isShuffling) {
+          document.getElementById('btn-solve').disabled = false;
+          setMoveCount(moveCount);
+        }
+      }, 1500);
       return;
     }
 
