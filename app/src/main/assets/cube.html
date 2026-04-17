@@ -19,8 +19,9 @@
       bottom: calc(40px + var(--safe-bottom));
       left: var(--safe-left);
       right: var(--safe-right);
-      display: flex; justify-content: center; gap: 16px;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
     }
+    .ui-row { display: flex; justify-content: center; gap: 12px; }
     button {
       background: rgba(0,0,0,0.07);
       color: #222; border: 1px solid rgba(0,0,0,0.18);
@@ -28,7 +29,7 @@
       font-size: 15px; cursor: pointer;
     }
     #btn-undo, #btn-redo {
-      padding: 12px 18px;
+      padding: 10px 24px;
       font-size: 18px;
     }
     button:active { background: rgba(0,0,0,0.15); }
@@ -45,11 +46,15 @@
 <body>
 <div id="moves">Moves: 0</div>
 <div id="ui">
-  <button id="btn-undo"    onclick="undoCube()"   disabled>↩</button>
-  <button id="btn-shuffle" onclick="shuffleCube()">Shuffle</button>
-  <button id="btn-solve"   onclick="solveCube()">Solve</button>
-  <button id="btn-reset"   onclick="resetCube()">Reset</button>
-  <button id="btn-redo"    onclick="redoCube()"   disabled>↪</button>
+  <div class="ui-row">
+    <button id="btn-undo" onclick="undoCube()" disabled>↩ Undo</button>
+    <button id="btn-redo" onclick="redoCube()" disabled>Redo ↪</button>
+  </div>
+  <div class="ui-row">
+    <button id="btn-shuffle" onclick="shuffleCube()">Shuffle</button>
+    <button id="btn-solve"   onclick="solveCube()">Solve</button>
+    <button id="btn-reset"   onclick="resetCube()">Reset</button>
+  </div>
 </div>
 
 <script src="js/three.min.js"></script>
