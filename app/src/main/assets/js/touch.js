@@ -72,6 +72,7 @@ renderer.domElement.addEventListener('touchmove', e => {
     if (prevPinchDist) {
       camDist = Math.max(CAM_MIN, Math.min(CAM_MAX, camDist * prevPinchDist / dist));
       updateCamera();
+      markDirty();
     }
     prevPinchDist = dist;
     return;
@@ -97,6 +98,7 @@ renderer.domElement.addEventListener('touchmove', e => {
     const dRotX = (y - prevY) * 0.01;
     cubieGroup.rotation.y += dRotY;
     cubieGroup.rotation.x += dRotX;
+    markDirty();
     const dt = now - prevMoveTime;
     if (dt > 0) {
       // EMA 스무딩으로 속도 추적
@@ -122,6 +124,7 @@ renderer.domElement.addEventListener('touchmove', e => {
     layerAngle = newAngle;
     layerGroup.rotation.set(0, 0, 0);
     layerGroup.rotation[layerAxisName] = layerAngle;
+    markDirty();
   }
 
   prevX = x; prevY = y;
@@ -149,6 +152,7 @@ renderer.domElement.addEventListener('touchend', e => {
         vy *= factor;
         cubieGroup.rotation.x += vx * dt;
         cubieGroup.rotation.y += vy * dt;
+        markDirty();
 
         if (Math.abs(vx) > 0.00003 || Math.abs(vy) > 0.00003) {
           flingRafId = requestAnimationFrame(viewFling);

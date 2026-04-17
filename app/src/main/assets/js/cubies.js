@@ -44,4 +44,5 @@ function applyFacelets() {
       if (cubie) cubie.mesh.material[faceDef.matIdx].color.set(FACE_COLORS[colorIdx]);
     });
   });
+  markDirty();
 }

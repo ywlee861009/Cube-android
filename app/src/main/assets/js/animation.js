@@ -61,6 +61,7 @@ function performAnimatedMove(moveName, onDone) {
     const eased = 1 - Math.pow(1 - t, 3); // cubic ease-out
     layerAngle  = targetAngle * eased;
     if (layerGroup) layerGroup.rotation[axis] = layerAngle;
+    markDirty();
 
     if (t < 1) {
       animRafId = requestAnimationFrame(step);
