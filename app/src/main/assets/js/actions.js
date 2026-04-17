@@ -60,8 +60,7 @@ function checkSolvedAndSubmit() {
   const elapsed = Date.now() - solveStartTime;
   solveStartTime = null;
 
-  const secs = (elapsed / 1000).toFixed(1);
-  setStatus('Solved!  ' + secs + 's  ' + manualMoveCount + ' moves');
+  showSolvedOverlay(elapsed, manualMoveCount);
 
   if (window.AndroidBridge && window.AndroidBridge.submitScore) {
     AndroidBridge.submitScore(elapsed, manualMoveCount);
@@ -69,6 +68,47 @@ function checkSolvedAndSubmit() {
 
   manualMoveCount = 0;
 }
+
+// ─── 축하 오버레이 ──────────────────────────────────────────────────────────
+function showSolvedOverlay(elapsedMs, moves) {
+  document.getElementById('s-time').textContent  = (elapsedMs / 1000).toFixed(1) + 's';
+  document.getElementById('s-moves').textContent = moves;
+  document.getElementById('solved-overlay').classList.remove('hidden');
+  _spawnConfetti();
+}
+
+function dismissSolvedOverlay() {
+  document.getElementById('solved-overlay').classList.add('hidden');
+  document.querySelectorAll('.confetti-piece').forEach(function(el) { el.remove(); });
+}
+
+function playAgain() {
+  dismissSolvedOverlay();
+  shuffleCube();
+}
+
+function _spawnConfetti() {
+  const colors = ['#e74c3c', '#2ecc71', '#f1c40f', '#e67e22', '#3498db', '#9b59b6'];
+  for (let i = 0; i < 48; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    const size = 6 + Math.random() * 6;
+    el.style.cssText =
+      'left:'               + (Math.random() * 100) + 'vw;' +
+      'top:-12px;'          +
+      'width:'              + size + 'px;' +
+      'height:'             + size + 'px;' +
+      'background:'         + colors[i % colors.length] + ';' +
+      'animation-duration:' + (1.8 + Math.random() * 2) + 's;' +
+      'animation-delay:'    + (Math.random() * 0.8)     + 's;';
+    document.body.appendChild(el);
+  }
+}
+
+// 오버레이 배경 탭 → 닫기 (카드 내부 탭 제외)
+document.getElementById('solved-overlay').addEventListener('click', function(e) {
+  if (e.target === this) dismissSolvedOverlay();
+});
 
 // ─── 리더보드 열기 ─────────────────────────────────────────────────────────
 function showLeaderboard(which) {
