@@ -32,7 +32,7 @@ function solveCube() {
     AndroidBridge.requestSolve();
   } else {
     // 브릿지 없음 (브라우저 테스트 환경) → 바로 실행
-    _runSolveStep();
+    _runSolve();
   }
 }
 
