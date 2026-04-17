@@ -93,7 +93,7 @@ function shuffleCube() {
 
 // ─── 리셋 ──────────────────────────────────────────────────────────────────
 function resetCube() {
-  if (isSolving) return;
+  if (isShuffling || isSolving) return;
   resetSolution();
   facelets = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
   setMoveCount(0);
