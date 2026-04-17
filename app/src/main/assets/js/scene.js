@@ -33,11 +33,17 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
+  markDirty();
 });
 
 // ─── 렌더 루프 ─────────────────────────────────────────────────────────────
+let _needsRender = true;
+function markDirty() { _needsRender = true; }
+
 function animate() {
   requestAnimationFrame(animate);
+  if (!_needsRender) return;
+  _needsRender = false;
   renderer.render(scene, camera);
 }
 animate();

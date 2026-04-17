@@ -107,6 +107,7 @@ function commitLayerRotation(snaps) {
   });
   cubieGroup.remove(group);
   // applyFacelets()는 위 applyMove() 내부에서 이미 호출됨 — 중복 제거
+  markDirty();
 }
 
 // ─── 스냅 & Fling 애니메이션 ─────────────────────────────────────────────
@@ -162,6 +163,7 @@ function finishLayerRotation() {
     const angle = startAngle + (endAngle - startAngle) * eased;
     layerAngle  = angle;
     if (layerGroup) layerGroup.rotation[axis] = angle;
+    markDirty();
 
     if (t < 1) {
       flingRafId = requestAnimationFrame(step);
