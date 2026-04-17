@@ -356,6 +356,16 @@ const MOVE_ANIM_MAP = {
   'B':  { axis: 'z', sliceKey: 'cz', slice: -1, snaps:  1 },
   "B'": { axis: 'z', sliceKey: 'cz', slice: -1, snaps: -1 },
   'B2': { axis: 'z', sliceKey: 'cz', slice: -1, snaps:  2 },
+  // 중간 레이어
+  'E':  { axis: 'y', sliceKey: 'cy', slice:  0, snaps:  1 },
+  "E'": { axis: 'y', sliceKey: 'cy', slice:  0, snaps: -1 },
+  'E2': { axis: 'y', sliceKey: 'cy', slice:  0, snaps:  2 },
+  'M':  { axis: 'x', sliceKey: 'cx', slice:  0, snaps:  1 },
+  "M'": { axis: 'x', sliceKey: 'cx', slice:  0, snaps: -1 },
+  'M2': { axis: 'x', sliceKey: 'cx', slice:  0, snaps:  2 },
+  'S':  { axis: 'z', sliceKey: 'cz', slice:  0, snaps: -1 },
+  "S'": { axis: 'z', sliceKey: 'cz', slice:  0, snaps:  1 },
+  'S2': { axis: 'z', sliceKey: 'cz', slice:  0, snaps: -2 },
 };
 
 // moveName 하나를 애니메이션으로 실행하고 끝나면 onDone 호출
