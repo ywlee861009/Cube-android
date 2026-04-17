@@ -4,6 +4,7 @@ const redoStack = [];
 let isUndoRedo = false;
 
 function inverseMoveOf(name) {
+  if (name.endsWith("2")) return name;          // U2의 역은 U2
   return name.endsWith("'") ? name.slice(0, -1) : name + "'";
 }
 
