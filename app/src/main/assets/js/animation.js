@@ -55,17 +55,21 @@ function performAnimatedMove(moveName, onDone) {
   const DURATION    = 90; // ms (25수 × 90ms ≈ 2.3초)
   const startTime   = performance.now();
 
-  (function step(now) {
+  let animRafId = null;
+  animRafId = requestAnimationFrame(function step(now) {
     const t     = Math.min((now - startTime) / DURATION, 1);
     const eased = 1 - Math.pow(1 - t, 3); // cubic ease-out
     layerAngle  = targetAngle * eased;
     if (layerGroup) layerGroup.rotation[axis] = layerAngle;
 
     if (t < 1) {
-      requestAnimationFrame(step);
+      animRafId = requestAnimationFrame(step);
     } else {
+      animRafId = null;
       commitLayerRotation(snaps);
       if (onDone) onDone();
     }
-  })(performance.now());
+  });
+  // cancelFling()과의 충돌을 막기 위해 flingRafId와는 별도로 관리
+  // (performAnimatedMove는 isShuffling/isSolving/isUndoRedo로 진입 차단)
 }
