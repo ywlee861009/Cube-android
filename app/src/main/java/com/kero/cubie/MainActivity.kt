@@ -9,6 +9,7 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -96,6 +97,13 @@ class MainActivity : ComponentActivity() {
         }
 
         setContentView(webView)
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finishAndRemoveTask()
+                android.os.Process.killProcess(android.os.Process.myPid())
+            }
+        })
     }
 
     // ── RewardedAd 로드 ──────────────────────────────────────────────────────
