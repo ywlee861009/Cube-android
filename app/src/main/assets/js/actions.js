@@ -155,6 +155,7 @@ function applyMove(name) {
   const f = [...facelets];
   if (!name || (!MOVES[name[0]])) return;
   if (!isShuffling && !isSolving && !isUndoRedo) {
+    if (solutionMoves) resetSolution();  // 솔브 진행 중 수동 이동 → 솔루션 무효화
     undoStack.push({ moveName: name, moveCount });
     redoStack.length = 0;
     updateUndoRedoButtons();
