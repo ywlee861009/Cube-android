@@ -15,10 +15,6 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-2103375309908918~1118005116" />
-        <!-- TODO: Play Console > 게임 서비스 등록 후 실제 APP_ID로 교체 (strings.xml의 game_services_project_id) -->
-        <meta-data
-            android:name="com.google.android.gms.games.APP_ID"
-            android:value="@string/game_services_project_id" />
 
         <activity
             android:name=".MainActivity"

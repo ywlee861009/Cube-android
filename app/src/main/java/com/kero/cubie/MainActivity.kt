@@ -10,7 +10,6 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.gms.ads.AdError
@@ -20,13 +19,8 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
-import com.google.android.gms.games.PlayGames
 
 private const val AD_UNIT_ID = "ca-app-pub-2103375309908918/6311668222"
-
-// TODO: Play Console > 게임 서비스 > 리더보드 생성 후 실제 ID로 교체
-private const val LEADERBOARD_TIME  = "CgkI_REPLACE_TIME_ID"
-private const val LEADERBOARD_MOVES = "CgkI_REPLACE_MOVES_ID"
 
 class MainActivity : ComponentActivity() {
 
@@ -36,10 +30,6 @@ class MainActivity : ComponentActivity() {
     private var rewardedAd: RewardedAd? = null
     private var isAdLoading = false
     private var solveGranted = false  // 광고 시청 후 true, 셔플/리셋 시 false
-
-    private val leaderboardLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { /* no-op */ }
 
     inner class CubeBridge(private val webView: WebView) {
 
@@ -75,42 +65,6 @@ class MainActivity : ComponentActivity() {
             solveGranted = false
         }
 
-        /**
-         * 큐브를 직접 풀었을 때 JS에서 호출 (솔버 미사용 조건).
-         * @param timeMs   셔플 완료 ~ 완성까지 경과 시간 (ms)
-         * @param moves    사용자가 직접 입력한 이동 수
-         */
-        @JavascriptInterface
-        fun submitScore(timeMs: Long, moves: Int) {
-            PlayGames.getGamesSignInClient(this@MainActivity).isAuthenticated
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful && task.result.isAuthenticated) {
-                        val lb = PlayGames.getLeaderboardsClient(this@MainActivity)
-                        lb.submitScore(LEADERBOARD_TIME, timeMs)
-                        lb.submitScore(LEADERBOARD_MOVES, moves.toLong())
-                        Log.d("PlayGames", "Score submitted: ${timeMs}ms, ${moves} moves")
-                    } else {
-                        Log.w("PlayGames", "Not authenticated, score not submitted")
-                    }
-                }
-        }
-
-        /**
-         * 리더보드 UI 표시.
-         * @param which  "time" | "moves"
-         */
-        @JavascriptInterface
-        fun showLeaderboard(which: String) {
-            val leaderboardId = if (which == "time") LEADERBOARD_TIME else LEADERBOARD_MOVES
-            PlayGames.getLeaderboardsClient(this@MainActivity)
-                .getLeaderboardIntent(leaderboardId)
-                .addOnSuccessListener { intent ->
-                    runOnUiThread { leaderboardLauncher.launch(intent) }
-                }
-                .addOnFailureListener { e ->
-                    Log.w("PlayGames", "Failed to open leaderboard: ${e.message}")
-                }
-        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -120,9 +74,6 @@ class MainActivity : ComponentActivity() {
 
         MobileAds.initialize(this)
         loadRewardedAd()
-
-        // Play Games 로그인 (자동 처리, 사용자 개입 없음)
-        PlayGames.getGamesSignInClient(this).signIn()
 
         webView = WebView(this).apply {
             settings.javaScriptEnabled = true

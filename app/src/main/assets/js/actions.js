@@ -84,10 +84,6 @@ function checkSolvedAndSubmit() {
   const pbResult = _checkAndSavePB(elapsed, manualMoveCount);
   showSolvedOverlay(elapsed, manualMoveCount, pbResult);
 
-  if (window.AndroidBridge && window.AndroidBridge.submitScore) {
-    AndroidBridge.submitScore(elapsed, manualMoveCount);
-  }
-
   manualMoveCount = 0;
 }
 
@@ -153,13 +149,6 @@ function _spawnConfetti() {
 document.getElementById('solved-overlay').addEventListener('click', function(e) {
   if (e.target === this) dismissSolvedOverlay();
 });
-
-// ─── 리더보드 열기 ─────────────────────────────────────────────────────────
-function showLeaderboard(which) {
-  if (window.AndroidBridge && window.AndroidBridge.showLeaderboard) {
-    AndroidBridge.showLeaderboard(which);
-  }
-}
 
 // ─── 단일 무브 적용 ────────────────────────────────────────────────────────
 function applyMove(name) {
