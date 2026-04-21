@@ -29,9 +29,13 @@ render.experimental.xml
 # Keystore files
 *.jks
 *.keystore
+keystore/
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json
 
 # Android Profiling
 *.hprof
+
+# macOS
+.DS_Store
