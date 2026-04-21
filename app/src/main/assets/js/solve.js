@@ -25,8 +25,6 @@ function solveCube() {
     return;
   }
 
-  usedSolver = true;  // 솔버 사용 → 이 판은 리더보드 점수 제출 안 함
-
   document.getElementById('btn-solve').disabled   = true;
   document.getElementById('btn-shuffle').disabled = true;
 
@@ -69,12 +67,10 @@ async function _runSolve() {
       return;
     }
 
+    usedSolver = true;  // 솔루션이 실제로 셋업될 때만 플래그 설정
     solutionMoves = moves;
     solutionIndex = 0;
-    // 솔루션 준비 완료 → 버튼에 첫 수 표시 후 탭 대기
-    document.getElementById('btn-solve').textContent = '1 / ' + moves.length;
-    document.getElementById('btn-solve').disabled = false;
-    setMoveCount(moveCount);
+    stepSolution();  // 광고 소비 직후 첫 수 자동 실행
   } catch (e) {
     setStatus('Error: ' + e.message);
     resetButtons();
