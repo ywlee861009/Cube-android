@@ -159,9 +159,19 @@ class MainActivity : ComponentActivity() {
         ad.show(this) { rewarded = true }
     }
 
+    // ── 생명주기 ──────────────────────────────────────────────────────────────
+
+    override fun onDestroy() {
+        super.onDestroy()
+        rewardedAd?.fullScreenContentCallback = null
+        rewardedAd = null
+        webView.destroy()
+    }
+
     // ── 유틸 ─────────────────────────────────────────────────────────────────
 
     private fun callJs(js: String) {
+        if (isDestroyed || isFinishing) return
         webView.evaluateJavascript(js, null)
     }
 
