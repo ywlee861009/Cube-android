@@ -30,6 +30,9 @@ const MOVE_ANIM_MAP = {
   'S2': { axis: 'z', sliceKey: 'cz', slice:  0, snaps: -2 },
 };
 
+// 현재 진행 중인 이동 애니메이션 RAF ID (모듈 레벨 — 외부에서 취소 가능)
+let animRafId = null;
+
 // moveName 하나를 애니메이션으로 실행하고 끝나면 onDone 호출
 function performAnimatedMove(moveName, onDone) {
   const info = MOVE_ANIM_MAP[moveName];
@@ -55,7 +58,7 @@ function performAnimatedMove(moveName, onDone) {
   const DURATION    = 90; // ms (25수 × 90ms ≈ 2.3초)
   const startTime   = performance.now();
 
-  let animRafId = null;
+  if (animRafId !== null) cancelAnimationFrame(animRafId);  // 이전 애니메이션 잔여 RAF 취소
   animRafId = requestAnimationFrame(function step(now) {
     const t     = Math.min((now - startTime) / DURATION, 1);
     const eased = 1 - Math.pow(1 - t, 3); // cubic ease-out
