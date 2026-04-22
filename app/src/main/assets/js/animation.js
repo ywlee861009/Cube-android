@@ -38,6 +38,13 @@ function performAnimatedMove(moveName, onDone) {
   const info = MOVE_ANIM_MAP[moveName];
   if (!info) { if (onDone) onDone(); return; }
 
+  // 이전 애니메이션이 진행 중이면 RAF 취소 후 layerGroup 정리 (새 layerGroup 생성 전에 처리)
+  if (animRafId !== null) {
+    cancelAnimationFrame(animRafId);
+    animRafId = null;
+    commitLayerRotation(0);  // snaps=0 → 이동 미적용, orphaned layerGroup만 정리
+  }
+
   const { axis, sliceKey, slice, snaps } = info;
 
   // commitLayerRotation이 참조하는 전역 상태 세팅
@@ -58,7 +65,6 @@ function performAnimatedMove(moveName, onDone) {
   const DURATION    = 90; // ms (25수 × 90ms ≈ 2.3초)
   const startTime   = performance.now();
 
-  if (animRafId !== null) cancelAnimationFrame(animRafId);  // 이전 애니메이션 잔여 RAF 취소
   animRafId = requestAnimationFrame(function step(now) {
     const t     = Math.min((now - startTime) / DURATION, 1);
     const eased = 1 - Math.pow(1 - t, 3); // cubic ease-out
