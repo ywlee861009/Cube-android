@@ -39,8 +39,8 @@ window.addEventListener('resize', () => {
     renderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    markDirty();
   }
-  markDirty();
 });
 
 // ─── WebGL context 소실/복구 추적 ─────────────────────────────────────────
@@ -53,11 +53,21 @@ renderer.domElement.addEventListener('webglcontextrestored', () => {
 
 // ─── 렌더 루프 ─────────────────────────────────────────────────────────────
 let _needsRender = true;
+let _renderPaused = false;
 function markDirty() { _needsRender = true; }
+function pauseRendering() {
+  _renderPaused = true;
+  renderer.domElement.style.visibility = 'hidden';
+}
+function resumeRendering() {
+  _renderPaused = false;
+  renderer.domElement.style.visibility = '';
+  markDirty();
+}
 
 function animate() {
   requestAnimationFrame(animate);
-  if (!_needsRender) return;
+  if (_renderPaused || !_needsRender) return;
   _needsRender = false;
   renderer.render(scene, camera);
 }

@@ -87,6 +87,10 @@ function checkSolvedAndSubmit() {
   manualMoveCount = 0;
 }
 
+// Worker+OffscreenCanvas는 Android WebView file:// 보안정책으로 실패 → GPU 충돌 유발.
+// useWorker:false로 메인스레드 2D 캔버스만 사용.
+const _confetti = confetti.create(null, { useWorker: false, resize: true });
+
 // ─── 축하 오버레이 ──────────────────────────────────────────────────────────
 function showSolvedOverlay(elapsedMs, moves, pbResult) {
   console.log('[Overlay] showSolvedOverlay called t=' + performance.now().toFixed(0));
@@ -115,12 +119,14 @@ function showSolvedOverlay(elapsedMs, moves, pbResult) {
   }
 
   document.getElementById('solved-overlay').classList.remove('hidden');
+  pauseRendering();
   _spawnConfetti();
 }
 
 function dismissSolvedOverlay() {
   document.getElementById('solved-overlay').classList.add('hidden');
-  confetti.reset();
+  _confetti.reset();
+  resumeRendering();
 }
 
 function playAgain() {
@@ -132,11 +138,11 @@ function _spawnConfetti() {
   const colors = ['#ffffff', '#ff3333', '#22cc55', '#ffdd00', '#ff8800', '#3388ff'];
   const opts = { colors: colors, scalar: 1.1, zIndex: 102 };
 
-  confetti(Object.assign({ particleCount: 80, spread: 70, origin: { y: 0.55 } }, opts));
+  _confetti(Object.assign({ particleCount: 80, spread: 70, origin: { y: 0.55 } }, opts));
 
   setTimeout(function () {
-    confetti(Object.assign({ particleCount: 45, angle: 60,  spread: 58, origin: { x: 0,   y: 0.6 } }, opts));
-    confetti(Object.assign({ particleCount: 45, angle: 120, spread: 58, origin: { x: 1,   y: 0.6 } }, opts));
+    _confetti(Object.assign({ particleCount: 45, angle: 60,  spread: 58, origin: { x: 0,   y: 0.6 } }, opts));
+    _confetti(Object.assign({ particleCount: 45, angle: 120, spread: 58, origin: { x: 1,   y: 0.6 } }, opts));
   }, 180);
 }
 
