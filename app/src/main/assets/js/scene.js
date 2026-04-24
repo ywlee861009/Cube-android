@@ -29,10 +29,15 @@ const cubieGroup = new THREE.Group();
 scene.add(cubieGroup);
 
 // ─── 리사이즈 ──────────────────────────────────────────────────────────────
+let _vpW = window.innerWidth, _vpH = window.innerHeight;
 window.addEventListener('resize', () => {
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
+  const w = window.innerWidth, h = window.innerHeight;
+  if (w !== _vpW || h !== _vpH) {
+    _vpW = w; _vpH = h;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
   markDirty();
 });
 
