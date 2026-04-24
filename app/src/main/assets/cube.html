@@ -173,16 +173,6 @@
       background: #5B5FEF; color: #fff; border-radius: 16px;
     }
 
-    .confetti-piece {
-      position: fixed; border-radius: 2px;
-      pointer-events: none; z-index: 102;
-      animation: confettiFall linear forwards;
-    }
-    @keyframes confettiFall {
-      0%   { transform: translateY(0) rotate(0deg);        opacity: 1; }
-      80%  { opacity: 1; }
-      100% { transform: translateY(110vh) rotate(720deg);  opacity: 0; }
-    }
   </style>
 </head>
 <body>
@@ -230,6 +220,7 @@
   </div>
 </div>
 
+<script src="js/lib/confetti.min.js"></script>
 <script src="js/three.min.js"></script>
 <script src="js/constants.js"></script>
 <script src="js/scene.js"></script>

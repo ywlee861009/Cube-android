@@ -119,7 +119,7 @@ function showSolvedOverlay(elapsedMs, moves, pbResult) {
 
 function dismissSolvedOverlay() {
   document.getElementById('solved-overlay').classList.add('hidden');
-  document.querySelectorAll('.confetti-piece').forEach(function(el) { el.remove(); });
+  confetti.reset();
 }
 
 function playAgain() {
@@ -128,21 +128,15 @@ function playAgain() {
 }
 
 function _spawnConfetti() {
-  const colors = ['#e74c3c', '#2ecc71', '#f1c40f', '#e67e22', '#3498db', '#9b59b6'];
-  for (let i = 0; i < 48; i++) {
-    const el = document.createElement('div');
-    el.className = 'confetti-piece';
-    const size = 6 + Math.random() * 6;
-    el.style.cssText =
-      'left:'               + (Math.random() * 100) + 'vw;' +
-      'top:-12px;'          +
-      'width:'              + size + 'px;' +
-      'height:'             + size + 'px;' +
-      'background:'         + colors[i % colors.length] + ';' +
-      'animation-duration:' + (1.8 + Math.random() * 2) + 's;' +
-      'animation-delay:'    + (Math.random() * 0.8)     + 's;';
-    document.body.appendChild(el);
-  }
+  const colors = ['#ffffff', '#ff3333', '#22cc55', '#ffdd00', '#ff8800', '#3388ff'];
+  const opts = { colors: colors, scalar: 1.1, zIndex: 102 };
+
+  confetti(Object.assign({ particleCount: 80, spread: 70, origin: { y: 0.55 } }, opts));
+
+  setTimeout(function () {
+    confetti(Object.assign({ particleCount: 45, angle: 60,  spread: 58, origin: { x: 0,   y: 0.6 } }, opts));
+    confetti(Object.assign({ particleCount: 45, angle: 120, spread: 58, origin: { x: 1,   y: 0.6 } }, opts));
+  }, 180);
 }
 
 // 오버레이 배경 탭 → 닫기 (카드 내부 탭 제외)
