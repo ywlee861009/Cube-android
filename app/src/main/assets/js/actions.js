@@ -89,6 +89,7 @@ function checkSolvedAndSubmit() {
 
 // ─── 축하 오버레이 ──────────────────────────────────────────────────────────
 function showSolvedOverlay(elapsedMs, moves, pbResult) {
+  console.log('[Overlay] showSolvedOverlay called t=' + performance.now().toFixed(0));
   document.getElementById('s-time').textContent  = (elapsedMs / 1000).toFixed(1) + 's';
   document.getElementById('s-moves').textContent = moves;
 
