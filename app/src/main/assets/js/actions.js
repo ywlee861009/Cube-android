@@ -30,7 +30,7 @@ function updateUndoRedoButtons() {
 function resetSolution() {
   solutionMoves = null;
   solutionIndex = 0;
-  document.getElementById('btn-solve').textContent = 'Solve';
+  _refreshSolveLabel();
 }
 
 function resetButtons() {
@@ -177,6 +177,7 @@ function shuffleCube() {
   if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {
     AndroidBridge.onShuffleOrReset();
   }
+  _solveAdRequired = true;  // 셔플 후 다음 솔브는 다시 광고 필요
   resetSolution();  // 진행 중인 솔브 초기화
   isShuffling = true;
   document.getElementById('btn-shuffle').disabled = true;
@@ -224,6 +225,7 @@ function resetCube() {
   if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {
     AndroidBridge.onShuffleOrReset();
   }
+  _solveAdRequired = true;  // 리셋 후 다음 솔브는 다시 광고 필요
   resetSolution();
   facelets = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
   setMoveCount(0);
