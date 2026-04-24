@@ -131,8 +131,9 @@ class MainActivity : ComponentActivity() {
     private fun showRewardedAd() {
         val ad = rewardedAd
         if (ad == null) {
-            Log.w("AdMob", "Ad not ready, denying solve")
-            callJs("window.onSolveDenied()")
+            Log.w("AdMob", "Ad not ready, granting solve without ad")
+            solveGranted = true
+            callJs("window.onSolveGranted()")
             loadRewardedAd()
             return
         }
@@ -152,7 +153,9 @@ class MainActivity : ComponentActivity() {
             override fun onAdFailedToShowFullScreenContent(error: AdError) {
                 rewardedAd = null
                 loadRewardedAd()
-                callJs("window.onSolveDenied()")
+                Log.w("AdMob", "Ad failed to show, granting solve: ${error.message}")
+                solveGranted = true
+                callJs("window.onSolveGranted()")
             }
         }
 

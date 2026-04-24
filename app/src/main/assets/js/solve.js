@@ -25,6 +25,11 @@ function solveCube() {
     return;
   }
 
+  if (isCubeSolved()) {
+    setStatus('Already solved!');
+    return;
+  }
+
   document.getElementById('btn-solve').disabled   = true;
   document.getElementById('btn-shuffle').disabled = true;
 
