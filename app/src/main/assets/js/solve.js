@@ -100,9 +100,13 @@ function stepSolution() {
   performAnimatedMove(moveName, () => {
     isSolving = false;
     if (solutionIndex >= solutionMoves.length) {
+      const solverMoves = solutionMoves.length;
+      const elapsed = solveStartTime !== null ? Date.now() - solveStartTime : 0;
+      solveStartTime = null;
       setStatus('Solved!');
       setMoveCount(0);
       resetButtons();
+      showSolvedOverlay(elapsed, solverMoves, null);
     } else {
       // 다음 수 대기: 버튼에 진행 상황 표시 후 탭 대기
       document.getElementById('btn-solve').textContent = (solutionIndex + 1) + ' / ' + total;
