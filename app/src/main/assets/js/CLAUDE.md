@@ -15,7 +15,7 @@
 
 ## 핵심 데이터 모델
 
-**facelets** (`logic.js`): `Int32Array(54)`, 인덱스 = `faceIndex*9 + position`
+**facelets** (`logic.js`): `Array(54)` (일반 배열), 인덱스 = `faceIndex*9 + position`
 면 순서: U(0) R(1) F(2) D(3) L(4) B(5). 완성 상태: 각 원소 = 면 인덱스.
 
 **MOVES** (`logic.js`): 18개 표준 이동 + E/M/S 중간 레이어.
@@ -31,11 +31,11 @@
 | `animation.js` | 이동 애니메이션 (90ms ease-out) | `performAnimatedMove(name, cb)` |
 | `layer-rotation.js` | 레이어 드래그·fling·스냅 (220ms) | `initLayerRotation()`, `finishLayerRotation()`, `commitLayerRotation()` |
 | `touch.js` | 터치 진입점 (layer/view/pinch) | dragMode, CAM_MIN=4/CAM_MAX=20 |
-| `actions.js` | shuffle·reset·applyMove | `shuffleCube()`, `resetCube()`, `applyMove()` |
-| `history.js` | undo·redo 스택 | `undoCube()`, `redoCube()`, `inverseMoveOf()` |
-| `solve.js` | 솔버 연동·step 실행 | `solveCube()`, `stepSolution()` |
-| `bridge.js` | 인셋 전달 전용 | `window.AndroidCube.setInsets()` |
+| `actions.js` | shuffle·reset·applyMove·PB·축하오버레이 | `shuffleCube()`, `resetCube()`, `applyMove()`, `checkSolvedAndSubmit()` |
+| `history.js` | undo·redo 스택, `isUndoRedo` 플래그 | `undoCube()`, `redoCube()`, `inverseMoveOf()` |
+| `solve.js` | 솔버 연동·step 실행·광고 콜백 | `solveCube()`, `stepSolution()`, `onSolveGranted/Denied()` |
+| `bridge.js` | Android↔JS 인터페이스 | `window.AndroidCube.{setInsets, applyMove, shuffle, reset, getFacelets}` |
 
 ## 동시 진행 차단 플래그 (actions.js)
 
-`isShuffling`, `isSolving`, `isUndoRedo` — 하나라도 true면 다른 작업 거부.
+`isShuffling` (`actions.js`), `isSolving` (`actions.js`), `isUndoRedo` (`history.js`) — 하나라도 true면 다른 작업 거부.
