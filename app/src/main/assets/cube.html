@@ -153,9 +153,7 @@
     #solved-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.42);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
+      background: rgba(0,0,0,0.55);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -226,16 +224,6 @@
       background: #5B5FEF; color: #fff; border-radius: 16px;
     }
 
-    .confetti-piece {
-      position: fixed; border-radius: 2px;
-      pointer-events: none; z-index: 102;
-      animation: confettiFall linear forwards;
-    }
-    @keyframes confettiFall {
-      0%   { transform: translateY(0) rotate(0deg);        opacity: 1; }
-      80%  { opacity: 1; }
-      100% { transform: translateY(110vh) rotate(720deg);  opacity: 0; }
-    }
   </style>
 </head>
 <body>
@@ -280,10 +268,11 @@
   </div>
   <div class="ui-row">
     <button id="btn-shuffle" onclick="shuffleCube()">⇄ Shuffle</button>
-    <button id="btn-solve"   onclick="solveCube()">⚡ Solve</button>
+    <button id="btn-solve"   onclick="solveCube()">📺 Solve</button>
   </div>
 </div>
 
+<script src="js/lib/confetti.min.js"></script>
 <script src="js/three.min.js"></script>
 <script src="js/constants.js"></script>
 <script src="js/scene.js"></script>

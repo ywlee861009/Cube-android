@@ -2,6 +2,14 @@
 let solutionMoves = null;  // 계산된 솔루션 배열 (null이면 비활성)
 let solutionIndex = 0;     // 다음에 실행할 수 인덱스
 
+// Android 환경이면 초기에는 광고 필요, 브라우저 테스트는 바로 실행
+let _solveAdRequired = !!window.AndroidBridge;
+
+// 솔브 버튼 라벨 갱신 — resetSolution()에서 호출
+function _refreshSolveLabel() {
+  document.getElementById('btn-solve').textContent = _solveAdRequired ? '📺 Solve' : '⚡ Solve';
+}
+
 // ─── Android 광고 콜백 ──────────────────────────────────────────────────────
 // 광고 거부/실패 → 솔브 차단
 window.onSolveDenied = function() {
@@ -12,6 +20,7 @@ window.onSolveDenied = function() {
 
 // 광고 허가 후 실행 — 솔루션 계산 후 전체 자동 실행
 window.onSolveGranted = function() {
+  _solveAdRequired = false;  // 광고 시청(또는 생략) → 다음 솔브는 바로 실행 가능
   _runSolve();
 };
 
@@ -22,6 +31,11 @@ function solveCube() {
   // 솔루션이 이미 계산된 상태 → 탭할 때마다 1수씩 실행
   if (solutionMoves && solutionIndex < solutionMoves.length) {
     stepSolution();
+    return;
+  }
+
+  if (isCubeSolved()) {
+    setStatus('Already solved!');
     return;
   }
 
@@ -100,9 +114,13 @@ function stepSolution() {
   performAnimatedMove(moveName, () => {
     isSolving = false;
     if (solutionIndex >= solutionMoves.length) {
+      const solverMoves = solutionMoves.length;
+      const elapsed = solveStartTime !== null ? Date.now() - solveStartTime : 0;
+      solveStartTime = null;
       setStatus('Solved!');
       setMoveCount(0);
       resetButtons();
+      showSolvedOverlay(elapsed, solverMoves, null);
     } else {
       // 다음 수 대기: 버튼에 진행 상황 표시 후 탭 대기
       document.getElementById('btn-solve').textContent = (solutionIndex + 1) + ' / ' + total;

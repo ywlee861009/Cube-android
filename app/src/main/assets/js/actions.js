@@ -30,7 +30,7 @@ function updateUndoRedoButtons() {
 function resetSolution() {
   solutionMoves = null;
   solutionIndex = 0;
-  document.getElementById('btn-solve').textContent = 'Solve';
+  _refreshSolveLabel();
 }
 
 function resetButtons() {
@@ -87,8 +87,13 @@ function checkSolvedAndSubmit() {
   manualMoveCount = 0;
 }
 
+// Worker+OffscreenCanvas는 Android WebView file:// 보안정책으로 실패 → GPU 충돌 유발.
+// useWorker:false로 메인스레드 2D 캔버스만 사용.
+const _confetti = confetti.create(null, { useWorker: false, resize: true });
+
 // ─── 축하 오버레이 ──────────────────────────────────────────────────────────
 function showSolvedOverlay(elapsedMs, moves, pbResult) {
+  console.log('[Overlay] showSolvedOverlay called t=' + performance.now().toFixed(0));
   document.getElementById('s-time').textContent  = (elapsedMs / 1000).toFixed(1) + 's';
   document.getElementById('s-moves').textContent = moves;
 
@@ -114,12 +119,14 @@ function showSolvedOverlay(elapsedMs, moves, pbResult) {
   }
 
   document.getElementById('solved-overlay').classList.remove('hidden');
+  pauseRendering();
   _spawnConfetti();
 }
 
 function dismissSolvedOverlay() {
   document.getElementById('solved-overlay').classList.add('hidden');
-  document.querySelectorAll('.confetti-piece').forEach(function(el) { el.remove(); });
+  _confetti.reset();
+  resumeRendering();
 }
 
 function playAgain() {
@@ -128,21 +135,15 @@ function playAgain() {
 }
 
 function _spawnConfetti() {
-  const colors = ['#e74c3c', '#2ecc71', '#f1c40f', '#e67e22', '#3498db', '#9b59b6'];
-  for (let i = 0; i < 48; i++) {
-    const el = document.createElement('div');
-    el.className = 'confetti-piece';
-    const size = 6 + Math.random() * 6;
-    el.style.cssText =
-      'left:'               + (Math.random() * 100) + 'vw;' +
-      'top:-12px;'          +
-      'width:'              + size + 'px;' +
-      'height:'             + size + 'px;' +
-      'background:'         + colors[i % colors.length] + ';' +
-      'animation-duration:' + (1.8 + Math.random() * 2) + 's;' +
-      'animation-delay:'    + (Math.random() * 0.8)     + 's;';
-    document.body.appendChild(el);
-  }
+  const colors = ['#ffffff', '#ff3333', '#22cc55', '#ffdd00', '#ff8800', '#3388ff'];
+  const opts = { colors: colors, scalar: 1.1, zIndex: 102 };
+
+  _confetti(Object.assign({ particleCount: 80, spread: 70, origin: { y: 0.55 } }, opts));
+
+  setTimeout(function () {
+    _confetti(Object.assign({ particleCount: 45, angle: 60,  spread: 58, origin: { x: 0,   y: 0.6 } }, opts));
+    _confetti(Object.assign({ particleCount: 45, angle: 120, spread: 58, origin: { x: 1,   y: 0.6 } }, opts));
+  }, 180);
 }
 
 // 오버레이 배경 탭 → 닫기 (카드 내부 탭 제외)
@@ -176,6 +177,7 @@ function shuffleCube() {
   if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {
     AndroidBridge.onShuffleOrReset();
   }
+  _solveAdRequired = true;  // 셔플 후 다음 솔브는 다시 광고 필요
   resetSolution();  // 진행 중인 솔브 초기화
   isShuffling = true;
   document.getElementById('btn-shuffle').disabled = true;
@@ -223,6 +225,7 @@ function resetCube() {
   if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {
     AndroidBridge.onShuffleOrReset();
   }
+  _solveAdRequired = true;  // 리셋 후 다음 솔브는 다시 광고 필요
   resetSolution();
   facelets = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
   setMoveCount(0);

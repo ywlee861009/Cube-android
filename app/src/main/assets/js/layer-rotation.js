@@ -88,13 +88,13 @@ function commitLayerRotation(snaps) {
   const moveBase = layerMoveBase;
   layerGroup = null; // 재진입 방지
 
+  console.log('[Commit] snaps=' + snaps + ' base=' + moveBase + ' isSolving=' + isSolving + ' isShuffling=' + isShuffling);
   if (snaps !== 0) {
     const isURF = ['U', 'R', 'F', 'S'].includes(moveBase);
     const needsPrime = isURF ? snaps > 0 : snaps < 0;
     const moveName = moveBase + (needsPrime ? "'" : "");
     for (let i = 0; i < Math.abs(snaps); i++) applyMove(moveName);
     if (!isShuffling) {
-      console.log('[Haptic] AndroidBridge exists:', !!window.AndroidBridge, '/ hapticFeedback fn:', typeof window.AndroidBridge?.hapticFeedback);
       window.AndroidBridge?.hapticFeedback();
     }
   }
