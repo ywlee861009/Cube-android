@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd '/Users/iyeong-u/Desktop/android projects/Cube-android' && if [ -n \"$(git status --porcelain 2>/dev/null)\" ]; then ./gradlew assembleDebug; BUILD_EXIT=$?; if [ $BUILD_EXIT -ne 0 ]; then echo '{\"continue\":false,\"stopReason\":\"빌드 실패! 오류를 수정 후 다시 시도하세요.\"}'; exit 1; fi; fi",
+            "command": "if [ -n \"$(git status --porcelain 2>/dev/null)\" ]; then ./gradlew assembleDebug; BUILD_EXIT=$?; if [ $BUILD_EXIT -ne 0 ]; then echo '{\"continue\":false,\"stopReason\":\"빌드 실패! 오류를 수정 후 다시 시도하세요.\"}'; exit 1; fi; fi",
             "timeout": 300,
             "statusMessage": "빌드 검증 중 (assembleDebug)..."
           }
