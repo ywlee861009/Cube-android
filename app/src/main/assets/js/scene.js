@@ -1,6 +1,11 @@
 // ─── renderer ──────────────────────────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setClearColor(0xf0f0f0, 1);
+
+function setSceneBg(hex) {
+  renderer.setClearColor(hex, 1);
+  markDirty();
+}
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
