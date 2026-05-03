@@ -76,13 +76,18 @@ function _checkAndSavePB(timeMs, moves) {
 
 function checkSolvedAndSubmit() {
   if (!isCubeSolved()) return;
-  if (usedSolver || solveStartTime === null) return;
+  if (solveStartTime === null) return;
 
   const elapsed = Date.now() - solveStartTime;
   solveStartTime = null;
 
-  const pbResult = _checkAndSavePB(elapsed, manualMoveCount);
-  showSolvedOverlay(elapsed, manualMoveCount, pbResult);
+  if (usedSolver) {
+    // 솔버 사용 후 수동 마무리 → 축하 오버레이는 표시, PB 기록 제외
+    showSolvedOverlay(elapsed, manualMoveCount, null);
+  } else {
+    const pbResult = _checkAndSavePB(elapsed, manualMoveCount);
+    showSolvedOverlay(elapsed, manualMoveCount, pbResult);
+  }
 
   manualMoveCount = 0;
 }
