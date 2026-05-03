@@ -38,6 +38,7 @@ function shuffleCube() {
       solveStartTime  = Date.now();
       manualMoveCount = 0;
       usedSolver      = false;
+      startTimer();
       document.getElementById('btn-shuffle').disabled = false;
       document.getElementById('btn-solve').disabled   = false;
       updateUndoRedoButtons();
@@ -63,6 +64,7 @@ function resetCube() {
   solveStartTime  = null;
   manualMoveCount = 0;
   usedSolver      = false;
+  stopTimer();
   applyFacelets();
   document.getElementById('btn-shuffle').disabled = false;
   updateUndoRedoButtons();

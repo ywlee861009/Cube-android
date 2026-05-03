@@ -8,11 +8,17 @@
 body { background: #e8eaf0; overflow: hidden; font-family: 'Roboto', sans-serif; }
 canvas { display: block; }
 
-#moves {
+#top-bar {
   position: fixed;
   top: calc(16px + var(--safe-top));
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+#timer, #moves {
   background: rgba(255,255,255,0.82);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -25,6 +31,9 @@ canvas { display: block; }
   box-shadow: 0 2px 10px rgba(0,0,0,0.08);
   white-space: nowrap;
 }
+
+#timer { display: none; }
+#timer.active { display: block; }
 
 #btn-theme {
   position: fixed;
@@ -51,6 +60,7 @@ canvas { display: block; }
 
 /* ── Dark Mode ─────────────────────────────────────────────── */
 body[data-theme="dark"] { background: #1c1c1e; }
+body[data-theme="dark"] #timer,
 body[data-theme="dark"] #moves {
   background: rgba(50,50,52,0.82);
   color: rgba(255,255,255,0.5);
