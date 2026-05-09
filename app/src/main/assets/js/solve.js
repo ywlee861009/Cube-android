@@ -13,6 +13,7 @@ function _refreshSolveLabel() {
 // ─── Android 광고 콜백 ──────────────────────────────────────────────────────
 // 광고 거부/실패 → 솔브 차단
 window.onSolveDenied = function() {
+  document.getElementById('btn-solve').classList.remove('calculating');
   setStatus('광고를 시청해야 Solve를 사용할 수 있어요.');
   document.getElementById('btn-solve').disabled   = false;
   document.getElementById('btn-shuffle').disabled = false;
@@ -57,10 +58,12 @@ async function _runSolve() {
     const solver = SolverFactory.create();
     if (!solver.isReady()) {
       setStatus('Solver loading...');
+      document.getElementById('btn-solve').classList.add('calculating');
       // btn-solve는 비활성 유지 — 준비 완료 후 자동 재활성화
       document.getElementById('btn-shuffle').disabled = false;
       setTimeout(() => {
         if (!isSolving && !isShuffling) {
+          document.getElementById('btn-solve').classList.remove('calculating');
           document.getElementById('btn-solve').disabled = false;
           setMoveCount(moveCount);
         }
@@ -71,8 +74,10 @@ async function _runSolve() {
     document.getElementById('btn-solve').disabled   = true;
     document.getElementById('btn-shuffle').disabled = true;
     setStatus('Calculating...');
+    document.getElementById('btn-solve').classList.add('calculating');
 
     const solution = await solver.solve([...facelets]);
+    document.getElementById('btn-solve').classList.remove('calculating');
     const moves = solution.trim().split(/\s+/).filter(Boolean);
 
     if (moves.length === 0) {
@@ -87,6 +92,7 @@ async function _runSolve() {
     solutionIndex = 0;
     stepSolution();  // 광고 소비 직후 첫 수 자동 실행
   } catch (e) {
+    document.getElementById('btn-solve').classList.remove('calculating');
     setStatus('Error: ' + e.message);
     resetButtons();
   }

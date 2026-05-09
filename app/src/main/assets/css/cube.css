@@ -152,6 +152,16 @@ button:disabled { opacity: 0.28; pointer-events: none; }
   color: #fff;
 }
 
+@keyframes btn-calculating {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.45; }
+  100% { opacity: 1; }
+}
+#btn-solve.calculating {
+  animation: btn-calculating 0.9s ease-in-out infinite;
+  pointer-events: none;
+}
+
 /* ── Solved Overlay ────────────────────────────────────────────── */
 #solved-overlay {
   position: fixed;
