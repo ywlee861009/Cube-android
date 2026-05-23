@@ -19,7 +19,7 @@
 |----|-------|---|-------------|
 | IF-005 | ProGuard 패키지명 수정 | P1 | `com.metrex.cube` → `com.kero.cubie` (현재 잘못된 패키지 참조) |
 | IF-006 | Hilt ProGuard 규칙 제거 | P3 | Hilt/Dagger keep 규칙 존재하나 실제 사용하지 않음 |
-| IF-007 | PROJECT_STATUS.md 업데이트 | P2 | v1.0.1 기준으로 작성됨 → v1.0.4 현행화 필요 |
+| IF-007 | PROJECT_STATUS.md 업데이트 | P2 | v1.0.1 기준으로 작성됨 → v1.0.5 현행화 필요 |
 | IF-008 | 자동화 테스트 추가 | P1 | JUnit/Espresso 의존성은 있으나 테스트 파일 0개 |
 | IF-009 | CI/CD 파이프라인 구축 | P1 | GitHub Actions로 빌드/린트/테스트 자동화 |
 | ~~IF-010~~ | ~~키스토어 자격증명 보안화~~ | — | .gitignore로 관리됨 — 불필요 |
@@ -48,4 +48,4 @@
 - **v2.0**: IF-100 (피처 플래그), IF-103 (앱 업데이트)
 
 ---
-*Last updated: 2026-05-03*
+*Last updated: 2026-05-24*
