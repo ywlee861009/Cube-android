@@ -126,6 +126,7 @@ function stepSolution() {
       setStatus('Solved!');
       setMoveCount(0);
       resetButtons();
+      recordSolve(elapsed, solverMoves, true);
       showSolvedOverlay(elapsed, solverMoves, null);
     } else {
       // 다음 수 대기: 버튼에 진행 상황 표시 후 탭 대기
