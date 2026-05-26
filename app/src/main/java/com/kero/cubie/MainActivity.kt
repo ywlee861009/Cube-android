@@ -1,6 +1,8 @@
 package com.kero.cubie
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.IntentSender
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
@@ -11,6 +13,7 @@ import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.gms.ads.AdError
@@ -20,17 +23,33 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import com.google.android.play.core.appupdate.AppUpdateInfo
+import com.google.android.play.core.appupdate.AppUpdateManager
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import com.google.android.play.core.appupdate.AppUpdateOptions
+import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.UpdateAvailability
 
 private const val AD_UNIT_ID = "ca-app-pub-2103375309908918/6311668222"
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var webView: WebView
+    private lateinit var appUpdateManager: AppUpdateManager
     private var lastInsets: WindowInsetsCompat? = null
 
     private var rewardedAd: RewardedAd? = null
     private var isAdLoading = false
     private var solveGranted = false  // 광고 시청 후 true, 셔플/리셋 시 false
+    private var isUpdateFlowActive = false
+
+    private val appUpdateResultLauncher =
+        registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+            isUpdateFlowActive = false
+            if (result.resultCode != Activity.RESULT_OK) {
+                Log.w("InAppUpdate", "Immediate update flow ended: ${result.resultCode}")
+            }
+        }
 
     inner class CubeBridge(private val webView: WebView) {
 
@@ -73,6 +92,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        appUpdateManager = AppUpdateManagerFactory.create(this)
+        checkForAppUpdate()
+
         MobileAds.initialize(this)
         loadRewardedAd()
 
@@ -104,6 +126,56 @@ class MainActivity : ComponentActivity() {
                 android.os.Process.killProcess(android.os.Process.myPid())
             }
         })
+    }
+
+    // ── In-App Update ───────────────────────────────────────────────────────
+
+    private fun checkForAppUpdate() {
+        appUpdateManager.appUpdateInfo
+            .addOnSuccessListener { appUpdateInfo ->
+                if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+                    appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)
+                ) {
+                    startImmediateUpdate(appUpdateInfo)
+                }
+            }
+            .addOnFailureListener { error ->
+                Log.w("InAppUpdate", "Failed to check app update", error)
+            }
+    }
+
+    private fun resumeInProgressAppUpdate() {
+        appUpdateManager.appUpdateInfo
+            .addOnSuccessListener { appUpdateInfo ->
+                if (appUpdateInfo.updateAvailability() ==
+                    UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS
+                ) {
+                    startImmediateUpdate(appUpdateInfo)
+                }
+            }
+            .addOnFailureListener { error ->
+                Log.w("InAppUpdate", "Failed to resume app update", error)
+            }
+    }
+
+    private fun startImmediateUpdate(appUpdateInfo: AppUpdateInfo) {
+        if (isUpdateFlowActive) return
+
+        isUpdateFlowActive = true
+        try {
+            val started = appUpdateManager.startUpdateFlowForResult(
+                appUpdateInfo,
+                appUpdateResultLauncher,
+                AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build()
+            )
+            if (!started) {
+                isUpdateFlowActive = false
+                Log.w("InAppUpdate", "Immediate update flow was not started")
+            }
+        } catch (error: IntentSender.SendIntentException) {
+            isUpdateFlowActive = false
+            Log.w("InAppUpdate", "Failed to start immediate update", error)
+        }
     }
 
     // ── RewardedAd 로드 ──────────────────────────────────────────────────────
@@ -169,6 +241,11 @@ class MainActivity : ComponentActivity() {
         rewardedAd?.fullScreenContentCallback = null
         rewardedAd = null
         webView.destroy()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        resumeInProgressAppUpdate()
     }
 
     // ── 유틸 ─────────────────────────────────────────────────────────────────
