@@ -59,6 +59,8 @@ function checkSolvedAndSubmit() {
   solveStartTime = null;
   stopTimer();
 
+  recordSolve(elapsed, manualMoveCount, usedSolver);
+
   if (usedSolver) {
     // 솔버 사용 후 수동 마무리 → 축하 오버레이는 표시, PB 기록 제외
     showSolvedOverlay(elapsed, manualMoveCount, null);

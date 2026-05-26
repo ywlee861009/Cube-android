@@ -39,11 +39,51 @@
   </div>
 </div>
 
+<div id="stats-overlay" class="hidden">
+  <div id="stats-card">
+    <div id="stats-header">
+      <span id="stats-title">Statistics</span>
+      <button id="btn-stats-close" onclick="closeDashboard()" aria-label="Close statistics">✕</button>
+    </div>
+    <div id="stats-grid">
+      <div class="st-cell">
+        <span class="st-val" id="ds-solves">—</span>
+        <span class="st-lbl">Solves</span>
+      </div>
+      <div class="st-cell">
+        <span class="st-val" id="ds-best">—</span>
+        <span class="st-lbl">Best</span>
+      </div>
+      <div class="st-cell">
+        <span class="st-val" id="ds-ao5">—</span>
+        <span class="st-lbl">ao5</span>
+      </div>
+      <div class="st-cell">
+        <span class="st-val" id="ds-ao12">—</span>
+        <span class="st-lbl">ao12</span>
+      </div>
+      <div class="st-cell">
+        <span class="st-val" id="ds-ao100">—</span>
+        <span class="st-lbl">ao100</span>
+      </div>
+      <div class="st-cell">
+        <span class="st-val" id="ds-mean">—</span>
+        <span class="st-lbl">Mean</span>
+      </div>
+    </div>
+    <div id="ds-sparkline-wrap">
+      <div id="ds-sparkline"></div>
+    </div>
+    <div id="ds-history-list"></div>
+  </div>
+</div>
+
 <div id="top-bar">
   <div id="timer">0.0s</div>
   <div id="moves">Moves: 0</div>
 </div>
 <button id="btn-theme" aria-label="Toggle dark mode">🌙</button>
+<button id="btn-stats" onclick="openDashboard()" aria-label="Open statistics">📊</button>
 <div id="ui">
   <div class="ui-row">
     <button id="btn-undo" onclick="undoCube()" disabled>↩ Undo</button>
@@ -74,6 +114,7 @@
 <!-- Game state & actions -->
 <script src="js/actions.js"></script>
 <script src="js/overlay.js"></script>
+<script src="js/stats.js"></script>
 <script src="js/scoring.js"></script>
 <script src="js/history.js"></script>
 <script src="js/solve.js"></script>
@@ -91,5 +132,6 @@
 <!-- UI extras -->
 <script src="js/theme.js"></script>
 <script src="js/long-press.js"></script>
+<script src="js/dashboard.js"></script>
 </body>
 </html>
