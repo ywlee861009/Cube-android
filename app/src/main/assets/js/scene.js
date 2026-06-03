@@ -62,11 +62,12 @@ let _renderPaused = false;
 function markDirty() { _needsRender = true; }
 function pauseRendering() {
   _renderPaused = true;
-  renderer.domElement.style.visibility = 'hidden';
+  renderer.domElement.style.opacity = '0';
 }
 function resumeRendering() {
   _renderPaused = false;
-  renderer.domElement.style.visibility = '';
+  renderer.domElement.style.opacity = '';
+  renderer.render(scene, camera);  // 즉시 1프레임 렌더하여 복원 보장
   markDirty();
 }
 

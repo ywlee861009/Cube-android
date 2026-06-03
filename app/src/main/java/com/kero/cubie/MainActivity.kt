@@ -123,7 +123,6 @@ class MainActivity : ComponentActivity() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 finishAndRemoveTask()
-                android.os.Process.killProcess(android.os.Process.myPid())
             }
         })
     }
@@ -240,6 +239,7 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         rewardedAd?.fullScreenContentCallback = null
         rewardedAd = null
+        webView.removeJavascriptInterface("AndroidBridge")
         webView.destroy()
     }
 

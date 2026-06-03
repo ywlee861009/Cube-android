@@ -38,8 +38,13 @@ function _checkAndSavePB(timeMs, moves) {
   const isNewTime  = pbTime  === null || timeMs < pbTime;
   const isNewMoves = pbMoves === null || moves  < pbMoves;
 
-  if (isNewTime)  localStorage.setItem('pb_time',  String(timeMs));
-  if (isNewMoves) localStorage.setItem('pb_moves', String(moves));
+  try {
+    if (isNewTime)  localStorage.setItem('pb_time',  String(timeMs));
+    if (isNewMoves) localStorage.setItem('pb_moves', String(moves));
+  } catch (_) {
+    // localStorage 용량 초과 등 — 저장 실패 시 기존 PB 유지
+    return { isNew: false, isNewTime: false, isNewMoves: false, pbTime: pbTime, pbMoves: pbMoves };
+  }
 
   return {
     isNew:      isNewTime || isNewMoves,

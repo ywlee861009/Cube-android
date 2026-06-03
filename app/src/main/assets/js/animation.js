@@ -66,17 +66,24 @@ function performAnimatedMove(moveName, onDone) {
   const startTime   = performance.now();
 
   animRafId = requestAnimationFrame(function step(now) {
-    const t     = Math.min((now - startTime) / DURATION, 1);
-    const eased = 1 - Math.pow(1 - t, 3); // cubic ease-out
-    layerAngle  = targetAngle * eased;
-    if (layerGroup) layerGroup.rotation[axis] = layerAngle;
-    markDirty();
+    try {
+      const t     = Math.min((now - startTime) / DURATION, 1);
+      const eased = 1 - Math.pow(1 - t, 3); // cubic ease-out
+      layerAngle  = targetAngle * eased;
+      if (layerGroup) layerGroup.rotation[axis] = layerAngle;
+      markDirty();
 
-    if (t < 1) {
-      animRafId = requestAnimationFrame(step);
-    } else {
+      if (t < 1) {
+        animRafId = requestAnimationFrame(step);
+      } else {
+        animRafId = null;
+        commitLayerRotation(snaps);
+        if (onDone) onDone();
+      }
+    } catch (e) {
+      console.error('[Animation] step error:', e);
       animRafId = null;
-      commitLayerRotation(snaps);
+      try { commitLayerRotation(0); } catch (_) {}
       if (onDone) onDone();
     }
   });

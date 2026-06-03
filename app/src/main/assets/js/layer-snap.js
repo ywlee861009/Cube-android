@@ -60,18 +60,24 @@ function finishLayerRotation() {
   const startTime = performance.now();
 
   function step(now) {
-    const t     = Math.min((now - startTime) / DURATION, 1);
-    const eased = easeOutBack(t);
-    const angle = startAngle + (endAngle - startAngle) * eased;
-    layerAngle  = angle;
-    if (layerGroup) layerGroup.rotation[axis] = angle;
-    markDirty();
+    try {
+      const t     = Math.min((now - startTime) / DURATION, 1);
+      const eased = easeOutBack(t);
+      const angle = startAngle + (endAngle - startAngle) * eased;
+      layerAngle  = angle;
+      if (layerGroup) layerGroup.rotation[axis] = angle;
+      markDirty();
 
-    if (t < 1) {
-      flingRafId = requestAnimationFrame(step);
-    } else {
+      if (t < 1) {
+        flingRafId = requestAnimationFrame(step);
+      } else {
+        flingRafId = null;
+        commitLayerRotation(targetSnaps);
+      }
+    } catch (e) {
+      console.error('[LayerSnap] step error:', e);
       flingRafId = null;
-      commitLayerRotation(targetSnaps);
+      try { commitLayerRotation(0); } catch (_) {}
     }
   }
 

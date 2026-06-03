@@ -51,15 +51,16 @@ function isCubeSolved() {
 function applyMove(name) {
   const f = [...facelets];
   if (!name || (!MOVES[name[0]])) return;
-  if (!isShuffling && !isSolving && !isUndoRedo) {
+  const isManual = !isShuffling && !isSolving && !isUndoRedo;
+  applyMoveInPlace(name, f);
+  facelets = f;
+  if (isManual) {
     if (solutionMoves) resetSolution();  // 솔브 진행 중 수동 이동 → 솔루션 무효화
     undoStack.push({ moveName: name, moveCount });
     redoStack.length = 0;
     updateUndoRedoButtons();
     manualMoveCount++;
   }
-  applyMoveInPlace(name, f);
-  facelets = f;
   setMoveCount(moveCount + 1);
   applyFacelets();
   if (!isShuffling && !isSolving) checkSolvedAndSubmit();

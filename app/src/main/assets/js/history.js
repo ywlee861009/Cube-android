@@ -14,10 +14,13 @@ function undoCube() {
   updateUndoRedoButtons();
   const entry = undoStack.pop();
   performAnimatedMove(inverseMoveOf(entry.moveName), () => {
-    setMoveCount(entry.moveCount);
-    redoStack.push(entry);
-    isUndoRedo = false;
-    updateUndoRedoButtons();
+    try {
+      setMoveCount(entry.moveCount);
+      redoStack.push(entry);
+    } finally {
+      isUndoRedo = false;
+      updateUndoRedoButtons();
+    }
   });
 }
 
@@ -27,8 +30,11 @@ function redoCube() {
   updateUndoRedoButtons();
   const entry = redoStack.pop();
   performAnimatedMove(entry.moveName, () => {
-    undoStack.push(entry);
-    isUndoRedo = false;
-    updateUndoRedoButtons();
+    try {
+      undoStack.push(entry);
+    } finally {
+      isUndoRedo = false;
+      updateUndoRedoButtons();
+    }
   });
 }

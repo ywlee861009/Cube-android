@@ -32,16 +32,19 @@ function shuffleCube() {
   // 한 수씩 순차 애니메이션
   function next(i) {
     if (i >= moves.length) {
-      setMoveCount(0);
-      isShuffling = false;
-      // 셔플 완료 → 타이머/카운터 초기화 후 시작
-      solveStartTime  = Date.now();
-      manualMoveCount = 0;
-      usedSolver      = false;
-      startTimer();
-      document.getElementById('btn-shuffle').disabled = false;
-      document.getElementById('btn-solve').disabled   = false;
-      updateUndoRedoButtons();
+      try {
+        setMoveCount(0);
+        // 셔플 완료 → 타이머/카운터 초기화 후 시작
+        solveStartTime  = Date.now();
+        manualMoveCount = 0;
+        usedSolver      = false;
+        startTimer();
+        document.getElementById('btn-shuffle').disabled = false;
+        document.getElementById('btn-solve').disabled   = false;
+        updateUndoRedoButtons();
+      } finally {
+        isShuffling = false;
+      }
       return;
     }
     performAnimatedMove(moves[i], () => next(i + 1));

@@ -22,6 +22,7 @@ window.onSolveDenied = function() {
 // 광고 허가 후 실행 — 솔루션 계산 후 전체 자동 실행
 window.onSolveGranted = function() {
   _solveAdRequired = false;  // 광고 시청(또는 생략) → 다음 솔브는 바로 실행 가능
+  if (isShuffling || isUndoRedo) return;  // 셔플/언두 중이면 실행 보류 (버튼 클릭으로 재시도 가능)
   _runSolve();
 };
 
@@ -118,21 +119,24 @@ function stepSolution() {
   setStatus(step + ' / ' + total + '  ' + moveName);
 
   performAnimatedMove(moveName, () => {
-    isSolving = false;
-    if (solutionIndex >= solutionMoves.length) {
-      const solverMoves = solutionMoves.length;
-      const elapsed = solveStartTime !== null ? Date.now() - solveStartTime : 0;
-      solveStartTime = null;
-      setStatus('Solved!');
-      setMoveCount(0);
-      resetButtons();
-      recordSolve(elapsed, solverMoves, true);
-      showSolvedOverlay(elapsed, solverMoves, null);
-    } else {
-      // 다음 수 대기: 버튼에 진행 상황 표시 후 탭 대기
-      document.getElementById('btn-solve').textContent = (solutionIndex + 1) + ' / ' + total;
-      document.getElementById('btn-solve').disabled = false;
-      setMoveCount(moveCount);
+    try {
+      if (solutionIndex >= solutionMoves.length) {
+        const solverMoves = solutionMoves.length;
+        const elapsed = solveStartTime !== null ? Date.now() - solveStartTime : 0;
+        solveStartTime = null;
+        setStatus('Solved!');
+        setMoveCount(0);
+        resetButtons();
+        recordSolve(elapsed, solverMoves, true);
+        showSolvedOverlay(elapsed, solverMoves, null);
+      } else {
+        // 다음 수 대기: 버튼에 진행 상황 표시 후 탭 대기
+        document.getElementById('btn-solve').textContent = (solutionIndex + 1) + ' / ' + total;
+        document.getElementById('btn-solve').disabled = false;
+        setMoveCount(moveCount);
+      }
+    } finally {
+      isSolving = false;
     }
   });
 }
