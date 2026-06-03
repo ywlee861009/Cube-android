@@ -23,6 +23,11 @@ MainActivity.kt  →  WebView  →  assets/cube.html  →  assets/js/
 - `app/src/main/assets/js/` — JS 모듈 구조, 로딩 순서, 핵심 데이터 모델
 - `app/src/main/assets/js/solver/` — 솔버 아키텍처
 
+## 프로젝트 문서
+
+- `PROJECT_STATUS.md` — 현재 버전, 완료 기능, 최근 커밋 이력
+- `backlog/` — 8개 관심사별 백로그 (129개 티켓): core-gameplay, ui-ux, infrastructure, learning, monetization, platform-accessibility, social-competitive, statistics-progress
+
 ## 의존성
 
 버전은 `gradle/libs.versions.toml`에서 중앙 관리.

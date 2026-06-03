@@ -35,4 +35,4 @@
 - **v2.x**: SC-109 (Google Play Games), SC-106 (친구 시스템)
 
 ---
-*Last updated: 2026-05-24*
+*Last updated: 2026-06-03*

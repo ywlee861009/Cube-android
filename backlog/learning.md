@@ -35,4 +35,4 @@
 - **v2.x**: LN-106 (CFOP), LN-102 (크로스), LN-103 (F2L)
 
 ---
-*Last updated: 2026-05-24*
+*Last updated: 2026-06-03*

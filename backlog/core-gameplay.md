@@ -59,4 +59,4 @@
 - **v2.0**: CG-101 (4x4), CG-011 (Three.js 업그레이드)
 
 ---
-*Last updated: 2026-05-24*
+*Last updated: 2026-06-03*

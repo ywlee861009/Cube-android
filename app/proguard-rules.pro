@@ -6,11 +6,7 @@
 -keep class kotlin.** { *; }
 -keep class kotlinx.** { *; }
 
-# Hilt
--keep class dagger.hilt.** { *; }
--keep class javax.inject.** { *; }
-
 # Keep data classes
--keepclassmembers class com.metrex.cube.** {
+-keepclassmembers class com.kero.cubie.** {
     public <init>(...);
 }

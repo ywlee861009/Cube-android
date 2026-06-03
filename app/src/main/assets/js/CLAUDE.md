@@ -10,10 +10,10 @@
 6. `logic.js` — facelets 상태 & 이동 논리
 7. `lib/cubing-solver.bundle.js`
 8. `solver/solver-base.js` → `solver-cubing.js` → `solver-factory.js`
-9. `actions.js` → `overlay.js` → `scoring.js` → `history.js` → `solve.js` → `shuffle.js`
+9. `actions.js` → `overlay.js` → `stats.js` → `scoring.js` → `history.js` → `solve.js` → `shuffle.js`
 10. `animation.js` → `layer-rotation.js` → `layer-snap.js` → `touch.js`
 11. `bridge.js`
-12. `theme.js` → `long-press.js`
+12. `theme.js` → `long-press.js` → `dashboard.js`
 
 ## 핵심 데이터 모델
 
@@ -42,6 +42,8 @@
 | `touch.js` | 터치 진입점 (layer/view/pinch) | dragMode, CAM_MIN=4/CAM_MAX=20 |
 | `bridge.js` | Android↔JS 인터페이스 | `window.AndroidCube.{setInsets, applyMove, shuffle, reset, getFacelets}` |
 | `theme.js` | 다크 모드 토글 (localStorage) | `applyTheme()` |
+| `stats.js` | 솔브 히스토리·통계 계산 | `recordSolve()`, `getSolveHistory()`, `computeStats()` |
+| `dashboard.js` | 통계 대시보드 오버레이 | `openDashboard()`, `closeDashboard()` |
 | `long-press.js` | 셔플 버튼 롱프레스 → 리셋 | 600ms 홀드 감지 |
 
 ## 동시 진행 차단 플래그 (actions.js)
