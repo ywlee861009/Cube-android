@@ -1,0 +1,15 @@
+{
+  "name": "cube-android",
+  "version": "1.0.0",
+  "description": "Android WebView + Three.js(WebGL) 기반의 3x3 루빅스 큐브 앱입니다.",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^30.4.2"
+  }
+}

@@ -37,6 +37,7 @@ const MOVES = {
 const ALL_MOVES = ['U',"U'","U2",'R',"R'","R2",'F',"F'","F2",'D',"D'","D2",'L',"L'","L2",'B',"B'",'B2'];
 
 function applyMoveInPlace(name, f) {
+  if (!name) return;
   const base = name[0];
   if (!MOVES[base]) return;  // 솔버가 반환한 이동명이 유효하지 않으면 무시 (TypeError 방지)
   if (name.endsWith("'")) {
