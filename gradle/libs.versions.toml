@@ -6,12 +6,14 @@ junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 activity = "1.9.3"
+fragment = "1.8.5"
 admob = "23.6.0"
 appUpdate = "2.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-activity = { group = "androidx.activity", name = "activity-ktx", version.ref = "activity" }
+androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 google-admob = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "admob" }
 google-app-update = { group = "com.google.android.play", name = "app-update", version.ref = "appUpdate" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

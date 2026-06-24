@@ -47,6 +47,14 @@ dependencies {
     implementation(libs.google.admob)
     implementation(libs.google.app.update)
 
+    // IF-018: 직접 사용하지 않지만 AdMob가 끌어오는 transitive androidx.fragment 1.1.0 이
+    // Play Console에서 구버전으로 신고됨 → constraint 로 최신 버전 강제.
+    constraints {
+        implementation(libs.androidx.fragment) {
+            because("Play Console IF-018: transitive androidx.fragment 1.1.0 구버전 → 최신으로 상향")
+        }
+    }
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
