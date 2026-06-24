@@ -256,12 +256,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun applyInsetsToJs(webView: WebView, insets: WindowInsetsCompat) {
-        val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+        // IF-020: Android 15 와이드스크린/디스플레이 컷아웃 대응 —
+        // systemBars 뿐 아니라 displayCutout 영역까지 합집합으로 회피한다.
+        val safeInsets = insets.getInsets(
+            WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+        )
         val density = resources.displayMetrics.density
-        val top    = systemBars.top    / density
-        val bottom = systemBars.bottom / density
-        val left   = systemBars.left   / density
-        val right  = systemBars.right  / density
+        val top    = safeInsets.top    / density
+        val bottom = safeInsets.bottom / density
+        val left   = safeInsets.left   / density
+        val right  = safeInsets.right  / density
         val js = "if(window.AndroidCube && window.AndroidCube.setInsets) { window.AndroidCube.setInsets($top, $bottom, $left, $right); }"
         webView.evaluateJavascript(js, null)
     }
