@@ -31,6 +31,9 @@
 | IF-015 | 메모리 릭 감사 | P2 | RAF 고아 버그는 수정됨, 체계적 릭 탐지 필요 |
 | IF-016 | WebView GPU 렌더링 최적화 | P3 | Three.js용 하드웨어 가속 설정 확인 및 최적화 |
 | IF-017 | 버전 카탈로그 정리 | P3 | libs.versions.toml 일관성 개선 |
+| IF-018 | [Play 권장] androidx.fragment 버전 업 | P1 | 구글 신고: transitive `androidx.fragment:fragment` 1.1.0 오래됨. libs.versions.toml에 fragment 버전 추가(1.8.x+)로 강제 업그레이드. 직접 의존 없음 → AdMob/activity transitive 추정, `./gradlew :app:dependencies`로 출처 확인 후 명시 |
+| IF-019 | [Play 권장] Edge-to-Edge deprecated API 제거 | P1 | 구글 신고: `setStatusBarColor`/`setNavigationBarColor`/`LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES` 사용. 호출 위치(androidx.activity.o.b/q.b, H.e.p)는 앱 코드 아닌 **라이브러리 내부**. 해법: androidx.activity 1.9.3→1.10.1+, androidx.core 1.15.0→1.16.0+ 업그레이드 (신버전 enableEdgeToEdge는 deprecated API 미사용) |
+| IF-020 | [Play 권장] Android 15 인셋/와이드스크린 검증 | P2 | 구글 신고: SDK 35 타겟 와이드스크린 인셋 미처리 가능성. 코드는 이미 enableEdgeToEdge()+인셋 브릿지(IF-002) 존재 → Android 15 기기/에뮬에서 상태바·내비바·디스플레이 컷아웃 영역 큐브 렌더 겹침 여부 실측 검증, 필요 시 CSS --safe-* 적용 보강 |
 
 ## Ideas
 
@@ -43,10 +46,11 @@
 
 ## 로드맵
 
+- **v1.2 (Play 제출 전 권장)**: IF-018 (fragment 버전 업), IF-019 (Edge-to-Edge deprecated API), IF-020 (Android 15 인셋 검증)
 - **v1.2**: IF-005 (ProGuard 수정), IF-011 (크래시 리포팅), IF-008 (테스트), IF-009 (CI/CD)
 - **v1.3**: IF-013 (JS 번들러), IF-012 (애널리틱스)
 - ~~**v1.1**: IF-103 (앱 업데이트)~~ ✅ Done
 - **v2.0**: IF-100 (피처 플래그)
 
 ---
-*Last updated: 2026-06-03*
+*Last updated: 2026-06-24*
