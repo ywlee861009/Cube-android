@@ -1,8 +1,8 @@
-# 프로젝트 진행 상황 (2026-06-03)
+# 프로젝트 진행 상황 (2026-06-25)
 
 ## 현재 버전
 
-`versionName = 1.1.0` / `versionCode = 7`
+`versionName = 1.1.1` / `versionCode = 8`
 
 ## 완료된 기능
 
@@ -40,17 +40,30 @@
 
 ### 플랫폼
 - **Edge-to-Edge** — `enableEdgeToEdge()` + WindowInsets → CSS `--safe-*` 변수 브릿지
+- **Android 15 와이드스크린 인셋 대응** — systemBars + displayCutout 합집합으로 safe inset 계산 (IF-020)
 - **AdMob 리워드 광고** — 셔플/리셋 후 첫 솔브 시 1회 광고 (`solveGranted` 플래그)
 - **광고 실패 폴백** — 광고 로드/표시 실패 시 솔버 무료 허용
 - **생명주기** — `onDestroy`에서 광고 콜백 해제 + WebView destroy
-- **백 버튼** — `finishAndRemoveTask()` + `killProcess()`
+- **백 버튼** — `finishAndRemoveTask()`로 태스크 종료
 - **다크모드 aria-label** — 테마 토글 버튼에 접근성 라벨 설정
 - **인앱 강제 업데이트** — AppUpdateManager IMMEDIATE 타입, 앱 시작 시 업데이트 확인 (IF-103)
+- **Play Console 권장 조치 반영** — androidx.fragment 1.8.5 constraint, androidx.activity 1.10.1, androidx.core 1.16.0 (IF-018/IF-019)
+
+### 테스트
+- **Jest 순수 로직 테스트** — `tests/cube-logic.test.js` 97개 테스트로 큐브 무브, 역무브, 통계 계산 검증 (IF-008)
 
 ## 최근 수정 이력
 
 | 커밋 | 내용 |
 |------|------|
+| `770b667` | versionName 1.1.1 / versionCode 8 업데이트 |
+| `3862ccc` | Android 15 displayCutout 포함 인셋 계산 보강 (IF-020) |
+| `8ea33dd` | androidx.activity/core 업그레이드로 Edge-to-Edge deprecated API 제거 (IF-019) |
+| `663c80c` | androidx.fragment 1.8.5 강제 업그레이드 (IF-018) |
+| `7d7864e` | Play Console 권장 조치 3건 인프라 백로그 티켓 추가 |
+| `330e8a5` | 큐브 순수 로직 Jest 테스트 97개 추가 |
+| `30db33c` | 동시성 플래그 잠김, 데이터 손실 등 14개 버그 수정 |
+| `a6d49f4` | 문서·백로그 v1.1.0 기준 전수조사 싱크 현행화 |
 | `83e8855` | 인앱 강제 업데이트 추가 |
 | `3faa732` | deploy 1.1.0 |
 | `0735df6` | 솔버 완료 시 솔브 히스토리 기록 누락 버그 수정 |
@@ -70,4 +83,4 @@
 | `267c96f` | 솔버 완료 오버레이 표시 시 WebGL context 반복 소실 및 깜빡임 수정 |
 
 ---
-*업데이트: 2026년 6월 3일*
+*업데이트: 2026년 6월 25일*

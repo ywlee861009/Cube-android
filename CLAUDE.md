@@ -7,6 +7,7 @@
 ./gradlew installDebug    # 디바이스 설치
 ./gradlew lint            # 린트
 ./gradlew clean           # 클린
+npm test                  # JS 순수 로직 Jest 테스트
 ```
 
 ## 스택
@@ -26,12 +27,12 @@ MainActivity.kt  →  WebView  →  assets/cube.html  →  assets/js/
 ## 프로젝트 문서
 
 - `PROJECT_STATUS.md` — 현재 버전, 완료 기능, 최근 커밋 이력
-- `backlog/` — 8개 관심사별 백로그 (129개 티켓): core-gameplay, ui-ux, infrastructure, learning, monetization, platform-accessibility, social-competitive, statistics-progress
+- `backlog/` — 8개 관심사별 백로그 (145개 고유 티켓): core-gameplay, ui-ux, infrastructure, learning, monetization, platform-accessibility, social-competitive, statistics-progress
 
 ## 의존성
 
 버전은 `gradle/libs.versions.toml`에서 중앙 관리.
-AGP 8.7.3 / Kotlin 2.0.21 / Min SDK 26 / Target SDK 35 / Three.js r128 / AdMob 23.6.0
+AGP 8.7.3 / Kotlin 2.0.21 / Min SDK 26 / Target SDK 35 / Three.js r128 / AdMob 23.6.0 / AndroidX core-ktx 1.16.0 / activity 1.10.1 / fragment 1.8.5
 
 ## deploy 명령
 

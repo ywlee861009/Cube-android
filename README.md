@@ -22,6 +22,8 @@ Android WebView + Three.js(WebGL) 기반의 3x3 루빅스 큐브 앱입니다.
 - **솔브 히스토리** — 모든 솔브 기록(시간/무브수/날짜)을 localStorage에 저장 (최대 1000건)
 - **통계 대시보드** — ao5/ao12/ao100 평균, 최고 기록, 스파크라인 차트, 최근 솔브 목록
 - **인앱 강제 업데이트** — Play Store 새 버전 출시 시 즉시 업데이트 유도
+- **Android 15 인셋 대응** — 시스템 바와 디스플레이 컷아웃을 WebView safe area로 전달
+- **순수 로직 테스트** — Jest로 큐브 무브/역무브/통계 계산 회귀 테스트
 
 ## 기술 스택
 
@@ -31,7 +33,9 @@ Android WebView + Three.js(WebGL) 기반의 3x3 루빅스 큐브 앱입니다.
 | 언어 | Kotlin 2.0.21 |
 | 렌더링 | Three.js r128 (WebGL via WebView) |
 | 광고 | Google AdMob 23.6.0 (리워드 광고) |
+| AndroidX | core-ktx 1.16.0 / activity 1.10.1 / fragment 1.8.5 |
 | 빌드 | AGP 8.7.3 / Gradle 8.9 / JVM 17 |
+| 테스트 | Jest 30.4.2 |
 
 ## 빌드 & 실행
 
@@ -41,4 +45,7 @@ Android WebView + Three.js(WebGL) 기반의 3x3 루빅스 큐브 앱입니다.
 
 # 디바이스 설치
 ./gradlew installDebug
+
+# JS 순수 로직 테스트
+npm test
 ```
