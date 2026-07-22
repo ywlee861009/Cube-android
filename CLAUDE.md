@@ -32,7 +32,7 @@ MainActivity.kt  →  WebView  →  assets/cube.html  →  assets/js/
 ## 의존성
 
 버전은 `gradle/libs.versions.toml`에서 중앙 관리.
-AGP 8.7.3 / Kotlin 2.0.21 / Min SDK 26 / Target SDK 35 / Three.js r128 / AdMob 23.6.0 / AndroidX core-ktx 1.16.0 / activity 1.10.1 / fragment 1.8.5
+AGP 8.9.1 / Gradle 8.11.1 / Kotlin 2.0.21 / Min SDK 26 / Target SDK 36 / Three.js r128 / AdMob 23.6.0 / AndroidX core-ktx 1.16.0 / activity 1.10.1 / fragment 1.8.5
 
 ## deploy 명령
 

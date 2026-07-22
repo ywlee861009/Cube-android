@@ -29,12 +29,12 @@ Android WebView + Three.js(WebGL) 기반의 3x3 루빅스 큐브 앱입니다.
 
 | 항목 | 내용 |
 |------|------|
-| 플랫폼 | Android (Min SDK 26 / Target SDK 35) |
+| 플랫폼 | Android (Min SDK 26 / Target SDK 36) |
 | 언어 | Kotlin 2.0.21 |
 | 렌더링 | Three.js r128 (WebGL via WebView) |
 | 광고 | Google AdMob 23.6.0 (리워드 광고) |
 | AndroidX | core-ktx 1.16.0 / activity 1.10.1 / fragment 1.8.5 |
-| 빌드 | AGP 8.7.3 / Gradle 8.9 / JVM 17 |
+| 빌드 | AGP 8.9.1 / Gradle 8.11.1 / JVM 17 |
 | 테스트 | Jest 30.4.2 |
 
 ## 빌드 & 실행

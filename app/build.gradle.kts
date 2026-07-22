@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.kero.cubie"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.kero.cubie"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 8
         versionName = "1.1.1"
 
