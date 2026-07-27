@@ -1,12 +1,19 @@
 package com.kero.cubie
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.AlertDialog
+import android.content.Intent
 import android.content.IntentSender
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.HapticFeedbackConstants
+import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -14,6 +21,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.view.PreviewView
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.gms.ads.AdError
@@ -29,12 +38,15 @@ import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
+import com.kero.cubie.scan.CubeScanner
 
 private const val AD_UNIT_ID = "ca-app-pub-2103375309908918/6311668222"
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var webView: WebView
+    private lateinit var previewView: PreviewView
+    private lateinit var cubeScanner: CubeScanner
     private lateinit var appUpdateManager: AppUpdateManager
     private var lastInsets: WindowInsetsCompat? = null
 
@@ -42,6 +54,28 @@ class MainActivity : ComponentActivity() {
     private var isAdLoading = false
     private var solveGranted = false  // 광고 시청 후 true, 셔플/리셋 시 false
     private var isUpdateFlowActive = false
+    private var cameraPermissionRequested = false
+
+    private val cameraPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                beginCameraPreview()
+            } else {
+                val permanentlyDenied =
+                    cameraPermissionRequested &&
+                        !shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)
+                cancelScan(
+                    if (permanentlyDenied) "permission_permanently_denied"
+                    else "permission_denied"
+                )
+                if (permanentlyDenied) showCameraSettingsDialog()
+            }
+            cameraPermissionRequested = true
+            getPreferences(MODE_PRIVATE)
+                .edit()
+                .putBoolean(CAMERA_PERMISSION_REQUESTED_KEY, true)
+                .apply()
+        }
 
     private val appUpdateResultLauncher =
         registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
@@ -85,12 +119,24 @@ class MainActivity : ComponentActivity() {
             solveGranted = false
         }
 
+        @JavascriptInterface
+        fun startScan() {
+            runOnUiThread { requestCameraAndStartScan() }
+        }
+
+        @JavascriptInterface
+        fun stopScan() {
+            runOnUiThread { stopCameraPreview() }
+        }
+
     }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        cameraPermissionRequested = getPreferences(MODE_PRIVATE)
+            .getBoolean(CAMERA_PERMISSION_REQUESTED_KEY, false)
 
         appUpdateManager = AppUpdateManagerFactory.create(this)
         checkForAppUpdate()
@@ -98,7 +144,10 @@ class MainActivity : ComponentActivity() {
         MobileAds.initialize(this)
         loadRewardedAd()
 
-        webView = WebView(this).apply {
+        setContentView(R.layout.activity_main)
+        previewView = findViewById(R.id.camera_preview)
+        cubeScanner = CubeScanner(this, previewView)
+        webView = findViewById<WebView>(R.id.cube_web_view).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             setBackgroundColor(Color.TRANSPARENT)
@@ -118,13 +167,75 @@ class MainActivity : ComponentActivity() {
             insets
         }
 
-        setContentView(webView)
-
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                finishAndRemoveTask()
+                if (cubeScanner.isActive()) {
+                    stopCameraPreview()
+                    callJs("window.onScanCancelled && window.onScanCancelled('back_pressed')")
+                } else {
+                    finishAndRemoveTask()
+                }
             }
         })
+    }
+
+    // ── Camera scan ─────────────────────────────────────────────────────────
+
+    private fun requestCameraAndStartScan() {
+        if (cubeScanner.isActive()) return
+        if (isUpdateFlowActive) {
+            cancelScan("app_update_active")
+            return
+        }
+        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
+            cancelScan("camera_unavailable")
+            return
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            beginCameraPreview()
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun beginCameraPreview() {
+        previewView.visibility = View.VISIBLE
+        webView.setBackgroundColor(Color.TRANSPARENT)
+        cubeScanner.start(
+            onReady = { callJs("window.onScanReady && window.onScanReady()") },
+            onError = { reason -> cancelScan(reason) }
+        )
+    }
+
+    private fun stopCameraPreview() {
+        cubeScanner.stop()
+        previewView.visibility = View.GONE
+        webView.setBackgroundColor(Color.TRANSPARENT)
+    }
+
+    private fun cancelScan(reason: String) {
+        stopCameraPreview()
+        callJs("window.onScanCancelled && window.onScanCancelled('$reason')")
+    }
+
+    private fun showCameraSettingsDialog() {
+        if (isFinishing || isDestroyed) return
+        AlertDialog.Builder(this)
+            .setTitle("카메라 권한이 필요해요")
+            .setMessage("큐브를 스캔하려면 앱 설정에서 카메라 권한을 허용해 주세요.")
+            .setNegativeButton("취소", null)
+            .setPositiveButton("설정 열기") { _, _ ->
+                startActivity(
+                    Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:$packageName")
+                    )
+                )
+            }
+            .show()
     }
 
     // ── In-App Update ───────────────────────────────────────────────────────
@@ -236,16 +347,28 @@ class MainActivity : ComponentActivity() {
     // ── 생명주기 ──────────────────────────────────────────────────────────────
 
     override fun onDestroy() {
-        super.onDestroy()
+        cubeScanner.stop()
         rewardedAd?.fullScreenContentCallback = null
         rewardedAd = null
         webView.removeJavascriptInterface("AndroidBridge")
         webView.destroy()
+        super.onDestroy()
+    }
+
+    override fun onPause() {
+        if (::cubeScanner.isInitialized && cubeScanner.isActive()) cubeScanner.pause()
+        super.onPause()
     }
 
     override fun onResume() {
         super.onResume()
         resumeInProgressAppUpdate()
+        if (::cubeScanner.isInitialized && cubeScanner.isActive()) {
+            cubeScanner.resume(
+                onReady = { callJs("window.onScanReady && window.onScanReady()") },
+                onError = { reason -> cancelScan(reason) }
+            )
+        }
     }
 
     // ── 유틸 ─────────────────────────────────────────────────────────────────
@@ -270,3 +393,5 @@ class MainActivity : ComponentActivity() {
         webView.evaluateJavascript(js, null)
     }
 }
+
+private const val CAMERA_PERMISSION_REQUESTED_KEY = "camera_permission_requested"

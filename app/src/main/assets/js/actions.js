@@ -3,6 +3,7 @@ let facelets = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
 let moveCount = 0;
 let isShuffling = false;
 let isSolving = false;
+let isScanning = false;
 
 // ─── UI 헬퍼 ───────────────────────────────────────────────────────────────
 function setMoveCount(n) {
@@ -17,7 +18,7 @@ function setStatus(msg) {
 function updateUndoRedoButtons() {
   const btnUndo = document.getElementById('btn-undo');
   const btnRedo = document.getElementById('btn-redo');
-  const busy = isShuffling || isSolving || isUndoRedo;
+  const busy = isShuffling || isSolving || isUndoRedo || isScanning;
   if (btnUndo) btnUndo.disabled = undoStack.length === 0 || busy;
   if (btnRedo) btnRedo.disabled = redoStack.length === 0 || busy;
 }

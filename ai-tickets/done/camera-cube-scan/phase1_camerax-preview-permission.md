@@ -1,6 +1,6 @@
 # Phase 1 — CameraX 프리뷰·CAMERA 권한·AE/AWB lock
 
-> 상태: **미착수**
+> 상태: **구현 완료 · 통합 검증 대기** (2026-07-27)
 > 선행: 없음
 > 검증 주체: 실기기 수동 확인 + `./gradlew assembleDebug`
 

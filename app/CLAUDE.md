@@ -14,6 +14,8 @@
 | `hapticFeedback()` | `webView.performHapticFeedback()` |
 | `requestSolve()` | `solveGranted`면 바로 `onSolveGranted()`, 아니면 광고 표시 |
 | `onShuffleOrReset()` | `solveGranted = false` — 광고 허가 초기화 |
+| `startScan()` | CAMERA 권한 확인 후 CameraX 프리뷰 시작 |
+| `stopScan()` | 카메라 해제 후 프리뷰 숨김 |
 
 ### Android → JS
 
@@ -22,6 +24,8 @@
 | `window.AndroidCube.setInsets(top,bottom,left,right)` | CSS `--safe-*` 변수 갱신 |
 | `window.onSolveGranted()` | 광고 후 솔브 허용 → `_runSolve()` 실행 |
 | `window.onSolveDenied()` | 광고 거부/실패 시 솔브 차단, 상태 메시지 표시 |
+| `window.onScanReady()` | 프리뷰 준비 완료 |
+| `window.onScanCancelled(reason)` | 권한 거부·카메라 없음·시작 오류로 스캔 취소 |
 
 ## Edge-to-Edge / Insets
 
