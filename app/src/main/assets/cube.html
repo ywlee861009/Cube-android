@@ -78,6 +78,32 @@
   </div>
 </div>
 
+<div id="scan-overlay" class="hidden" aria-live="polite">
+  <div id="scan-header">
+    <div id="scan-progress">1 / 6 — 흰색 면 (U)</div>
+    <div id="scan-direction">파랑 면(B)이 위로 오게 들어주세요</div>
+    <div id="scan-orientation" aria-hidden="true">
+      <span id="scan-top-face">B ↑</span>
+      <div id="scan-mini-face">U</div>
+    </div>
+  </div>
+  <div id="scan-guide">
+    <div class="scan-grid-line scan-grid-v scan-grid-v1"></div>
+    <div class="scan-grid-line scan-grid-v scan-grid-v2"></div>
+    <div class="scan-grid-line scan-grid-h scan-grid-h1"></div>
+    <div class="scan-grid-line scan-grid-h scan-grid-h2"></div>
+    <div id="scan-rgb-preview"></div>
+  </div>
+  <div id="scan-controls">
+    <div id="scan-message">카메라를 준비하고 있어요…</div>
+    <div class="scan-control-row">
+      <button id="btn-scan-previous" onclick="retakePreviousScanFace()" disabled>↶ 이전 면</button>
+      <button id="btn-scan-capture" onclick="captureCurrentScanFace()" disabled>● 촬영</button>
+    </div>
+    <button id="btn-scan-cancel" onclick="cancelScanFlow()">취소</button>
+  </div>
+</div>
+
 <div id="top-bar">
   <div id="timer">0.0s</div>
   <div id="moves">Moves: 0</div>
@@ -92,6 +118,9 @@
   <div class="ui-row">
     <button id="btn-shuffle" onclick="shuffleCube()">⇄ Shuffle</button>
     <button id="btn-solve"   onclick="solveCube()">📺 Solve</button>
+  </div>
+  <div class="ui-row">
+    <button id="btn-scan" onclick="startScanFlow()">📷 Scan Cube</button>
   </div>
 </div>
 
@@ -131,6 +160,7 @@
 <!-- Bridge -->
 <script src="js/bridge.js"></script>
 <script src="js/scan/scan-capture.js"></script>
+<script src="js/scan/scan-ui.js"></script>
 
 <!-- UI extras -->
 <script src="js/theme.js"></script>

@@ -151,6 +151,13 @@ button:disabled { opacity: 0.28; pointer-events: none; }
   background: #17B06B;
   color: #fff;
 }
+#btn-scan {
+  flex: 1;
+  padding: 12px 0;
+  font-size: 14px;
+  background: #2F80ED;
+  color: #fff;
+}
 
 @keyframes btn-calculating {
   0%   { opacity: 1; }
@@ -160,6 +167,129 @@ button:disabled { opacity: 0.28; pointer-events: none; }
 #btn-solve.calculating {
   animation: btn-calculating 0.9s ease-in-out infinite;
   pointer-events: none;
+}
+
+/* ── Cube scan ───────────────────────────────────────────────── */
+#scan-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.75);
+}
+#scan-overlay.hidden { display: none; }
+body.scan-active { background: transparent !important; }
+body.scan-active #top-bar,
+body.scan-active #btn-theme,
+body.scan-active #btn-stats,
+body.scan-active #ui { display: none; }
+
+#scan-header {
+  position: absolute;
+  top: calc(16px + var(--safe-top));
+  left: calc(16px + var(--safe-left));
+  right: calc(16px + var(--safe-right));
+  padding: 12px 14px;
+  border-radius: 18px;
+  text-align: center;
+  background: rgba(10,10,12,0.68);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+#scan-progress { font-size: 17px; font-weight: 800; }
+#scan-direction { margin-top: 4px; font-size: 13px; color: rgba(255,255,255,0.82); }
+#scan-orientation {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+#scan-top-face { font-size: 13px; font-weight: 800; }
+#scan-mini-face {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border: 3px solid #fff;
+  border-radius: 5px;
+  background:
+    linear-gradient(90deg, transparent 31%, #fff 32%, #fff 35%, transparent 36%, transparent 64%, #fff 65%, #fff 68%, transparent 69%),
+    linear-gradient(transparent 31%, #fff 32%, #fff 35%, transparent 36%, transparent 64%, #fff 65%, #fff 68%, transparent 69%),
+    rgba(255,255,255,0.20);
+  font-size: 12px; font-weight: 900;
+}
+
+#scan-guide {
+  position: absolute;
+  left: 20%;
+  top: 20%;
+  width: 60%;
+  height: 60%;
+  border: 3px solid rgba(255,255,255,0.95);
+  border-radius: 12px;
+  box-shadow: 0 0 0 999px rgba(0,0,0,0.16), 0 2px 14px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.scan-grid-line {
+  position: absolute;
+  background: rgba(255,255,255,0.76);
+  pointer-events: none;
+}
+.scan-grid-v { top: 0; bottom: 0; width: 1px; }
+.scan-grid-h { left: 0; right: 0; height: 1px; }
+.scan-grid-v1 { left: 33.333%; }
+.scan-grid-v2 { left: 66.666%; }
+.scan-grid-h1 { top: 33.333%; }
+.scan-grid-h2 { top: 66.666%; }
+#scan-rgb-preview {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  pointer-events: none;
+}
+.scan-rgb-cell {
+  margin: 12%;
+  border: 2px solid rgba(255,255,255,0.9);
+  border-radius: 8px;
+  opacity: 0.82;
+}
+
+#scan-controls {
+  position: absolute;
+  left: calc(16px + var(--safe-left));
+  right: calc(16px + var(--safe-right));
+  bottom: calc(16px + var(--safe-bottom));
+  padding: 12px;
+  border-radius: 20px;
+  background: rgba(10,10,12,0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+#scan-message { min-height: 18px; text-align: center; font-size: 13px; margin-bottom: 10px; }
+.scan-control-row { display: flex; gap: 9px; }
+#btn-scan-previous, #btn-scan-capture, #btn-scan-cancel {
+  min-height: 46px;
+  color: #fff;
+}
+#btn-scan-previous { flex: 1; background: rgba(255,255,255,0.16); }
+#btn-scan-capture { flex: 2; background: #2F80ED; font-size: 16px; }
+#btn-scan-cancel {
+  width: 100%;
+  margin-top: 8px;
+  background: rgba(255,255,255,0.09);
+}
+
+@media (orientation: landscape) {
+  #scan-header { max-width: 38%; right: auto; }
+  #scan-controls { left: auto; width: 38%; }
+  #scan-guide {
+    width: min(54vh, 46vw);
+    height: min(54vh, 46vw);
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
 }
 
 /* ── Solved Overlay ────────────────────────────────────────────── */

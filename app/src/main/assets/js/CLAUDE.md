@@ -12,7 +12,7 @@
 8. `solver/solver-base.js` → `solver-cubing.js` → `solver-factory.js`
 9. `actions.js` → `overlay.js` → `stats.js` → `scoring.js` → `history.js` → `scan/cube-validate.js` → `scan/color-classify.js` → `solve.js` → `shuffle.js`
 10. `animation.js` → `layer-rotation.js` → `layer-snap.js` → `touch.js`
-11. `bridge.js` → `scan/scan-capture.js`
+11. `bridge.js` → `scan/scan-capture.js` → `scan/scan-ui.js`
 12. `theme.js` → `long-press.js` → `dashboard.js`
 
 ## 핵심 데이터 모델
@@ -44,6 +44,7 @@
 | `scan/scan-capture.js` | 6면 RGB 샘플 수집·재촬영 덮어쓰기 | `captureScanFace()`, `getCollectedScanSamples()`, `clearScanSamples()` |
 | `scan/cube-validate.js` | 54칸 조각·방향·패리티 순수 검증 | `validateFacelets()` |
 | `scan/color-classify.js` | CIELAB 센터 앵커·9개 제약 색 분류 | `classifyFacelets()` |
+| `scan/scan-ui.js` | 6면 촬영 순서·방향·재촬영 가이드 | `startScanFlow()`, `cancelScanFlow()` |
 | `theme.js` | 다크 모드 토글 (localStorage) | `applyTheme()` |
 | `stats.js` | 솔브 히스토리·통계 계산 | `recordSolve()`, `getSolveHistory()`, `computeStats()` |
 | `dashboard.js` | 통계 대시보드 오버레이 | `openDashboard()`, `closeDashboard()` |

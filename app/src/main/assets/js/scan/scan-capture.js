@@ -42,11 +42,18 @@ function clearScanSamples() {
   scanFaceSamples.fill(null);
 }
 
+function clearScanFace(faceIndex) {
+  if (Number.isInteger(faceIndex) && faceIndex >= 0 && faceIndex < 6) {
+    scanFaceSamples[faceIndex] = null;
+  }
+}
+
 if (typeof module !== 'undefined') {
   module.exports = {
     onFaceSampled,
     getCollectedScanSamples,
     clearScanSamples,
+    clearScanFace,
     scanFaceSamples
   };
 }
