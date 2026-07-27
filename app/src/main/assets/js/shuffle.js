@@ -8,6 +8,7 @@ function shuffleCube() {
   }
   _solveAdRequired = true;  // 셔플 후 다음 솔브는 다시 광고 필요
   isScanSolve = false;
+  resetActiveFaceColors();  // 스캔 팔레트 폐기 → 일반 게임 모드
   resetSolution();  // 진행 중인 솔브 초기화
   isShuffling = true;
   document.getElementById('btn-shuffle').disabled = true;
@@ -61,6 +62,7 @@ function resetCube() {
   }
   _solveAdRequired = true;  // 리셋 후 다음 솔브는 다시 광고 필요
   isScanSolve = false;
+  resetActiveFaceColors();  // 스캔 팔레트 폐기 → 일반 게임 모드
   resetSolution();
   facelets = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
   setMoveCount(0);

@@ -41,17 +41,21 @@ function applyFacelets() {
         cz = faceDef.fixedVal; cx = slot[0]; cy = slot[1];
       }
       const cubie = findCubie(cx, cy, cz);
-      if (cubie) cubie.mesh.material[faceDef.matIdx].color.set(FACE_COLORS[colorIdx]);
+      if (cubie) cubie.mesh.material[faceDef.matIdx].color.set(activeFaceColors[colorIdx]);
     });
   });
   markDirty();
 }
 
-// Raycast로 직접 누른 스티커 한 칸만 흰색 50% 혼합색으로 표시한다.
+// Raycast로 직접 누른 스티커 한 칸만 대비색 50% 혼합으로 표시한다.
+// 흰색으로만 섞으면 스캔한 파스텔·밝은 팔레트에서 피드백이 보이지 않으므로
+// 스티커가 밝으면 어둡게, 어두우면 밝게 섞는다.
 function highlightTouchedSticker(mesh, materialIndex) {
   if (!mesh || materialIndex === undefined || !mesh.material[materialIndex]) return;
-  const white = new THREE.Color(0xffffff);
-  mesh.material[materialIndex].color.lerp(white, 0.5);
+  const color = mesh.material[materialIndex].color;
+  // sRGB 상대 휘도 근사. 정확도보다 밝고/어두움 판정만 필요하다.
+  const luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+  color.lerp(new THREE.Color(luminance > 0.55 ? 0x000000 : 0xffffff), 0.5);
   markDirty();
 }
 

@@ -198,6 +198,31 @@ body.scan-active #ui { display: none; }
 }
 #scan-progress { font-size: 17px; font-weight: 800; }
 #scan-direction { margin-top: 4px; font-size: 13px; color: rgba(255,255,255,0.82); }
+#scan-direction:empty { display: none; }
+#scan-rotation {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.scan-rotation-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.12);
+  font-size: 13px;
+  text-align: left;
+  line-height: 1.35;
+}
+.scan-rotation-glyph {
+  flex: none;
+  width: 22px;
+  font-size: 17px;
+  font-weight: 900;
+  text-align: center;
+}
 #scan-orientation {
   display: flex;
   justify-content: center;
@@ -387,6 +412,38 @@ body.scan-active #ui { display: none; }
 .scan-edit-cell.selected { outline: 4px solid #202124; }
 .scan-edit-cell:disabled { opacity: 1; }
 
+/* 카메라에서 거의 같게 보이는 두 색. 색만으로는 구분되지 않으므로 점선으로 한 번 더 표시한다. */
+.scan-net-cell.similar,
+.scan-edit-cell.similar,
+.scan-palette-color.similar { border-style: dashed; border-width: 3px; }
+
+#btn-scan-retake-face {
+  display: block;
+  margin: 10px auto 0;
+  padding: 9px 16px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.07);
+  color: #333;
+  font-size: 13px;
+  font-weight: 800;
+}
+#btn-scan-retake-face:disabled { opacity: 0.45; }
+
+#scan-warnings:empty { display: none; }
+#scan-warnings { margin-bottom: 12px; }
+.scan-warning {
+  max-width: 560px;
+  margin: 0 auto 6px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: rgba(217,48,37,0.10);
+  border-left: 4px solid #D93025;
+  color: #8A1F17;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: left;
+}
+
 #scan-palette {
   display: flex;
   justify-content: center;
@@ -428,6 +485,8 @@ body[data-theme="dark"] #scan-face-editor-title { color: #f2f2f4; }
 body[data-theme="dark"] #btn-scan-review-close { background: rgba(255,255,255,0.1); color: #ddd; }
 body[data-theme="dark"] #scan-validation-message { background: rgba(255,255,255,0.08); color: #ddd; }
 body[data-theme="dark"] #scan-validation-message.valid { background: #143D29; color: #91E6B6; }
+body[data-theme="dark"] #btn-scan-retake-face { background: rgba(255,255,255,0.12); color: #e6e6e8; }
+body[data-theme="dark"] .scan-warning { background: rgba(217,48,37,0.20); color: #FFB4AB; }
 
 /* ── Solved Overlay ────────────────────────────────────────────── */
 #solved-overlay {

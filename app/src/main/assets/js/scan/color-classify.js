@@ -2,6 +2,14 @@ const CLASSIFY_CENTER_INDICES = [4, 13, 22, 31, 40, 49];
 const CLASSIFY_COLORS = 6;
 const CLASSIFY_PER_COLOR = 9;
 
+// 경고 임계값. 잠정값이며 확정은 실기기 실측(Phase 4)에서 한다.
+// 기준선: 기본 FACE_COLORS 의 최소 쌍거리는 빨/주 ΔE 31.8, 흰 제외 최대 L* 는 노랑 88.4,
+// 54칸 평균 L* 는 70.7 이다. 표준 배색에서 어떤 경고도 뜨지 않아야 한다.
+const SIMILAR_CENTERS_DELTA_E = 18;
+const OVEREXPOSED_L = 95;
+const OVEREXPOSED_MIN_FACES = 2;
+const LOW_LIGHT_L = 25;
+
 function classifyFacelets(samples) {
   validateSamples(samples);
   const labSamples = samples.map(rgbToLab);
@@ -31,11 +39,56 @@ function classifyFacelets(samples) {
     return clamp01(1 - assigned / next);
   });
 
+  // 팔레트는 원본 센터 픽셀이 아니라 최종 군집 중심을 쓴다. 같은 색 9칸의 평균이라
+  // 셀 하나의 반사광·그림자에 훨씬 덜 흔들리고, 분류기가 실제로 사용한 색과 일치한다.
   return {
     facelets,
     confidence,
-    centerMap: CLASSIFY_CENTER_INDICES.map((_, face) => face)
+    palette: centers.map(labToRgb),
+    separation: centerSeparation(centers),
+    warnings: collectWarnings(centers, labSamples)
   };
+}
+
+function centerSeparation(centers) {
+  return centers.map((center, face) => Math.min(
+    ...centers
+      .filter((_, other) => other !== face)
+      .map(other => labDistance(center, other))
+  ));
+}
+
+function collectWarnings(centers, labSamples) {
+  const warnings = [];
+
+  for (let face = 0; face < CLASSIFY_COLORS; face++) {
+    for (let other = face + 1; other < CLASSIFY_COLORS; other++) {
+      const deltaE = labDistance(centers[face], centers[other]);
+      if (deltaE < SIMILAR_CENTERS_DELTA_E) {
+        warnings.push({ code: 'SIMILAR_CENTERS', faces: [face, other], detail: { deltaE } });
+      }
+    }
+  }
+
+  // 한 면만 밝은 것은 흰 스티커일 뿐이다. 여러 면이 함께 상한에 몰릴 때만 과노출로 본다.
+  const bright = centers
+    .map((center, face) => ({ face, lightness: center[0] }))
+    .filter(entry => entry.lightness >= OVEREXPOSED_L);
+  if (bright.length >= OVEREXPOSED_MIN_FACES) {
+    warnings.push({
+      code: 'CENTER_OVEREXPOSED',
+      faces: bright.map(entry => entry.face),
+      detail: { lightness: bright.map(entry => entry.lightness) }
+    });
+  }
+
+  const meanLightness =
+    labSamples.reduce((sum, sample) => sum + sample[0], 0) / labSamples.length;
+  if (meanLightness < LOW_LIGHT_L) {
+    warnings.push({ code: 'LOW_LIGHT', faces: [], detail: { meanLightness } });
+  }
+
+  return warnings;
 }
 
 function validateSamples(samples) {
@@ -132,6 +185,30 @@ function rgbToLab(rgb) {
   return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
 }
 
+function labToRgb(lab) {
+  const fy = (lab[0] + 16) / 116;
+  const fx = fy + lab[1] / 500;
+  const fz = fy - lab[2] / 200;
+  const inverse = value => {
+    const cubed = value * value * value;
+    return cubed > 0.008856 ? cubed : (value - 16 / 116) / 7.787;
+  };
+  const x = inverse(fx) * 0.95047;
+  const y = inverse(fy);
+  const z = inverse(fz) * 1.08883;
+  const linear = [
+    x * 3.2404542 + y * -1.5371385 + z * -0.4985314,
+    x * -0.9692660 + y * 1.8760108 + z * 0.0415560,
+    x * 0.0556434 + y * -0.2040259 + z * 1.0572252
+  ];
+  return linear.map(value => {
+    const companded = value <= 0.0031308
+      ? value * 12.92
+      : 1.055 * Math.pow(Math.max(value, 0), 1 / 2.4) - 0.055;
+    return Math.max(0, Math.min(255, Math.round(companded * 255)));
+  });
+}
+
 function labDistanceSquared(first, second) {
   return first.reduce((sum, value, index) => {
     const delta = value - second[index];
@@ -148,5 +225,14 @@ function clamp01(value) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { classifyFacelets, rgbToLab, hungarian };
+  module.exports = {
+    classifyFacelets,
+    rgbToLab,
+    labToRgb,
+    hungarian,
+    SIMILAR_CENTERS_DELTA_E,
+    OVEREXPOSED_L,
+    OVEREXPOSED_MIN_FACES,
+    LOW_LIGHT_L
+  };
 }
