@@ -292,6 +292,142 @@ body.scan-active #ui { display: none; }
   }
 }
 
+/* ── Scan review ─────────────────────────────────────────────── */
+#scan-review-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0,0,0,0.58);
+  padding-top: var(--safe-top);
+}
+#scan-review-overlay.hidden { display: none; }
+#scan-review-card {
+  width: 100%;
+  max-height: calc(100vh - var(--safe-top));
+  overflow-y: auto;
+  padding: 20px 16px calc(18px + var(--safe-bottom));
+  border-radius: 28px 28px 0 0;
+  background: rgba(250,250,252,0.98);
+  box-shadow: 0 -10px 44px rgba(0,0,0,0.24);
+}
+#scan-review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  max-width: 560px;
+  margin: 0 auto 14px;
+}
+#scan-review-title { font-size: 20px; font-weight: 850; color: #171719; }
+#scan-review-badge {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #FFF0C2;
+  color: #8A5A00;
+  font-size: 11px;
+  font-weight: 750;
+}
+#btn-scan-review-close {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.07);
+  color: #555;
+}
+#scan-net {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(15px, 24px));
+  grid-template-rows: repeat(9, minmax(15px, 24px));
+  justify-content: center;
+  gap: 2px;
+  margin: 0 auto 16px;
+}
+.scan-net-cell {
+  min-width: 0;
+  aspect-ratio: 1;
+  border: 1px solid rgba(0,0,0,0.35);
+  border-radius: 3px;
+  padding: 0;
+  font-size: 8px;
+  color: rgba(0,0,0,0.66);
+  text-shadow: 0 1px rgba(255,255,255,0.65);
+}
+.scan-net-cell.low-confidence::after { content: '?'; font-weight: 900; }
+.scan-net-cell.invalid { outline: 2px solid #D93025; z-index: 1; }
+.scan-net-cell.selected { outline: 3px solid #202124; z-index: 2; }
+
+#scan-face-editor-title {
+  text-align: center;
+  color: #333;
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+#scan-face-editor {
+  display: grid;
+  grid-template-columns: repeat(3, 56px);
+  gap: 5px;
+  justify-content: center;
+}
+.scan-edit-cell {
+  width: 56px; height: 56px;
+  border: 2px solid rgba(0,0,0,0.42);
+  border-radius: 9px;
+  color: rgba(0,0,0,0.68);
+  font-size: 13px;
+  font-weight: 900;
+  text-shadow: 0 1px rgba(255,255,255,0.7);
+}
+.scan-edit-cell.low-confidence { box-shadow: inset 0 0 0 4px #FFC107; }
+.scan-edit-cell.invalid { outline: 3px solid #D93025; }
+.scan-edit-cell.selected { outline: 4px solid #202124; }
+.scan-edit-cell:disabled { opacity: 1; }
+
+#scan-palette {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin: 13px 0 10px;
+}
+.scan-palette-color {
+  width: 44px; height: 44px;
+  border: 2px solid rgba(0,0,0,0.35);
+  border-radius: 50%;
+  color: rgba(0,0,0,0.7);
+  font-weight: 900;
+}
+#scan-validation-message {
+  min-height: 38px;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 9px 12px;
+  border-radius: 12px;
+  text-align: center;
+  background: rgba(0,0,0,0.055);
+  color: #444;
+  font-size: 12px;
+}
+#scan-validation-message.valid { color: #08783E; background: #DDF7E9; }
+#scan-review-actions {
+  display: flex;
+  gap: 9px;
+  max-width: 560px;
+  margin: 12px auto 0;
+}
+#btn-scan-again, #btn-scan-apply { flex: 1; min-height: 48px; color: #fff; }
+#btn-scan-again { background: #6B7280; }
+#btn-scan-apply { background: #17B06B; }
+
+body[data-theme="dark"] #scan-review-card { background: rgba(28,28,30,0.99); }
+body[data-theme="dark"] #scan-review-title,
+body[data-theme="dark"] #scan-face-editor-title { color: #f2f2f4; }
+body[data-theme="dark"] #btn-scan-review-close { background: rgba(255,255,255,0.1); color: #ddd; }
+body[data-theme="dark"] #scan-validation-message { background: rgba(255,255,255,0.08); color: #ddd; }
+body[data-theme="dark"] #scan-validation-message.valid { background: #143D29; color: #91E6B6; }
+
 /* ── Solved Overlay ────────────────────────────────────────────── */
 #solved-overlay {
   position: fixed;

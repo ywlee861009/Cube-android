@@ -104,6 +104,27 @@
   </div>
 </div>
 
+<div id="scan-review-overlay" class="hidden">
+  <div id="scan-review-card">
+    <div id="scan-review-header">
+      <div>
+        <div id="scan-review-title">스캔 결과 확인</div>
+        <div id="scan-review-badge">확인이 필요한 칸 0개</div>
+      </div>
+      <button id="btn-scan-review-close" onclick="cancelScanReview()" aria-label="스캔 결과 닫기">✕</button>
+    </div>
+    <div id="scan-net" aria-label="큐브 6면 전개도"></div>
+    <div id="scan-face-editor-title">흰색 면 (U)</div>
+    <div id="scan-face-editor"></div>
+    <div id="scan-palette" aria-label="색 선택 팔레트"></div>
+    <div id="scan-validation-message"></div>
+    <div id="scan-review-actions">
+      <button id="btn-scan-again" onclick="restartScanFromReview()">다시 스캔</button>
+      <button id="btn-scan-apply" onclick="confirmScanReview()" disabled>Solve 시작</button>
+    </div>
+  </div>
+</div>
+
 <div id="top-bar">
   <div id="timer">0.0s</div>
   <div id="moves">Moves: 0</div>
@@ -161,6 +182,7 @@
 <script src="js/bridge.js"></script>
 <script src="js/scan/scan-capture.js"></script>
 <script src="js/scan/scan-ui.js"></script>
+<script src="js/scan/scan-review.js"></script>
 
 <!-- UI extras -->
 <script src="js/theme.js"></script>
