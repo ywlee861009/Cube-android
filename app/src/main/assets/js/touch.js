@@ -8,6 +8,7 @@ let dragMode = null;      // null | 'layer' | 'view' | 'pinch'
 let hitMesh   = null;
 let hitNormal = null;     // 큐브 로컬 공간의 면 법선
 let prevPinchDist = null;
+let touchFeedbackTimer = null;
 
 // ─── 뷰 회전 속도 (EMA) ──────────────────────────────────────────────────
 let viewVelX   = 0;       // rad/ms
@@ -30,6 +31,21 @@ function raycastCubies(px, py) {
   raycaster.setFromCamera(toNDC(px, py), camera);
   const hits = raycaster.intersectObjects(cubieGroup.children, true);
   return hits.length > 0 ? hits[0] : null;
+}
+
+function showTouchFeedback(normal) {
+  clearTouchFeedback();
+  highlightTouchedFace(normal);
+  window.AndroidBridge?.touchSelectionFeedback?.();
+  touchFeedbackTimer = setTimeout(clearTouchFeedback, 160);
+}
+
+function clearTouchFeedback() {
+  if (touchFeedbackTimer !== null) {
+    clearTimeout(touchFeedbackTimer);
+    touchFeedbackTimer = null;
+  }
+  clearTouchedFaceHighlight();
 }
 
 // ─── touchstart ──────────────────────────────────────────────────────────
@@ -59,10 +75,12 @@ renderer.domElement.addEventListener('touchstart', e => {
     if (hit) {
       hitMesh   = hit.object;
       hitNormal = hit.face.normal.clone();
+      showTouchFeedback(hitNormal);
     } else {
       hitMesh = null;
     }
   } else if (e.touches.length === 2) {
+    clearTouchFeedback();
     prevPinchDist = getTouchDist(e.touches);
   }
 }, { passive: false });
@@ -73,6 +91,7 @@ renderer.domElement.addEventListener('touchmove', e => {
 
   // 핀치 줌
   if (e.touches.length === 2) {
+    clearTouchFeedback();
     dragMode = 'pinch';
     const dist = getTouchDist(e.touches);
     if (prevPinchDist) {
@@ -92,6 +111,7 @@ renderer.domElement.addEventListener('touchmove', e => {
   if (!dragMode) {
     const dx = x - touchStartX, dy = y - touchStartY;
     if (Math.hypot(dx, dy) > 12) {
+      clearTouchFeedback();
       dragMode       = (hitMesh && initLayerRotation(dx, dy)) ? 'layer' : 'view';
       prevLayerAngle = 0;
       prevLayerTime  = now;
@@ -139,7 +159,10 @@ renderer.domElement.addEventListener('touchmove', e => {
 // ─── touchend ────────────────────────────────────────────────────────────
 renderer.domElement.addEventListener('touchend', e => {
   if (isShuffling || isSolving) { // 애니메이션 중 레이어 확정 차단
-    if (e.touches.length === 0) { dragMode = null; hitMesh = null; prevPinchDist = null; }
+    if (e.touches.length === 0) {
+      clearTouchFeedback();
+      dragMode = null; hitMesh = null; prevPinchDist = null;
+    }
     return;
   }
   if (dragMode === 'layer') {
@@ -175,6 +198,7 @@ renderer.domElement.addEventListener('touchend', e => {
   }
 
   if (e.touches.length === 0) {
+    clearTouchFeedback();
     dragMode = null; hitMesh = null; prevPinchDist = null;
   } else if (e.touches.length === 1) {
     if (dragMode === 'pinch') dragMode = null;
@@ -182,4 +206,11 @@ renderer.domElement.addEventListener('touchend', e => {
     prevY = e.touches[0].clientY;
     prevPinchDist = null;
   }
+});
+
+renderer.domElement.addEventListener('touchcancel', () => {
+  clearTouchFeedback();
+  dragMode = null;
+  hitMesh = null;
+  prevPinchDist = null;
 });

@@ -29,7 +29,7 @@
 |------|------|----------|
 | `constants.js` | 색상·face 정의 | `FACE_COLORS`, `FACE_DEFS` |
 | `scene.js` | WebGL 렌더러·카메라·조명 | `updateCamera()`, `animate()`, `setSceneBg()` |
-| `cubies.js` | 26개 Cubie 생성·색상 갱신 | `applyFacelets()`, `findCubie()` |
+| `cubies.js` | 26개 Cubie 생성·색상 갱신·터치 면 피드백 | `applyFacelets()`, `findCubie()`, `highlightTouchedFace()` |
 | `actions.js` | 큐브 상태·무브 적용·완성 감지 | `applyMove()`, `isCubeSolved()`, `setMoveCount()` |
 | `overlay.js` | 축하 오버레이·축포 이펙트 | `showSolvedOverlay()`, `dismissSolvedOverlay()` |
 | `scoring.js` | PB 기록·타이머·스코어링 | `checkSolvedAndSubmit()`, `_checkAndSavePB()` |

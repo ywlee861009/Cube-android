@@ -12,6 +12,7 @@
 | 메서드 | 동작 |
 |--------|------|
 | `hapticFeedback()` | `webView.performHapticFeedback()` |
+| `touchSelectionFeedback()` | 큐브 면 터치 시작 시 짧은 `CLOCK_TICK` 햅틱 |
 | `requestSolve()` | `solveGranted`면 바로 `onSolveGranted()`, 아니면 광고 표시 |
 | `onShuffleOrReset()` | `solveGranted = false` — 광고 허가 초기화 |
 | `onScannedStateApplied()` | 스캔 상태 주입 후 광고 허가 초기화 |

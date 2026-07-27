@@ -102,6 +102,13 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        @JavascriptInterface
+        fun touchSelectionFeedback() {
+            webView.post {
+                webView.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            }
+        }
+
         /**
          * JS의 solveCube()에서 호출.
          * - 이미 광고 허가된 상태면 바로 onSolveGranted()
