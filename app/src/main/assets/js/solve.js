@@ -56,6 +56,12 @@ function solveCube() {
 async function _runSolve() {
   if (isSolving) return;  // ad callback 이중 호출 등으로 인한 중복 실행 방지
   try {
+    const validation = validateFacelets(facelets);
+    if (!validation.ok) {
+      setStatus(validation.message);
+      resetButtons();
+      return;
+    }
     const solver = SolverFactory.create();
     if (!solver.isReady()) {
       setStatus('Solver loading...');
