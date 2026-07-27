@@ -8,11 +8,14 @@ import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import java.util.concurrent.Executors
 
 @OptIn(ExperimentalCamera2Interop::class)
 class CubeScanner(
@@ -22,6 +25,8 @@ class CubeScanner(
     private var cameraProvider: ProcessCameraProvider? = null
     private var active = false
     private var sessionId = 0
+    @Volatile private var latestFrame: FaceSampler.RgbaFrame? = null
+    private val analysisExecutor = Executors.newSingleThreadExecutor()
 
     fun start(onReady: () -> Unit, onError: (String) -> Unit) {
         active = true
@@ -64,6 +69,7 @@ class CubeScanner(
 
     fun pause() {
         sessionId++
+        latestFrame = null
         cameraProvider?.unbindAll()
     }
 
@@ -74,11 +80,33 @@ class CubeScanner(
     fun stop() {
         active = false
         sessionId++
+        latestFrame = null
         cameraProvider?.unbindAll()
         cameraProvider = null
     }
 
     fun isActive(): Boolean = active
+
+    fun capture(onSampled: (List<List<Int>>) -> Unit, onError: (String) -> Unit) {
+        val frame = latestFrame
+        if (!active || frame == null) {
+            onError("frame_unavailable")
+            return
+        }
+        analysisExecutor.execute {
+            try {
+                onSampled(FaceSampler.sample(frame))
+            } catch (error: Exception) {
+                Log.e(TAG, "Face sampling failed", error)
+                onError("sampling_failed")
+            }
+        }
+    }
+
+    fun release() {
+        stop()
+        analysisExecutor.shutdown()
+    }
 
     private fun bindPreview(
         provider: ProcessCameraProvider,
@@ -102,11 +130,37 @@ class CubeScanner(
         val preview = previewBuilder.build().also {
             it.setSurfaceProvider(previewView.surfaceProvider)
         }
+        val analysis = ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+            .build()
+            .also { it.setAnalyzer(analysisExecutor, ::cacheFrame) }
         return provider.bindToLifecycle(
             lifecycleOwner,
             CameraSelector.DEFAULT_BACK_CAMERA,
-            preview
+            preview,
+            analysis
         )
+    }
+
+    private fun cacheFrame(image: ImageProxy) {
+        try {
+            val plane = image.planes.firstOrNull() ?: return
+            val buffer = plane.buffer
+            buffer.rewind()
+            val bytes = ByteArray(buffer.remaining())
+            buffer.get(bytes)
+            latestFrame = FaceSampler.RgbaFrame(
+                bytes = bytes,
+                width = image.width,
+                height = image.height,
+                rowStride = plane.rowStride,
+                pixelStride = plane.pixelStride,
+                rotationDegrees = image.imageInfo.rotationDegrees
+            )
+        } finally {
+            image.close()
+        }
     }
 
     private fun lockSupport(camera: Camera): Pair<Boolean, Boolean> {

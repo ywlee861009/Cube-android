@@ -16,6 +16,8 @@
 | `onShuffleOrReset()` | `solveGranted = false` — 광고 허가 초기화 |
 | `startScan()` | CAMERA 권한 확인 후 CameraX 프리뷰 시작 |
 | `stopScan()` | 카메라 해제 후 프리뷰 숨김 |
+| `captureFace(faceIndex)` | 최신 RGBA 프레임의 9셀 RGB 중앙값 추출 |
+| `getScanGuideRect()` | 프리뷰/HTML 가이드가 공유할 정규화 좌표 JSON 반환 |
 
 ### Android → JS
 
@@ -26,6 +28,8 @@
 | `window.onSolveDenied()` | 광고 거부/실패 시 솔브 차단, 상태 메시지 표시 |
 | `window.onScanReady()` | 프리뷰 준비 완료 |
 | `window.onScanCancelled(reason)` | 권한 거부·카메라 없음·시작 오류로 스캔 취소 |
+| `window.onFaceSampled(faceIndex, rgbJson)` | 면의 9×RGB 샘플 전달 |
+| `window.onFaceSampleFailed(faceIndex, reason)` | 프레임 없음·샘플링 오류 전달 |
 
 ## Edge-to-Edge / Insets
 

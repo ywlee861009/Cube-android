@@ -12,7 +12,7 @@
 8. `solver/solver-base.js` → `solver-cubing.js` → `solver-factory.js`
 9. `actions.js` → `overlay.js` → `stats.js` → `scoring.js` → `history.js` → `solve.js` → `shuffle.js`
 10. `animation.js` → `layer-rotation.js` → `layer-snap.js` → `touch.js`
-11. `bridge.js`
+11. `bridge.js` → `scan/scan-capture.js`
 12. `theme.js` → `long-press.js` → `dashboard.js`
 
 ## 핵심 데이터 모델
@@ -41,6 +41,7 @@
 | `layer-snap.js` | 스냅 애니메이션·fling 물리 | `finishLayerRotation()`, `cancelFling()` |
 | `touch.js` | 터치 진입점 (layer/view/pinch) | dragMode, CAM_MIN=4/CAM_MAX=20 |
 | `bridge.js` | Android↔JS 인터페이스 | `window.AndroidCube.{setInsets, applyMove, shuffle, reset, getFacelets}` |
+| `scan/scan-capture.js` | 6면 RGB 샘플 수집·재촬영 덮어쓰기 | `captureScanFace()`, `getCollectedScanSamples()`, `clearScanSamples()` |
 | `theme.js` | 다크 모드 토글 (localStorage) | `applyTheme()` |
 | `stats.js` | 솔브 히스토리·통계 계산 | `recordSolve()`, `getSolveHistory()`, `computeStats()` |
 | `dashboard.js` | 통계 대시보드 오버레이 | `openDashboard()`, `closeDashboard()` |
@@ -48,4 +49,5 @@
 
 ## 동시 진행 차단 플래그 (actions.js)
 
-`isShuffling` (`actions.js`), `isSolving` (`actions.js`), `isUndoRedo` (`history.js`) — 하나라도 true면 다른 작업 거부.
+`isShuffling` (`actions.js`), `isSolving` (`actions.js`), `isUndoRedo` (`history.js`),
+`isScanning` (`actions.js`) — 하나라도 true면 다른 작업 거부.

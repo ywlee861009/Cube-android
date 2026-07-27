@@ -39,6 +39,9 @@ import com.google.android.play.core.appupdate.AppUpdateOptions
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
 import com.kero.cubie.scan.CubeScanner
+import com.kero.cubie.scan.FaceSampler
+import org.json.JSONArray
+import org.json.JSONObject
 
 private const val AD_UNIT_ID = "ca-app-pub-2103375309908918/6311668222"
 
@@ -55,6 +58,7 @@ class MainActivity : ComponentActivity() {
     private var solveGranted = false  // 광고 시청 후 true, 셔플/리셋 시 false
     private var isUpdateFlowActive = false
     private var cameraPermissionRequested = false
+    private val capturedFaces = arrayOfNulls<List<List<Int>>>(6)
 
     private val cameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -128,6 +132,40 @@ class MainActivity : ComponentActivity() {
         fun stopScan() {
             runOnUiThread { stopCameraPreview() }
         }
+
+        @JavascriptInterface
+        fun captureFace(faceIndex: Int) {
+            if (faceIndex !in 0..5) {
+                runOnUiThread { notifyFaceSampleFailed(faceIndex, "invalid_face_index") }
+                return
+            }
+            cubeScanner.capture(
+                onSampled = { samples ->
+                    capturedFaces[faceIndex] = samples
+                    if (BuildConfig.DEBUG && capturedFaces.all { it != null }) {
+                        Log.d("CubeScanner", "RGB fixture=${JSONArray(capturedFaces.toList())}")
+                    }
+                    runOnUiThread {
+                        val json = JSONArray(samples).toString()
+                        callJs(
+                            "window.onFaceSampled && " +
+                                "window.onFaceSampled($faceIndex,${JSONObject.quote(json)})"
+                        )
+                    }
+                },
+                onError = { reason ->
+                    runOnUiThread { notifyFaceSampleFailed(faceIndex, reason) }
+                }
+            )
+        }
+
+        @JavascriptInterface
+        fun getScanGuideRect(): String = JSONObject()
+            .put("left", FaceSampler.GUIDE_LEFT)
+            .put("top", FaceSampler.GUIDE_TOP)
+            .put("right", FaceSampler.GUIDE_RIGHT)
+            .put("bottom", FaceSampler.GUIDE_BOTTOM)
+            .toString()
 
     }
 
@@ -212,6 +250,7 @@ class MainActivity : ComponentActivity() {
 
     private fun stopCameraPreview() {
         cubeScanner.stop()
+        capturedFaces.fill(null)
         previewView.visibility = View.GONE
         webView.setBackgroundColor(Color.TRANSPARENT)
     }
@@ -219,6 +258,13 @@ class MainActivity : ComponentActivity() {
     private fun cancelScan(reason: String) {
         stopCameraPreview()
         callJs("window.onScanCancelled && window.onScanCancelled('$reason')")
+    }
+
+    private fun notifyFaceSampleFailed(faceIndex: Int, reason: String) {
+        callJs(
+            "window.onFaceSampleFailed && " +
+                "window.onFaceSampleFailed($faceIndex,${JSONObject.quote(reason)})"
+        )
     }
 
     private fun showCameraSettingsDialog() {
@@ -347,7 +393,7 @@ class MainActivity : ComponentActivity() {
     // ── 생명주기 ──────────────────────────────────────────────────────────────
 
     override fun onDestroy() {
-        cubeScanner.stop()
+        cubeScanner.release()
         rewardedAd?.fullScreenContentCallback = null
         rewardedAd = null
         webView.removeJavascriptInterface("AndroidBridge")
