@@ -124,6 +124,11 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun onScannedStateApplied() {
+            solveGranted = false
+        }
+
+        @JavascriptInterface
         fun startScan() {
             runOnUiThread { requestCameraAndStartScan() }
         }

@@ -4,6 +4,7 @@ let moveCount = 0;
 let isShuffling = false;
 let isSolving = false;
 let isScanning = false;
+let isScanSolve = false;
 
 // ─── UI 헬퍼 ───────────────────────────────────────────────────────────────
 function setMoveCount(n) {
@@ -34,6 +35,7 @@ function resetButtons() {
   resetSolution();
   document.getElementById('btn-solve').disabled   = false;
   document.getElementById('btn-shuffle').disabled = false;
+  document.getElementById('btn-scan').disabled = false;
   updateUndoRedoButtons();
 }
 

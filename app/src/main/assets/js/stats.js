@@ -7,6 +7,7 @@ const HISTORY_KEY = 'solve_history';
 const HISTORY_CAP = 1000;
 
 function recordSolve(timeMs, moves, solverUsed) {
+  if (isScanSolve) return;
   const history = getSolveHistory();
   history.push({ t: timeMs, m: moves, d: Date.now(), s: !!solverUsed });
   if (history.length > HISTORY_CAP) history.splice(0, history.length - HISTORY_CAP);

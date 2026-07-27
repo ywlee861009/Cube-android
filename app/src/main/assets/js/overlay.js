@@ -6,7 +6,8 @@ const _confetti = confetti.create(null, { useWorker: false, resize: true });
 
 function showSolvedOverlay(elapsedMs, moves, pbResult) {
   console.log('[Overlay] showSolvedOverlay called t=' + performance.now().toFixed(0));
-  document.getElementById('s-time').textContent  = (elapsedMs / 1000).toFixed(1) + 's';
+  document.getElementById('s-time').textContent  =
+    elapsedMs === null ? 'Scan' : (elapsedMs / 1000).toFixed(1) + 's';
   document.getElementById('s-moves').textContent = moves;
 
   // New Best 배지

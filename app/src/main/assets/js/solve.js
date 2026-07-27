@@ -37,7 +37,7 @@ function solveCube() {
   }
 
   if (isCubeSolved()) {
-    setStatus('Already solved!');
+    setStatus(isScanSolve ? '스캔한 큐브가 이미 완성되어 있어요.' : 'Already solved!');
     return;
   }
 
@@ -133,8 +133,8 @@ function stepSolution() {
         setStatus('Solved!');
         setMoveCount(0);
         resetButtons();
-        recordSolve(elapsed, solverMoves, true);
-        showSolvedOverlay(elapsed, solverMoves, null);
+        if (!isScanSolve) recordSolve(elapsed, solverMoves, true);
+        showSolvedOverlay(isScanSolve ? null : elapsed, solverMoves, null);
       } else {
         // 다음 수 대기: 버튼에 진행 상황 표시 후 탭 대기
         document.getElementById('btn-solve').textContent = (solutionIndex + 1) + ' / ' + total;

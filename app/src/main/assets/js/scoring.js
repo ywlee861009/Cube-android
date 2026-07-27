@@ -30,6 +30,9 @@ function stopTimer() {
 
 // ─── 개인 최고 기록 (PB) ───────────────────────────────────────────────────
 function _checkAndSavePB(timeMs, moves) {
+  if (isScanSolve) {
+    return { isNew: false, isNewTime: false, isNewMoves: false, pbTime: null, pbMoves: null };
+  }
   const _t = parseInt(localStorage.getItem('pb_time'),  10);
   const _m = parseInt(localStorage.getItem('pb_moves'), 10);
   const pbTime  = Number.isFinite(_t) ? _t : null;
@@ -64,9 +67,11 @@ function checkSolvedAndSubmit() {
   solveStartTime = null;
   stopTimer();
 
-  recordSolve(elapsed, manualMoveCount, usedSolver);
+  if (!isScanSolve) recordSolve(elapsed, manualMoveCount, usedSolver);
 
-  if (usedSolver) {
+  if (isScanSolve) {
+    showSolvedOverlay(null, manualMoveCount, null);
+  } else if (usedSolver) {
     // 솔버 사용 후 수동 마무리 → 축하 오버레이는 표시, PB 기록 제외
     showSolvedOverlay(elapsed, manualMoveCount, null);
   } else {

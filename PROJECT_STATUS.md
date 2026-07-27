@@ -1,8 +1,8 @@
-# 프로젝트 진행 상황 (2026-06-25)
+# 프로젝트 진행 상황 (2026-07-27)
 
 ## 현재 버전
 
-`versionName = 1.1.1` / `versionCode = 8`
+`versionName = 1.1.2` / `versionCode = 9`
 
 ## 완료된 기능
 
@@ -47,6 +47,7 @@
 - **백 버튼** — `finishAndRemoveTask()`로 태스크 종료
 - **다크모드 aria-label** — 테마 토글 버튼에 접근성 라벨 설정
 - **인앱 강제 업데이트** — AppUpdateManager IMMEDIATE 타입, 앱 시작 시 업데이트 확인 (IF-103)
+- **실물 큐브 스캔** — CameraX 6면 촬영, 상대 색 분류, 결과 수정 후 3D 상태 주입·Solve
 - **Play Console 권장 조치 반영** — androidx.fragment 1.8.5 constraint, androidx.activity 1.10.1, androidx.core 1.16.0 (IF-018/IF-019)
 
 ### 테스트

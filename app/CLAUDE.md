@@ -14,6 +14,7 @@
 | `hapticFeedback()` | `webView.performHapticFeedback()` |
 | `requestSolve()` | `solveGranted`면 바로 `onSolveGranted()`, 아니면 광고 표시 |
 | `onShuffleOrReset()` | `solveGranted = false` — 광고 허가 초기화 |
+| `onScannedStateApplied()` | 스캔 상태 주입 후 광고 허가 초기화 |
 | `startScan()` | CAMERA 권한 확인 후 CameraX 프리뷰 시작 |
 | `stopScan()` | 카메라 해제 후 프리뷰 숨김 |
 | `captureFace(faceIndex)` | 최신 RGBA 프레임의 9셀 RGB 중앙값 추출 |

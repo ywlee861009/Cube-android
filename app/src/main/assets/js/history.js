@@ -8,8 +8,14 @@ function inverseMoveOf(name) {
   return name.endsWith("'") ? name.slice(0, -1) : name + "'";
 }
 
+function clearHistory() {
+  undoStack.length = 0;
+  redoStack.length = 0;
+  updateUndoRedoButtons();
+}
+
 function undoCube() {
-  if (undoStack.length === 0 || isShuffling || isSolving || isUndoRedo) return;
+  if (undoStack.length === 0 || isShuffling || isSolving || isUndoRedo || isScanning) return;
   isUndoRedo = true;
   updateUndoRedoButtons();
   const entry = undoStack.pop();
@@ -25,7 +31,7 @@ function undoCube() {
 }
 
 function redoCube() {
-  if (redoStack.length === 0 || isShuffling || isSolving || isUndoRedo) return;
+  if (redoStack.length === 0 || isShuffling || isSolving || isUndoRedo || isScanning) return;
   isUndoRedo = true;
   updateUndoRedoButtons();
   const entry = redoStack.pop();

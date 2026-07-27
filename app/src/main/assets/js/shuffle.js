@@ -7,6 +7,7 @@ function shuffleCube() {
     AndroidBridge.onShuffleOrReset();
   }
   _solveAdRequired = true;  // 셔플 후 다음 솔브는 다시 광고 필요
+  isScanSolve = false;
   resetSolution();  // 진행 중인 솔브 초기화
   isShuffling = true;
   document.getElementById('btn-shuffle').disabled = true;
@@ -59,6 +60,7 @@ function resetCube() {
     AndroidBridge.onShuffleOrReset();
   }
   _solveAdRequired = true;  // 리셋 후 다음 솔브는 다시 광고 필요
+  isScanSolve = false;
   resetSolution();
   facelets = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
   setMoveCount(0);

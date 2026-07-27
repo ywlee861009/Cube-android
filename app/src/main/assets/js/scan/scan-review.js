@@ -134,6 +134,7 @@ function confirmScanReview() {
       return;
     }
     closeScanReview();
+    solveCube();
   } else {
     pendingScanResult = {
       facelets: reviewFacelets.slice(),
