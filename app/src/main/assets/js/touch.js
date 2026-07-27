@@ -8,7 +8,6 @@ let dragMode = null;      // null | 'layer' | 'view' | 'pinch'
 let hitMesh   = null;
 let hitNormal = null;     // 큐브 로컬 공간의 면 법선
 let prevPinchDist = null;
-let touchFeedbackTimer = null;
 
 // ─── 뷰 회전 속도 (EMA) ──────────────────────────────────────────────────
 let viewVelX   = 0;       // rad/ms
@@ -33,19 +32,14 @@ function raycastCubies(px, py) {
   return hits.length > 0 ? hits[0] : null;
 }
 
-function showTouchFeedback(normal) {
+function showTouchFeedback(mesh, materialIndex) {
   clearTouchFeedback();
-  highlightTouchedFace(normal);
+  highlightTouchedSticker(mesh, materialIndex);
   window.AndroidBridge?.touchSelectionFeedback?.();
-  touchFeedbackTimer = setTimeout(clearTouchFeedback, 160);
 }
 
 function clearTouchFeedback() {
-  if (touchFeedbackTimer !== null) {
-    clearTimeout(touchFeedbackTimer);
-    touchFeedbackTimer = null;
-  }
-  clearTouchedFaceHighlight();
+  clearTouchedStickerHighlight();
 }
 
 // ─── touchstart ──────────────────────────────────────────────────────────
@@ -75,12 +69,11 @@ renderer.domElement.addEventListener('touchstart', e => {
     if (hit) {
       hitMesh   = hit.object;
       hitNormal = hit.face.normal.clone();
-      showTouchFeedback(hitNormal);
+      showTouchFeedback(hitMesh, hit.face.materialIndex);
     } else {
       hitMesh = null;
     }
   } else if (e.touches.length === 2) {
-    clearTouchFeedback();
     prevPinchDist = getTouchDist(e.touches);
   }
 }, { passive: false });
@@ -91,7 +84,6 @@ renderer.domElement.addEventListener('touchmove', e => {
 
   // 핀치 줌
   if (e.touches.length === 2) {
-    clearTouchFeedback();
     dragMode = 'pinch';
     const dist = getTouchDist(e.touches);
     if (prevPinchDist) {
@@ -111,7 +103,6 @@ renderer.domElement.addEventListener('touchmove', e => {
   if (!dragMode) {
     const dx = x - touchStartX, dy = y - touchStartY;
     if (Math.hypot(dx, dy) > 12) {
-      clearTouchFeedback();
       dragMode       = (hitMesh && initLayerRotation(dx, dy)) ? 'layer' : 'view';
       prevLayerAngle = 0;
       prevLayerTime  = now;

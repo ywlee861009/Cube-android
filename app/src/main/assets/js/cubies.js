@@ -47,28 +47,14 @@ function applyFacelets() {
   markDirty();
 }
 
-// 터치한 바깥면 전체를 원래 스티커색과 흰색의 50% 혼합색으로 잠시 표시한다.
-function highlightTouchedFace(normal) {
-  const components = [
-    { axis: 'x', value: normal.x, positiveMaterial: 0, negativeMaterial: 1 },
-    { axis: 'y', value: normal.y, positiveMaterial: 2, negativeMaterial: 3 },
-    { axis: 'z', value: normal.z, positiveMaterial: 4, negativeMaterial: 5 }
-  ];
-  const face = components.reduce((best, current) =>
-    Math.abs(current.value) > Math.abs(best.value) ? current : best
-  );
-  const side = face.value >= 0 ? 1 : -1;
-  const materialIndex = side > 0 ? face.positiveMaterial : face.negativeMaterial;
-  const coordinate = 'c' + face.axis;
+// Raycast로 직접 누른 스티커 한 칸만 흰색 50% 혼합색으로 표시한다.
+function highlightTouchedSticker(mesh, materialIndex) {
+  if (!mesh || materialIndex === undefined || !mesh.material[materialIndex]) return;
   const white = new THREE.Color(0xffffff);
-
-  cubies.forEach(cubie => {
-    if (cubie[coordinate] !== side) return;
-    cubie.mesh.material[materialIndex].color.lerp(white, 0.5);
-  });
+  mesh.material[materialIndex].color.lerp(white, 0.5);
   markDirty();
 }
 
-function clearTouchedFaceHighlight() {
+function clearTouchedStickerHighlight() {
   applyFacelets();
 }
