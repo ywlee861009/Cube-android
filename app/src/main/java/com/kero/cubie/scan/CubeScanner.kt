@@ -17,7 +17,11 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import java.util.concurrent.Executors
 
-@ExperimentalCamera2Interop
+/**
+ * Camera2Interop 사용은 [bindPreview] 와 [lockSupport] 안에만 있다. 클래스에
+ * `@ExperimentalCamera2Interop` 를 달면 opt-in 요구가 모든 호출자로 전파되므로,
+ * 실험적 API 를 실제로 만지는 private 함수에서만 opt-in 한다.
+ */
 class CubeScanner(
     private val lifecycleOwner: LifecycleOwner,
     private val previewView: PreviewView
@@ -108,6 +112,10 @@ class CubeScanner(
         analysisExecutor.shutdown()
     }
 
+    // kotlin.OptIn 이 아니라 androidx.annotation.OptIn 이어야 한다. ExperimentalCamera2Interop
+    // 은 androidx.annotation.RequiresOptIn 이라 Kotlin 컴파일러가 아니라 lint 가 강제하는데,
+    // lint 의 UnsafeOptInUsageError 검사기는 kotlin.OptIn 을 인식하지 못한다.
+    @androidx.annotation.OptIn(markerClass = [ExperimentalCamera2Interop::class])
     private fun bindPreview(
         provider: ProcessCameraProvider,
         lockAe: Boolean,
@@ -163,6 +171,8 @@ class CubeScanner(
         }
     }
 
+    // androidx.annotation.OptIn 이어야 하는 이유는 bindPreview 위 주석 참고.
+    @androidx.annotation.OptIn(markerClass = [ExperimentalCamera2Interop::class])
     private fun lockSupport(camera: Camera): Pair<Boolean, Boolean> {
         val camera2Info = Camera2CameraInfo.from(camera.cameraInfo)
         val aeLockSupported = camera2Info.getCameraCharacteristic(
