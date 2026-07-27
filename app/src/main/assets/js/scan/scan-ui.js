@@ -23,13 +23,13 @@ function startScanFlow() {
   document.body.classList.add('scan-active');
   document.getElementById('scan-overlay').classList.remove('hidden');
   pauseRendering();
-  applyNativeScanGuideRect();
   renderScanStep();
   window.AndroidBridge.startScan();
 }
 
 function onScanReady() {
   if (!isScanning) return;
+  applyNativeScanGuideRect();
   document.getElementById('btn-scan-capture').disabled = false;
   setScanMessage('격자에 한 면을 맞춘 뒤 촬영하세요.');
 }
@@ -138,6 +138,7 @@ function applyNativeScanGuideRect() {
     guide.style.top = `${rect.top * 100}%`;
     guide.style.width = `${(rect.right - rect.left) * 100}%`;
     guide.style.height = `${(rect.bottom - rect.top) * 100}%`;
+    guide.style.transform = 'none';
   } catch (_) {
     setScanMessage('가이드 좌표를 불러오지 못했어요.');
   }

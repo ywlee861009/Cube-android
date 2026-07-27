@@ -88,3 +88,5 @@ Phase 1~7이 끝나면 "잘 되는 환경에서는 되는" 기능이 나온다. 
 - 2026-07-27: `:app:compileDebugKotlin` 성공
 - 수정: AGP에서 생성되지 않는 `BuildConfig.DEBUG` 참조 제거
 - 수정: CameraX `ListenableFuture` 타입을 제공하도록 Guava Android 의존성 명시
+- 수정: 세로 화면에서 늘어나던 가이드를 짧은 변 기준 60% 정사각형으로 통일
+- `FaceSamplerTest` 성공 (정사각형 영역·4방향 회전·median 샘플링)

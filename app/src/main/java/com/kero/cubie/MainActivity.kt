@@ -168,12 +168,17 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
-        fun getScanGuideRect(): String = JSONObject()
-            .put("left", FaceSampler.GUIDE_LEFT)
-            .put("top", FaceSampler.GUIDE_TOP)
-            .put("right", FaceSampler.GUIDE_RIGHT)
-            .put("bottom", FaceSampler.GUIDE_BOTTOM)
-            .toString()
+        fun getScanGuideRect(): String {
+            val width = previewView.width.coerceAtLeast(1)
+            val height = previewView.height.coerceAtLeast(1)
+            val rect = FaceSampler.guideRect(width, height)
+            return JSONObject()
+                .put("left", rect.left)
+                .put("top", rect.top)
+                .put("right", rect.right)
+                .put("bottom", rect.bottom)
+                .toString()
+        }
 
     }
 

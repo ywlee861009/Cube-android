@@ -32,10 +32,11 @@ class FaceSamplerTest {
         val pixelStride = 4
         val rowStride = width * pixelStride + 12
         val bytes = ByteArray(rowStride * height)
-        val left = (width * FaceSampler.GUIDE_LEFT).toInt()
-        val top = (height * FaceSampler.GUIDE_TOP).toInt()
-        val guideWidth = (width * (FaceSampler.GUIDE_RIGHT - FaceSampler.GUIDE_LEFT)).toInt()
-        val guideHeight = (height * (FaceSampler.GUIDE_BOTTOM - FaceSampler.GUIDE_TOP)).toInt()
+        val guide = FaceSampler.guideRect(width, height)
+        val left = (width * guide.left).toInt()
+        val top = (height * guide.top).toInt()
+        val guideWidth = (width * (guide.right - guide.left)).toInt()
+        val guideHeight = (height * (guide.bottom - guide.top)).toInt()
 
         for (y in top until top + guideHeight) {
             for (x in left until left + guideWidth) {

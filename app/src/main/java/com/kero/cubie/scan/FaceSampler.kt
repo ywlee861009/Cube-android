@@ -1,11 +1,15 @@
 package com.kero.cubie.scan
 
 object FaceSampler {
-    const val GUIDE_LEFT = 0.20f
-    const val GUIDE_TOP = 0.20f
-    const val GUIDE_RIGHT = 0.80f
-    const val GUIDE_BOTTOM = 0.80f
+    const val GUIDE_SIZE_FRACTION = 0.60f
     private const val CELL_SAMPLE_FRACTION = 0.60f
+
+    data class GuideRect(
+        val left: Float,
+        val top: Float,
+        val right: Float,
+        val bottom: Float
+    )
 
     data class RgbaFrame(
         val bytes: ByteArray,
@@ -25,10 +29,11 @@ object FaceSampler {
             if (frame.rotationDegrees % 180 == 0) frame.width else frame.height
         val orientedHeight =
             if (frame.rotationDegrees % 180 == 0) frame.height else frame.width
-        val guideLeft = (orientedWidth * GUIDE_LEFT).toInt()
-        val guideTop = (orientedHeight * GUIDE_TOP).toInt()
-        val guideWidth = (orientedWidth * (GUIDE_RIGHT - GUIDE_LEFT)).toInt()
-        val guideHeight = (orientedHeight * (GUIDE_BOTTOM - GUIDE_TOP)).toInt()
+        val guide = guideRect(orientedWidth, orientedHeight)
+        val guideLeft = (orientedWidth * guide.left).toInt()
+        val guideTop = (orientedHeight * guide.top).toInt()
+        val guideWidth = (orientedWidth * (guide.right - guide.left)).toInt()
+        val guideHeight = (orientedHeight * (guide.bottom - guide.top)).toInt()
 
         return List(9) { index ->
             val column = index % 3
@@ -45,6 +50,19 @@ object FaceSampler {
                 insetEnd(cellTop, cellBottom)
             )
         }
+    }
+
+    fun guideRect(width: Int, height: Int): GuideRect {
+        require(width > 0 && height > 0)
+        val side = minOf(width, height) * GUIDE_SIZE_FRACTION
+        val horizontalInset = (width - side) / 2f
+        val verticalInset = (height - side) / 2f
+        return GuideRect(
+            left = horizontalInset / width,
+            top = verticalInset / height,
+            right = (horizontalInset + side) / width,
+            bottom = (verticalInset + side) / height
+        )
     }
 
     private fun insetStart(start: Int, end: Int): Int =
