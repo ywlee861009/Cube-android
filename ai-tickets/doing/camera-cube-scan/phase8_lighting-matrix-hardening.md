@@ -1,18 +1,28 @@
 # Phase 8 — 조명 매트릭스 실기기 검증·실패 복구·릴리스 게이트
 
-> 상태: **진행 중**
+> 상태: **진행 중 (범위 축소)**
 > 선행: Phase 7
 > 검증 주체: 실기기 매트릭스 테스트
 
-## 문제/목표
+## 범위 변경 (2026-07-27)
 
-Phase 1~7이 끝나면 "잘 되는 환경에서는 되는" 기능이 나온다. 이 phase는 **실제로 배포해도
-되는지 판정**한다. 색 인식 기능의 실패는 크래시가 아니라 "가끔 틀린 답"으로 나타나기 때문에,
-정량적 성공률 없이 릴리스하면 안 된다.
+**아래 "검증 매트릭스"와 "릴리스 게이트"는 `camera-scan-arbitrary-color-scheme` 티켓의
+Phase 4로 이관됐다.** 이 phase에서는 실기기 실측을 수행하지 않는다.
 
-기능을 새로 만들지 않는다. 측정하고, 실패 경로를 메우고, 기준 미달이면 릴리스를 막는다.
+이유: 그 티켓의 Phase 3이 검토 화면과 3D 렌더링 팔레트를 바꾸므로, 지금 UI를 포함해 측정하면
+Phase 3 완료 시점에 결과가 무효화된다. 두 매트릭스(조명 4종 × 재질 3종)와 게이트(90%)도
+사실상 동일해 같은 실기기 측정을 두 번 하게 된다.
 
-## 검증 매트릭스
+| 항목 | 소유 |
+| --- | --- |
+| 실기기 실측 매트릭스, 정확도·위험 케이스 측정 | `camera-scan-arbitrary-color-scheme` Phase 4 |
+| 최종 릴리스 게이트 판정 | `camera-scan-arbitrary-color-scheme` Phase 4 |
+| **실패 복구 경로 점검 및 코드 하드닝** | **이 phase** |
+| **릴리스 준비(Play Console, 권한 안내, 크기)** | **이 phase** |
+
+아래 매트릭스·게이트 내용은 이관 대상의 원본 기록으로 남겨둔다.
+
+## 검증 매트릭스 (→ Phase 4로 이관)
 
 ### 조명 조건 (최소 4)
 
@@ -59,7 +69,7 @@ Phase 1~7이 끝나면 "잘 되는 환경에서는 되는" 기능이 나온다. 
 - 검증 실패가 반복될 때 → "다시 스캔" 유도 문구
 - 스캔 중 리워드 광고 로드 완료 콜백이 끼어드는 경우
 
-## 릴리스 게이트
+## 릴리스 게이트 (→ Phase 4로 이관)
 
 아래를 만족하지 못하면 기능을 숨긴 채 릴리스하거나 릴리스를 미룬다.
 
@@ -85,6 +95,19 @@ Phase 1~7이 끝나면 "잘 되는 환경에서는 되는" 기능이 나온다. 
 
 ## 진행 기록
 
+- 2026-07-27: **린트 오류 13건 해소 → `./gradlew lint` BUILD SUCCESSFUL**
+  - 원인: `CubeScanner` 클래스에 붙은 `@ExperimentalCamera2Interop` 가 opt-in 요구를
+    **모든 호출자로 전파**해 `MainActivity` 에서 13건이 터졌다. 실제 실험적 API 사용은
+    `bindPreview()` 의 `Camera2Interop` 와 `lockSupport()` 의 `Camera2CameraInfo` 뿐이다.
+  - 조치: 클래스 애노테이션을 제거하고 그 두 private 함수에서만 opt-in. 두 함수 모두
+    시그니처에 실험적 타입이 없어 공개 API 표면이 안정형으로 남는다.
+  - 함정: **`kotlin.OptIn` 으로는 안 된다.** `ExperimentalCamera2Interop` 은
+    `androidx.annotation.RequiresOptIn` 이라 Kotlin 컴파일러가 아니라 lint 가 강제하는데,
+    lint 의 `UnsafeOptInUsageError` 검사기는 `kotlin.OptIn` 을 인식하지 못한다.
+    `@androidx.annotation.OptIn(markerClass = [...])` 를 써야 13 → 8 → 0 으로 떨어진다.
+  - 남은 경고 42건은 전부 기존 항목이다: `GradleDependency` 30, `AndroidGradlePluginVersion` 6
+    (모두 "더 최신 버전 있음" 정보성), `UseKtx` 2, `UnusedResources` 2, `ObsoleteSdkInt` 1,
+    `MergeRootFrame` 1. 릴리스 게이트의 "신규 경고 없음" 은 충족한다.
 - 2026-07-27: `:app:compileDebugKotlin` 성공
 - 수정: AGP에서 생성되지 않는 `BuildConfig.DEBUG` 참조 제거
 - 수정: CameraX `ListenableFuture` 타입을 제공하도록 Guava Android 의존성 명시

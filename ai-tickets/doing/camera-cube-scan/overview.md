@@ -56,7 +56,7 @@
 | 5 | `phase5_scan-guide-ui.md` | 6면 스캔 순서·방향 가이드 HTML 오버레이 | 1, 2 |
 | 6 | `phase6_scan-review-correction.md` | 인식 결과 확인·수동 색 수정 UI | 4, 5 |
 | 7 | `phase7_state-injection-integration.md` | facelets 주입 + 히스토리·기록·광고 게이트 정합 | 3, 6 |
-| 8 | `phase8_lighting-matrix-hardening.md` | 조명 매트릭스 실기기 검증·실패 복구·릴리스 게이트 | 7 |
+| 8 | `phase8_lighting-matrix-hardening.md` | 실패 복구 경로·코드 하드닝·릴리스 준비 (실측은 이관) | 7 |
 
 Phase 3은 다른 phase에 의존하지 않으므로 Phase 1과 병렬로 착수해도 된다.
 
@@ -71,7 +71,10 @@ Phase 3은 다른 phase에 의존하지 않으므로 Phase 1과 병렬로 착수
 | 5 | 구현 완료 · 검증 대기 | 6면 순서/방향 가이드, 촬영/재촬영/취소 UI |
 | 6 | 구현 완료 · 검증 대기 | 6면 전개도, 저확신도 표시, 면 단위 수동 수정 및 재검증 |
 | 7 | 구현 완료 · 검증 대기 | 스캔 상태 주입, 히스토리/기록/PB 차단, 광고 게이트 연결 |
-| 8 | 미착수 | 조명·실기기 매트릭스와 전체 회귀 검증 |
+| 8 | 진행 중 (범위 축소) | 실측 매트릭스·릴리스 게이트는 `camera-scan-arbitrary-color-scheme` Phase 4로 이관. 실패 복구·하드닝·릴리스 준비만 담당 |
+
+> Phase 5의 촬영 순서·안내 문구는 `camera-scan-arbitrary-color-scheme` Phase 1에서
+> 회전 기반으로 교체된다. 방향 규약(면별 화면 위쪽 면)은 그대로 유지된다.
 
 ## 전체 수용 기준
 

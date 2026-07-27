@@ -47,16 +47,28 @@
 - **백 버튼** — `finishAndRemoveTask()`로 태스크 종료
 - **다크모드 aria-label** — 테마 토글 버튼에 접근성 라벨 설정
 - **인앱 강제 업데이트** — AppUpdateManager IMMEDIATE 타입, 앱 시작 시 업데이트 확인 (IF-103)
-- **실물 큐브 스캔** — CameraX 6면 촬영, 상대 색 분류, 결과 수정 후 3D 상태 주입·Solve
 - **Play Console 권장 조치 반영** — androidx.fragment 1.8.5 constraint, androidx.activity 1.10.1, androidx.core 1.16.0 (IF-018/IF-019)
+
+## 구현 완료 · 미검증 (릴리스 게이트 미통과)
+
+- **실물 큐브 스캔** — CameraX 6면 촬영, 상대 색 분류, 결과 수정 후 3D 상태 주입·Solve.
+  `ai-tickets`의 `camera-cube-scan` Phase 1~7 구현 완료이나 **실기기 조명 매트릭스 실측 전**이며
+  릴리스 게이트를 통과하지 않았다. 실측은 `camera-scan-arbitrary-color-scheme` Phase 4 소유.
+  임의 배색(비표준 팔레트) 큐브는 아직 미지원.
 
 ### 테스트
 - **Jest 순수 로직 테스트** — `tests/cube-logic.test.js` 97개 테스트로 큐브 무브, 역무브, 통계 계산 검증 (IF-008)
+- **스캔 로직 테스트** — `tests/cube-validate.test.js`, `tests/color-classify.test.js` (합성 RGB 기준, 실측 fixture 미확보)
 
 ## 최근 수정 이력
 
 | 커밋 | 내용 |
 |------|------|
+| `2222efa` | 임의 배색 큐브 스캔 티켓 추가 |
+| `4b1f948` | 터치한 스티커만 누르는 동안 강조 |
+| `0aa6a8e` | 큐브 터치 면 햅틱과 강조 피드백 추가 |
+| `87313bf` | 스캔 가이드를 정사각형으로 보정 |
+| `ea0dab3` | CameraX 디버그 컴파일 오류 수정 |
 | `770b667` | versionName 1.1.1 / versionCode 8 업데이트 |
 | `3862ccc` | Android 15 displayCutout 포함 인셋 계산 보강 (IF-020) |
 | `8ea33dd` | androidx.activity/core 업그레이드로 Edge-to-Edge deprecated API 제거 (IF-019) |
@@ -84,4 +96,4 @@
 | `267c96f` | 솔버 완료 오버레이 표시 시 WebGL context 반복 소실 및 깜빡임 수정 |
 
 ---
-*업데이트: 2026년 6월 25일*
+*업데이트: 2026년 7월 27일*
