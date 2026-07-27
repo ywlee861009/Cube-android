@@ -6,6 +6,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.IntentSender
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
@@ -147,7 +148,9 @@ class MainActivity : ComponentActivity() {
             cubeScanner.capture(
                 onSampled = { samples ->
                     capturedFaces[faceIndex] = samples
-                    if (BuildConfig.DEBUG && capturedFaces.all { it != null }) {
+                    val isDebuggable =
+                        applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+                    if (isDebuggable && capturedFaces.all { it != null }) {
                         Log.d("CubeScanner", "RGB fixture=${JSONArray(capturedFaces.toList())}")
                     }
                     runOnUiThread {

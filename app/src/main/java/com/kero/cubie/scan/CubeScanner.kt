@@ -17,7 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import java.util.concurrent.Executors
 
-@OptIn(ExperimentalCamera2Interop::class)
+@ExperimentalCamera2Interop
 class CubeScanner(
     private val lifecycleOwner: LifecycleOwner,
     private val previewView: PreviewView

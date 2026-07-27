@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
+    implementation(libs.guava)
 
     // IF-018: 직접 사용하지 않지만 AdMob가 끌어오는 transitive androidx.fragment 1.1.0 이
     // Play Console에서 구버전으로 신고됨 → constraint 로 최신 버전 강제.
