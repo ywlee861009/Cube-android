@@ -739,4 +739,29 @@ body[data-theme="dark"] .ds-row-solver .ds-row-time { color: rgba(255,255,255,0.
     bottom: calc(24px + var(--safe-bottom));
     width: var(--ui-rail-width);
   }
+
+  /* Phase 3 — 오버레이 재배치: 바텀시트/풀폭 → 중앙 max-width 다이얼로그.
+     #solved-overlay는 이미 중앙 정렬·콘텐츠 크기라 손대지 않는다. */
+
+  /* 통계: 하단 바텀시트 → 중앙 다이얼로그 */
+  #stats-overlay {
+    align-items: center;
+    padding-bottom: 0;
+  }
+  #stats-card {
+    width: var(--dialog-max-width);
+    max-height: min(82vh, 720px);
+    border-radius: 28px;
+  }
+
+  /* 스캔 리뷰: 하단 바텀시트 → 중앙 다이얼로그 (6면 전개도 폭 확보 위해 약간 넓게) */
+  #scan-review-overlay {
+    align-items: center;
+    padding: var(--safe-top) 16px var(--safe-bottom);
+  }
+  #scan-review-card {
+    width: min(100%, 600px);
+    max-height: calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px);
+    border-radius: 28px;
+  }
 }
