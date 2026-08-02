@@ -715,4 +715,28 @@ body[data-theme="dark"] .ds-row-solver .ds-row-time { color: rgba(255,255,255,0.
     --dialog-max-width: 520px;
     --content-max-width: 720px;
   }
+
+  /* Phase 2 — 메인 화면 재배치: 컨트롤 우하단 레일화·상단 정돈·큐브 중앙 공간 확보.
+     모든 규칙이 이 미디어쿼리 안에만 있어 폰(<600px)에는 영향 없다. */
+
+  /* 상단바(타이머/무브)를 중앙 → 좌상단으로 */
+  #top-bar {
+    left: calc(20px + var(--safe-left));
+    transform: none;
+  }
+
+  /* 통계 아이콘을 좌상단 → 우상단 테마 아이콘 옆 클러스터로 이동 (겹침 방지) */
+  #btn-stats {
+    left: auto;
+    right: calc(62px + var(--safe-right));
+  }
+
+  /* 컨트롤 패널: 좌우 풀폭 카드 → 우하단 고정폭 레일. 버튼이 화면 폭으로 늘어나지 않는다.
+     레일이 우하단 구석에 모여 큐브 캔버스 중앙/좌측 터치 회전 영역을 가리지 않는다. */
+  #ui {
+    left: auto;
+    right: calc(20px + var(--safe-right));
+    bottom: calc(24px + var(--safe-bottom));
+    width: var(--ui-rail-width);
+  }
 }
