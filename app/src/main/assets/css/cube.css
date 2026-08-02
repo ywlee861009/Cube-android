@@ -204,24 +204,17 @@ body.scan-active #ui { display: none; }
 }
 #scan-progress { font-size: 17px; font-weight: 800; }
 #scan-direction { margin-top: 4px; font-size: 13px; color: rgba(255,255,255,0.82); }
-#scan-orientation {
+#scan-3d-guide {
+  width: 80px;
+  height: 80px;
+  margin: 6px auto 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
-  margin-top: 8px;
 }
-#scan-top-face { font-size: 13px; font-weight: 800; }
-#scan-mini-face {
-  width: 34px; height: 34px;
-  display: grid; place-items: center;
-  border: 3px solid #fff;
-  border-radius: 5px;
-  background:
-    linear-gradient(90deg, transparent 31%, #fff 32%, #fff 35%, transparent 36%, transparent 64%, #fff 65%, #fff 68%, transparent 69%),
-    linear-gradient(transparent 31%, #fff 32%, #fff 35%, transparent 36%, transparent 64%, #fff 65%, #fff 68%, transparent 69%),
-    rgba(255,255,255,0.20);
-  font-size: 12px; font-weight: 900;
+#scan-3d-guide canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 #scan-guide {

@@ -10,6 +10,130 @@ const SCAN_FACE_GUIDE = [
 let currentScanFace = 0;
 let pendingScanResult = null;
 
+let scan3DScene, scan3DCamera, scan3DRenderer, scan3DCube;
+let scan3DAnimationId = null;
+
+const FACE_TO_MATERIAL_INDEX = { 'R': 0, 'L': 1, 'U': 2, 'D': 3, 'F': 4, 'B': 5 };
+
+function updateScanCubeMaterials() {
+  if (!scan3DCube) return;
+  // Reset all faces
+  scan3DCube.material.forEach((mat, idx) => {
+    mat.opacity = 0.4;
+    mat.transparent = true;
+    mat.emissive.setHex(0x000000);
+  });
+  
+  // Scanned faces
+  for (let i = 0; i < currentScanFace; i++) {
+    const face = SCAN_FACE_GUIDE[i].face;
+    scan3DCube.material[FACE_TO_MATERIAL_INDEX[face]].opacity = 0.8;
+  }
+  
+  // Current face
+  if (currentScanFace < 6) {
+    const currentFace = SCAN_FACE_GUIDE[currentScanFace].face;
+    const currentMat = scan3DCube.material[FACE_TO_MATERIAL_INDEX[currentFace]];
+    currentMat.opacity = 1.0;
+    // Slight emissive glow for the target face
+    currentMat.emissive.copy(currentMat.color).multiplyScalar(0.2);
+  }
+}
+
+
+const SCAN_BASE_ROTATIONS = [
+  [Math.PI/2, 0, 0],   // U
+  [0, -Math.PI/2, 0],  // R
+  [0, 0, 0],           // F
+  [-Math.PI/2, 0, 0],  // D
+  [0, Math.PI/2, 0],   // L
+  [0, Math.PI, 0]      // B
+];
+let scanCubeAnimId = null;
+let scanStartQuat = null;
+let scanTargetQuat = null;
+let scanAnimStartTime = 0;
+
+function animateScanCubeTransition(faceIndex) {
+  if (!scan3DCube) return;
+  if (scanCubeAnimId !== null) {
+    cancelAnimationFrame(scanCubeAnimId);
+    scanCubeAnimId = null;
+  }
+  if (!scanStartQuat) scanStartQuat = new THREE.Quaternion();
+  if (!scanTargetQuat) scanTargetQuat = new THREE.Quaternion();
+  
+  scanStartQuat.copy(scan3DCube.quaternion);
+  const [rx, ry, rz] = SCAN_BASE_ROTATIONS[faceIndex];
+  scanTargetQuat.setFromEuler(new THREE.Euler(rx, ry, rz, 'XYZ'));
+  scanAnimStartTime = performance.now();
+  
+  const DURATION = 600;
+  function step(now) {
+    let t = (now - scanAnimStartTime) / DURATION;
+    if (t > 1) t = 1;
+    const eased = 1 - Math.pow(1 - t, 3);
+    scan3DCube.quaternion.slerpQuaternions(scanStartQuat, scanTargetQuat, eased);
+    if (t < 1) {
+      scanCubeAnimId = requestAnimationFrame(step);
+    } else {
+      scanCubeAnimId = null;
+    }
+  }
+  scanCubeAnimId = requestAnimationFrame(step);
+}
+
+function initScan3DGuide() {
+  const container = document.getElementById('scan-3d-guide');
+  if (!container || scan3DRenderer) return;
+
+  scan3DScene = new THREE.Scene();
+  scan3DCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+  scan3DCamera.position.set(0, 0, 5);
+
+  scan3DRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  scan3DRenderer.setPixelRatio(window.devicePixelRatio);
+  scan3DRenderer.setSize(100, 100);
+  container.appendChild(scan3DRenderer.domElement);
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+  scan3DScene.add(ambientLight);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  dirLight.position.set(10, 20, 10);
+  scan3DScene.add(dirLight);
+
+  const geometry = new THREE.BoxGeometry(2, 2, 2);
+  const materials = [
+    new THREE.MeshStandardMaterial({ color: 0xff0000 }), // Right (R)
+    new THREE.MeshStandardMaterial({ color: 0xff8800 }), // Left (L)
+    new THREE.MeshStandardMaterial({ color: 0xffffff }), // Top (U)
+    new THREE.MeshStandardMaterial({ color: 0xffff00 }), // Bottom (D)
+    new THREE.MeshStandardMaterial({ color: 0x00ff00 }), // Front (F)
+    new THREE.MeshStandardMaterial({ color: 0x0000ff })  // Back (B)
+  ];
+
+  scan3DCube = new THREE.Mesh(geometry, materials);
+  const edges = new THREE.EdgesGeometry(geometry);
+  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 }));
+  scan3DCube.add(line);
+  scan3DScene.add(scan3DCube);
+
+  // Isometric-ish view for the scene so the cube shows multiple faces
+  scan3DScene.rotation.x = Math.PI / 6;
+  scan3DScene.rotation.y = -Math.PI / 4;
+}
+
+function renderScan3DLoop() {
+  if (!isScanning) {
+    scan3DAnimationId = null;
+    return;
+  }
+  if (scan3DRenderer) {
+    scan3DRenderer.render(scan3DScene, scan3DCamera);
+  }
+  scan3DAnimationId = requestAnimationFrame(renderScan3DLoop);
+}
+
 function startScanFlow() {
   if (isShuffling || isSolving || isUndoRedo || isScanning) return;
   if (!window.AndroidBridge?.startScan) {
@@ -22,9 +146,16 @@ function startScanFlow() {
   clearScanSamples();
   document.body.classList.add('scan-active');
   document.getElementById('scan-overlay').classList.remove('hidden');
+  
+  initScan3DGuide();
+  
   pauseRendering();
   renderScanStep();
   window.AndroidBridge.startScan();
+  
+  if (!scan3DAnimationId) {
+    renderScan3DLoop();
+  }
 }
 
 function onScanReady() {
@@ -111,13 +242,14 @@ function renderScanStep() {
   document.getElementById('scan-progress').textContent =
     `${currentScanFace + 1} / 6 — ${guide.color} 면 (${guide.face})`;
   document.getElementById('scan-direction').textContent =
-    `${guide.topColor} 면(${guide.top})이 위로 오게 들어주세요`;
-  document.getElementById('scan-top-face').textContent = `${guide.top} ↑`;
-  document.getElementById('scan-mini-face').textContent = guide.face;
+    `위쪽: ${guide.topColor} 면 (${guide.top})`;
   document.getElementById('scan-rgb-preview').replaceChildren();
   document.getElementById('btn-scan-previous').disabled = currentScanFace === 0;
   document.getElementById('btn-scan-capture').disabled = false;
   setScanMessage('격자에 한 면을 맞춘 뒤 촬영하세요.');
+  
+  updateScanCubeMaterials();
+  animateScanCubeTransition(currentScanFace);
 }
 
 function renderRgbPreview(samples) {
