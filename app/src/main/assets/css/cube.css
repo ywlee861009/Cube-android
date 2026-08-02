@@ -3,6 +3,12 @@
   --safe-bottom: 0px;
   --safe-left: 0px;
   --safe-right: 0px;
+
+  /* 레이아웃 토큰 — 폰 기본값. ≥600px에서 값만 오버라이드해 폰/태블릿이 같은 규칙을
+     공유한다. 실제 컴포넌트 재배치는 Phase 2·3에서 이 토큰을 소비한다(Phase 1은 정의만). */
+  --ui-rail-width: auto;       /* 컨트롤 패널 폭: 폰은 좌우 인셋 기준 풀폭(auto) */
+  --dialog-max-width: none;    /* 오버레이 카드 최대 폭: 폰은 제한 없음(풀블리드/바텀시트) */
+  --content-max-width: none;   /* 중앙 콘텐츠 최대 폭 */
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #e8eaf0; overflow: hidden; font-family: 'Roboto', sans-serif; }
@@ -696,3 +702,17 @@ body[data-theme="dark"] .ds-row-num { color: rgba(255,255,255,0.22); }
 body[data-theme="dark"] .ds-row-time { color: #f0f0f0; }
 body[data-theme="dark"] .ds-row-moves { color: rgba(255,255,255,0.35); }
 body[data-theme="dark"] .ds-row-solver .ds-row-time { color: rgba(255,255,255,0.3); }
+
+/* ── 태블릿·넓은 화면 (≥600px) ─────────────────────────────────────
+   WebView가 width=device-width라 CSS px ≈ dp → Android sw600dp에 대응한다.
+   가로 모드의 큰 폰도 포함된다(의도적 — 넓은 레이아웃을 가로 폰에도 제공).
+   Phase 1: 레이아웃 토큰 값만 오버라이드한다. 이 값을 소비하는 실제 재배치
+   규칙(컨트롤 레일화·다이얼로그 센터링 등)은 Phase 2·3에서 이 블록에 추가한다.
+   --safe-* 인셋은 모든 재배치에서 그대로 존중한다. */
+@media (min-width: 600px) {
+  :root {
+    --ui-rail-width: 280px;
+    --dialog-max-width: 520px;
+    --content-max-width: 720px;
+  }
+}
