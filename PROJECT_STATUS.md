@@ -1,4 +1,4 @@
-# 프로젝트 진행 상황 (2026-07-27)
+# 프로젝트 진행 상황 (2026-08-02)
 
 ## 현재 버전
 
@@ -48,10 +48,13 @@
 - **다크모드 aria-label** — 테마 토글 버튼에 접근성 라벨 설정
 - **인앱 강제 업데이트** — AppUpdateManager IMMEDIATE 타입, 앱 시작 시 업데이트 확인 (IF-103)
 - **실물 큐브 스캔** — CameraX 6면 촬영, 상대 색 분류, 결과 수정 후 3D 상태 주입·Solve
+  (Phase 1~7 구현 완료 / Phase 8 하드닝 진행 중: lint opt-in 에러 해소, 저조도 경고·반복
+  실패 격상·광고 콜백 방어·회전 시 진행 유지(configChanges) 추가. **조명 매트릭스 실측은 미완**)
 - **Play Console 권장 조치 반영** — androidx.fragment 1.8.5 constraint, androidx.activity 1.10.1, androidx.core 1.16.0 (IF-018/IF-019)
 
 ### 테스트
-- **Jest 순수 로직 테스트** — `tests/cube-logic.test.js` 97개 테스트로 큐브 무브, 역무브, 통계 계산 검증 (IF-008)
+- **Jest 순수 로직 테스트** — 큐브 무브·역무브·통계, 색 분류·큐브 검증, 스캔 저조도 판정까지
+  122개 테스트 (`cube-logic` / `color-classify` / `cube-validate` / `scan-brightness`) (IF-008)
 
 ## 최근 수정 이력
 
@@ -84,4 +87,4 @@
 | `267c96f` | 솔버 완료 오버레이 표시 시 WebGL context 반복 소실 및 깜빡임 수정 |
 
 ---
-*업데이트: 2026년 6월 25일*
+*업데이트: 2026년 8월 2일*

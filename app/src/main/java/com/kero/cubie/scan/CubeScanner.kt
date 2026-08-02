@@ -17,7 +17,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import java.util.concurrent.Executors
 
-@ExperimentalCamera2Interop
 class CubeScanner(
     private val lifecycleOwner: LifecycleOwner,
     private val previewView: PreviewView
@@ -108,6 +107,7 @@ class CubeScanner(
         analysisExecutor.shutdown()
     }
 
+    @androidx.annotation.OptIn(markerClass = [ExperimentalCamera2Interop::class])
     private fun bindPreview(
         provider: ProcessCameraProvider,
         lockAe: Boolean,
@@ -163,6 +163,7 @@ class CubeScanner(
         }
     }
 
+    @androidx.annotation.OptIn(markerClass = [ExperimentalCamera2Interop::class])
     private fun lockSupport(camera: Camera): Pair<Boolean, Boolean> {
         val camera2Info = Camera2CameraInfo.from(camera.cameraInfo)
         val aeLockSupported = camera2Info.getCameraCharacteristic(

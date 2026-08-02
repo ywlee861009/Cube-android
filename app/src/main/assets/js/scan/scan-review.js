@@ -6,16 +6,23 @@ const SCAN_NET_ORIGINS = [
   [3, 0], [6, 3], [3, 3], [3, 6], [0, 3], [9, 3]
 ];
 
+const SCAN_REPEATED_FAILURE_THRESHOLD = 2;
+
 let reviewFacelets = null;
 let reviewConfidence = null;
 let reviewValidation = null;
+let reviewLowLight = false;
 let selectedReviewIndex = 0;
 let selectedReviewFace = 0;
+// 6면 스캔을 마쳤으나 검증에 실패한 횟수(수동 수정 전 기준). 반복 실패 시 재스캔을 강하게 유도한다.
+let scanFailedAttempts = 0;
 
 function openScanReview(result) {
   reviewFacelets = result.facelets.slice();
   reviewConfidence = result.confidence.slice();
+  reviewLowLight = !!result.lowLight;
   reviewValidation = validateFacelets(reviewFacelets);
+  scanFailedAttempts = reviewValidation.ok ? 0 : scanFailedAttempts + 1;
   selectedReviewFace = 0;
   selectedReviewIndex = 0;
   document.getElementById('scan-review-overlay').classList.remove('hidden');
@@ -33,9 +40,16 @@ function renderScanReview() {
   document.getElementById('scan-review-badge').textContent =
     `확인이 필요한 칸 ${uncertain}개`;
   const message = document.getElementById('scan-validation-message');
-  message.textContent = reviewValidation.ok
-    ? '큐브 상태가 올바릅니다. Solve를 시작할 수 있어요.'
-    : reviewValidation.message;
+  if (reviewValidation.ok) {
+    message.textContent = '큐브 상태가 올바릅니다. Solve를 시작할 수 있어요.';
+  } else if (scanFailedAttempts >= SCAN_REPEATED_FAILURE_THRESHOLD) {
+    message.textContent =
+      '여러 번 인식에 실패했어요. 밝은 곳에서 큐브를 천천히 다시 스캔해 주세요.';
+  } else {
+    message.textContent = reviewLowLight
+      ? `${reviewValidation.message} (조명이 어두웠어요)`
+      : reviewValidation.message;
+  }
   message.classList.toggle('valid', reviewValidation.ok);
   document.getElementById('btn-scan-apply').disabled = !reviewValidation.ok;
 }
@@ -133,6 +147,7 @@ function confirmScanReview() {
       document.getElementById('scan-validation-message').textContent = result.message;
       return;
     }
+    scanFailedAttempts = 0;
     closeScanReview();
     solveCube();
   } else {

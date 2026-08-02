@@ -78,6 +78,7 @@ window.addEventListener('scan-face-sampled', event => {
     const allSamples = getCollectedScanSamples();
     pendingScanResult = classifyFacelets(allSamples);
     pendingScanResult.validation = validateFacelets(pendingScanResult.facelets);
+    pendingScanResult.lowLight = isScanTooDark(allSamples);
     window.AndroidBridge?.stopScan?.();
     finishScanUi();
     window.dispatchEvent(new CustomEvent('scan-classified', { detail: pendingScanResult }));

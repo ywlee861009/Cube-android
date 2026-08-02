@@ -91,3 +91,25 @@ Phase 1~7이 끝나면 "잘 되는 환경에서는 되는" 기능이 나온다. 
 - 수정: 세로 화면에서 늘어나던 가이드를 짧은 변 기준 60% 정사각형으로 통일
 - `FaceSamplerTest` 성공 (정사각형 영역·4방향 회전·median 샘플링)
 - 터치 면 식별 피드백 추가 후 Kotlin 컴파일 및 Jest 115개 성공
+- 2026-08-02: **릴리스 게이트 자동 검사 착수 — lint 13개 에러 해소.**
+  `CubeScanner` 클래스의 `@ExperimentalCamera2Interop`가 opt-in을 밖으로 전파해
+  `MainActivity` 전 호출부에서 `UnsafeOptInUsageError`(error)가 발생하던 것을,
+  클래스 어노테이션을 제거하고 실험 API를 실제 사용하는 private 메서드(`bindPreview`,
+  `lockSupport`)에 `@androidx.annotation.OptIn(markerClass=[...])`을 붙여 캡슐화. `./gradlew lint` BUILD SUCCESSFUL(에러 0). 남은 42 warnings는 의존성 버전·미사용 리소스 등 스캔 무관 기존 경고.
+- 2026-08-02: **실패 복구 경로 3건 구현** (감사 결과 미구현/부분구현 항목):
+  - 저조도 경고(항목3): `scan-capture.js`에 자립형 L* 계산(`sampleLstar`/`meanScanLstar`/
+    `isScanTooDark`, 잠정 임계 `SCAN_DARK_LSTAR=32`) 추가, 6면 수집 완료 시 `lowLight`
+    플래그를 리뷰로 전달해 검증 실패 메시지에 "(조명이 어두웠어요)" 부기. **임계값은
+    실측 보정 대상.**
+  - 반복 실패 격상(항목4): `scan-review.js`에 `scanFailedAttempts` 카운터 추가, 6면 스캔
+    검증 2회 연속 실패 시 "여러 번 인식에 실패했어요. 밝은 곳에서… 다시 스캔" 유도.
+  - 광고 콜백 방어(항목5): `solve.js` `onSolveGranted`에 `isScanning` 가드 추가.
+  - Jest: 저조도 순수 함수 테스트 7건 추가 → 총 122개 통과.
+- **미완료(수동 실측 필요, 코드로 대체 불가)**: §검증 매트릭스 전체(조명 4종·큐브 종류·
+  기기별 1차 인식 정확도/오인식률/위험 케이스 실측), §릴리스 게이트 수치 판정
+  (주광·형광등 90%, 위험 케이스 0건 등), 실기기 AE/AWB lock 동작 확인.
+- 2026-08-02: **항목1(회전 복원) 처리 — 사용자 결정에 따라 configChanges 방식 채택.**
+  `AndroidManifest.xml` MainActivity에 `configChanges="orientation|screenSize|smallestScreenSize|keyboardHidden"`
+  추가. 회전 시 Activity 재생성이 사라져 WebView·스캔 진행 상태가 유지된다.
+  프로세스 사망(백그라운드 시스템 종료) 대비 영속화는 여전히 미대응 — 실측에서 빈도 확인 후 판단.
+  **회귀 확인 필요: 가로 방향에서 게임/스캔 레이아웃 정상 여부(실기기).**
