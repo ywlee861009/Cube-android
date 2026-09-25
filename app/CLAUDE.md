@@ -32,6 +32,7 @@
 | `window.onScanCancelled(reason)` | 권한 거부·카메라 없음·시작 오류로 스캔 취소 |
 | `window.onFaceSampled(faceIndex, rgbJson)` | 면의 9×RGB 샘플 전달 |
 | `window.onFaceSampleFailed(faceIndex, reason)` | 프레임 없음·샘플링 오류 전달 |
+| `window.AndroidCube.handleBack()` | 뒤로 가기 시 먼저 호출. JS 화면(따라 하기 모드)이 처리하면 `true`, 아니면 `false` → `finishAndRemoveTask()` |
 
 ## Edge-to-Edge / Insets
 

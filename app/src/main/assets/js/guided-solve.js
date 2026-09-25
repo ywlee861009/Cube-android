@@ -21,12 +21,14 @@ let guidedPreviewGroup = null;
 let guidedArrow = null;
 let guidedRafId = null;
 let guidedBusy = false;
+let guidedExitRequested = false;  // 애니메이션 중 닫기 요청 → 끝나면 닫기
 let guidedPointer = null;
 
 // ─── 진입 / 종료 ─────────────────────────────────────────────────────────
 function openGuidedSolve() {
   isGuidedSolve = true;
   guidedBusy = false;
+  guidedExitRequested = false;
   isSolving = false;
   cancelFling();
   cubieGroup.rotation.set(0, 0, 0);
@@ -54,9 +56,14 @@ function closeGuidedSolve() {
 }
 
 function exitGuidedSolve() {
-  if (!isGuidedSolve || guidedBusy) return;
+  if (!isGuidedSolve) return false;
+  if (guidedBusy) {
+    guidedExitRequested = true;
+    return true;
+  }
   closeGuidedSolve();
   setStatus('Solve를 누르면 이어서 볼 수 있어요.');
+  return true;
 }
 
 // ─── 진행 ────────────────────────────────────────────────────────────────
@@ -99,6 +106,8 @@ function runGuidedMove(moveName, onDone) {
     guidedBusy = false;
     window.AndroidBridge?.hapticFeedback?.();
     onDone();
+    // 마지막 수였다면 onDone에서 이미 완료 처리·종료됨 (isGuidedSolve=false)
+    if (guidedExitRequested && isGuidedSolve) exitGuidedSolve();
   }, GUIDED_MOVE_MS);
 }
 

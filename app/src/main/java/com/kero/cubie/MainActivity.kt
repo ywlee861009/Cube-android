@@ -231,7 +231,12 @@ class MainActivity : ComponentActivity() {
                     stopCameraPreview()
                     callJs("window.onScanCancelled && window.onScanCancelled('back_pressed')")
                 } else {
-                    finishAndRemoveTask()
+                    // 따라 하기 모드 등 JS 화면이 뒤로 가기를 먼저 처리하게 한다.
+                    webView.evaluateJavascript(
+                        "!!(window.AndroidCube && window.AndroidCube.handleBack && window.AndroidCube.handleBack())"
+                    ) { handled ->
+                        if (handled != "true" && !isDestroyed && !isFinishing) finishAndRemoveTask()
+                    }
                 }
             }
         })

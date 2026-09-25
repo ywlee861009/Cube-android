@@ -5,6 +5,8 @@ window.AndroidCube = {
   shuffle:     ()     => shuffleCube(),
   reset:       ()     => resetCube(),
   getFacelets: ()     => JSON.stringify(facelets),
+  // Android 뒤로 가기: JS 화면이 처리했으면 true, 아니면 false(앱 종료)
+  handleBack:  ()     => typeof exitGuidedSolve === 'function' && exitGuidedSolve(),
   setInsets:   (top, bottom, left, right) => {
     console.log(`[JS BRIDGE] setInsets called: top=${top}, bottom=${bottom}`);
     document.documentElement.style.setProperty('--safe-top', top + 'px');
