@@ -758,3 +758,68 @@ body[data-theme="dark"] .ds-row-solver .ds-row-time { color: rgba(255,255,255,0.
     border-radius: 28px;
   }
 }
+
+/* ─── 스캔 솔브 가이드 모드 (프로토타입) ─────────────────────────────── */
+#guided-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#guided-layer.hidden { display: none; }
+body.guided-active #top-bar,
+body.guided-active #btn-theme,
+body.guided-active #btn-stats,
+body.guided-active #ui { display: none; }
+
+#guided-progress {
+  position: absolute;
+  top: calc(26px + var(--safe-top));
+  left: calc(20px + var(--safe-left));
+  right: calc(72px + var(--safe-right));
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.10);
+  overflow: hidden;
+}
+#guided-progress-fill {
+  height: 100%;
+  width: 0;
+  background: #ff2d8a;
+  border-radius: 3px;
+  transition: width 0.25s ease;
+}
+#btn-guided-exit {
+  position: absolute;
+  top: calc(12px + var(--safe-top));
+  right: calc(14px + var(--safe-right));
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.82);
+  color: #333;
+  font-size: 16px;
+}
+#guided-hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(48px + var(--safe-bottom));
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  border-radius: 20px;
+  background: rgba(0,0,0,0.62);
+  color: #fff;
+  font-size: 15px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: guidedHintPulse 1.6s ease-in-out infinite;
+}
+#guided-hint.hidden { display: none; }
+@keyframes guidedHintPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+body[data-theme="dark"] #guided-progress { background: rgba(255,255,255,0.14); }
+body[data-theme="dark"] #btn-guided-exit { background: rgba(60,60,64,0.85); color: #f0f0f0; }

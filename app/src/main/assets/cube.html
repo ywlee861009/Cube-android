@@ -122,6 +122,12 @@
   </div>
 </div>
 
+<div id="guided-layer" class="hidden">
+  <div id="guided-progress"><div id="guided-progress-fill"></div></div>
+  <button id="btn-guided-exit" onclick="exitGuidedSolve()" aria-label="따라 하기 닫기">✕</button>
+  <div id="guided-hint">화면과 똑같이 들고, 탭하세요</div>
+</div>
+
 <div id="top-bar">
   <div id="timer">0.0s</div>
   <div id="moves">Moves: 0</div>
@@ -174,6 +180,7 @@
 <script src="js/layer-rotation.js"></script>
 <script src="js/layer-snap.js"></script>
 <script src="js/touch.js"></script>
+<script src="js/guided-solve.js"></script>
 
 <!-- Bridge -->
 <script src="js/bridge.js"></script>

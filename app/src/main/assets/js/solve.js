@@ -97,6 +97,10 @@ async function _runSolve() {
     usedSolver = true;  // 솔루션이 실제로 셋업될 때만 플래그 설정
     solutionMoves = moves;
     solutionIndex = 0;
+    if (isScanSolve && typeof openGuidedSolve === 'function') {
+      openGuidedSolve();  // 실물 큐브용: 첫 수 자동 실행 없이 가이드 모드로 진입
+      return;
+    }
     stepSolution();  // 광고 소비 직후 첫 수 자동 실행
   } catch (e) {
     document.getElementById('btn-solve').classList.remove('calculating');
@@ -105,7 +109,7 @@ async function _runSolve() {
   }
 }
 
-// ─── 솔루션 전체 자동 실행 ─────────────────────────────────────────────────
+// ─── 솔루션 1수 실행 (Solve 버튼 탭마다) ───────────────────────────────────
 function stepSolution() {
   if (!solutionMoves || solutionIndex >= solutionMoves.length) {
     setStatus('Solved!');
