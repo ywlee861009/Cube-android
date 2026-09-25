@@ -152,8 +152,12 @@ function beginScanFlow(startFace) {
   isScanning = true;
   currentScanFace = startFace;
   pendingScanResult = null;
-  if (startFace === 0) clearScanSamples();
-  else clearScanFace(startFace);
+  if (startFace === 0) {
+    clearScanSamples();
+    if (typeof clearScanManualOverrides === 'function') clearScanManualOverrides();
+  } else {
+    clearScanFace(startFace);
+  }
   document.body.classList.add('scan-active');
   document.getElementById('scan-overlay').classList.remove('hidden');
   

@@ -16,6 +16,8 @@ let selectedReviewIndex = 0;
 let selectedReviewFace = 0;
 // 6면 스캔을 마쳤으나 검증에 실패한 횟수(수동 수정 전 기준). 반복 실패 시 재스캔을 강하게 유도한다.
 let scanFailedAttempts = 0;
+// 확인 화면에서 손으로 고친 칸 (index → color). 마지막 면 재촬영 후에도 다시 적용한다.
+const scanManualOverrides = new Map();
 
 function openScanReview(result) {
   reviewFacelets = result.facelets.slice();
@@ -23,6 +25,10 @@ function openScanReview(result) {
   reviewLowLight = !!result.lowLight;
   reviewValidation = validateFacelets(reviewFacelets);
   scanFailedAttempts = reviewValidation.ok ? 0 : scanFailedAttempts + 1;
+  scanManualOverrides.forEach((color, index) => {
+    reviewFacelets[index] = color;
+    reviewConfidence[index] = 1;
+  });
   selectedReviewFace = 0;
   selectedReviewIndex = 0;
   document.getElementById('scan-review-overlay').classList.remove('hidden');
@@ -121,6 +127,7 @@ function setReviewCellColor(color) {
   if (SCAN_CENTER_INDICES.has(selectedReviewIndex)) return;
   reviewFacelets[selectedReviewIndex] = color;
   reviewConfidence[selectedReviewIndex] = 1;
+  scanManualOverrides.set(selectedReviewIndex, color);
   renderScanReview();
 }
 
@@ -130,14 +137,23 @@ function restartScanFromReview() {
 }
 
 // Android 뒤로 가기: 결과를 버리지 않고 마지막 면 재촬영으로 돌아간다.
-// 재촬영 후 6면 전체를 다시 분류하므로, 확인 화면에서 손으로 고친 색은 반영되지 않는다.
+// 앞 5면에서 손으로 고친 칸은 재분류 후 다시 덮어쓰고, 다시 찍을 마지막 면의 수정만 버린다.
 function backFromScanReview() {
+  const lastFaceStart = (SCAN_FACE_LETTERS.length - 1) * 9;
+  [...scanManualOverrides.keys()]
+    .filter(index => index >= lastFaceStart)
+    .forEach(index => scanManualOverrides.delete(index));
   closeScanReview();
   if (!resumeScanAtLastFace()) cancelScanReview();
 }
 
+function clearScanManualOverrides() {
+  scanManualOverrides.clear();
+}
+
 function cancelScanReview() {
   closeScanReview();
+  clearScanManualOverrides();
   pendingScanResult = null;
   setStatus('스캔 결과를 적용하지 않았어요.');
 }
@@ -155,6 +171,7 @@ function confirmScanReview() {
       return;
     }
     scanFailedAttempts = 0;
+    clearScanManualOverrides();
     closeScanReview();
     solveCube();
   } else {
