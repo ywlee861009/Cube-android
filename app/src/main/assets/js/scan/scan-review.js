@@ -129,6 +129,13 @@ function restartScanFromReview() {
   startScanFlow();
 }
 
+// Android 뒤로 가기: 결과를 버리지 않고 마지막 면 재촬영으로 돌아간다.
+// 재촬영 후 6면 전체를 다시 분류하므로, 확인 화면에서 손으로 고친 색은 반영되지 않는다.
+function backFromScanReview() {
+  closeScanReview();
+  if (!resumeScanAtLastFace()) cancelScanReview();
+}
+
 function cancelScanReview() {
   closeScanReview();
   pendingScanResult = null;

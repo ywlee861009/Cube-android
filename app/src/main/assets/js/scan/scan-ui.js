@@ -135,15 +135,25 @@ function renderScan3DLoop() {
 }
 
 function startScanFlow() {
-  if (isShuffling || isSolving || isUndoRedo || isScanning) return;
+  beginScanFlow(0);
+}
+
+// 스캔 결과 확인에서 뒤로 가기: 앞 5면 샘플은 유지하고 마지막 면만 다시 찍는다.
+function resumeScanAtLastFace() {
+  return beginScanFlow(SCAN_FACE_GUIDE.length - 1);
+}
+
+function beginScanFlow(startFace) {
+  if (isShuffling || isSolving || isUndoRedo || isScanning) return false;
   if (!window.AndroidBridge?.startScan) {
     setStatus('카메라 스캔은 Android 앱에서 사용할 수 있어요.');
-    return;
+    return false;
   }
   isScanning = true;
-  currentScanFace = 0;
+  currentScanFace = startFace;
   pendingScanResult = null;
-  clearScanSamples();
+  if (startFace === 0) clearScanSamples();
+  else clearScanFace(startFace);
   document.body.classList.add('scan-active');
   document.getElementById('scan-overlay').classList.remove('hidden');
   
@@ -156,6 +166,7 @@ function startScanFlow() {
   if (!scan3DAnimationId) {
     renderScan3DLoop();
   }
+  return true;
 }
 
 function onScanReady() {
