@@ -83,10 +83,7 @@
     <div id="scan-progress">1 / 6 — 기준면</div>
     <div id="scan-direction"></div>
     <div id="scan-rotation"></div>
-    <div id="scan-orientation" aria-hidden="true">
-      <span id="scan-top-face">위 ↑</span>
-      <div id="scan-mini-face">기준</div>
-    </div>
+    <div id="scan-3d-guide" aria-hidden="true"></div>
   </div>
   <div id="scan-guide">
     <div class="scan-grid-line scan-grid-v scan-grid-v1"></div>
@@ -126,6 +123,12 @@
       <button id="btn-scan-apply" onclick="confirmScanReview()" disabled>Solve 시작</button>
     </div>
   </div>
+</div>
+
+<div id="guided-layer" class="hidden">
+  <div id="guided-progress"><div id="guided-progress-fill"></div></div>
+  <button id="btn-guided-exit" onclick="exitGuidedSolve()" aria-label="따라 하기 닫기">✕</button>
+  <div id="guided-hint">화면과 똑같이 들고, 탭하세요</div>
 </div>
 
 <div id="top-bar">
@@ -180,6 +183,7 @@
 <script src="js/layer-rotation.js"></script>
 <script src="js/layer-snap.js"></script>
 <script src="js/touch.js"></script>
+<script src="js/guided-solve.js"></script>
 
 <!-- Bridge -->
 <script src="js/bridge.js"></script>

@@ -33,8 +33,8 @@ const MOVE_ANIM_MAP = {
 // 현재 진행 중인 이동 애니메이션 RAF ID (모듈 레벨 — 외부에서 취소 가능)
 let animRafId = null;
 
-// moveName 하나를 애니메이션으로 실행하고 끝나면 onDone 호출
-function performAnimatedMove(moveName, onDone) {
+// moveName 하나를 애니메이션으로 실행하고 끝나면 onDone 호출 (duration: ms, 기본 90)
+function performAnimatedMove(moveName, onDone, duration = 90) {
   const info = MOVE_ANIM_MAP[moveName];
   if (!info) { if (onDone) onDone(); return; }
 
@@ -62,7 +62,7 @@ function performAnimatedMove(moveName, onDone) {
   });
 
   const targetAngle = snaps * Math.PI / 2;
-  const DURATION    = 90; // ms (25수 × 90ms ≈ 2.3초)
+  const DURATION    = duration; // 기본 90ms (25수 × 90ms ≈ 2.3초)
   const startTime   = performance.now();
 
   animRafId = requestAnimationFrame(function step(now) {

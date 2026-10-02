@@ -1,4 +1,4 @@
-# 프로젝트 진행 상황 (2026-07-27)
+# 프로젝트 진행 상황 (2026-08-02)
 
 ## 현재 버전
 
@@ -52,13 +52,18 @@
 ## 구현 완료 · 미검증 (릴리스 게이트 미통과)
 
 - **실물 큐브 스캔** — CameraX 6면 촬영, 상대 색 분류, 결과 수정 후 3D 상태 주입·Solve.
-  `ai-tickets`의 `camera-cube-scan` Phase 1~7 구현 완료이나 **실기기 조명 매트릭스 실측 전**이며
-  릴리스 게이트를 통과하지 않았다. 실측은 `camera-scan-arbitrary-color-scheme` Phase 4 소유.
-  임의 배색(비표준 팔레트) 큐브는 아직 미지원.
+  `ai-tickets`의 `camera-cube-scan` Phase 1~7 구현 완료, Phase 8 코드 하드닝(lint opt-in 에러 해소,
+  저조도 경고·반복 실패 격상·광고 콜백 방어·회전 시 진행 유지) 완료. 3D 미니 큐브 촬영 가이드,
+  스캔 솔브 따라 하기 모드(프로토타입) 포함. **실기기 조명 매트릭스 실측 전**이며 릴리스 게이트를
+  통과하지 않았다. 실측은 `camera-scan-arbitrary-color-scheme` Phase 4 소유.
+- **임의 배색 스캔** — `camera-scan-arbitrary-color-scheme` Phase 1~3 구현 완료(회전 기반 촬영 순서,
+  세션 센터 팔레트·유사색 경고, 실제 색 검토·3D 렌더링, 면 단위 재촬영). 경고 임계값은 잠정값이며
+  Phase 4(비표준 배색 실물 큐브 실측)는 **큐브 조달 대기로 차단**. 기능 플래그 없이 기본 경로에 적용됨.
 
 ### 테스트
-- **Jest 순수 로직 테스트** — `tests/cube-logic.test.js` 97개 테스트로 큐브 무브, 역무브, 통계 계산 검증 (IF-008)
-- **스캔 로직 테스트** — `tests/cube-validate.test.js`, `tests/color-classify.test.js` (합성 RGB 기준, 실측 fixture 미확보)
+- **Jest 순수 로직 테스트** — 큐브 무브·역무브·통계, 색 분류·세션 팔레트·큐브 검증, 촬영 순서 회전 모델,
+  스캔 저조도 판정까지 206개 테스트 (`cube-logic` / `color-classify` / `cube-validate` / `scan-orientation` /
+  `face-palette` / `scan-brightness`) (IF-008). 스캔 테스트는 합성 RGB 기준, 실측 fixture 미확보
 
 ## 최근 수정 이력
 
@@ -96,4 +101,4 @@
 | `267c96f` | 솔버 완료 오버레이 표시 시 WebGL context 반복 소실 및 깜빡임 수정 |
 
 ---
-*업데이트: 2026년 7월 27일*
+*업데이트: 2026년 10월 2일*

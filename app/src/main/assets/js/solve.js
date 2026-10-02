@@ -22,7 +22,7 @@ window.onSolveDenied = function() {
 // 광고 허가 후 실행 — 솔루션 계산 후 전체 자동 실행
 window.onSolveGranted = function() {
   _solveAdRequired = false;  // 광고 시청(또는 생략) → 다음 솔브는 바로 실행 가능
-  if (isShuffling || isUndoRedo) return;  // 셔플/언두 중이면 실행 보류 (버튼 클릭으로 재시도 가능)
+  if (isShuffling || isUndoRedo || isScanning) return;  // 셔플/언두/스캔 중이면 실행 보류 (버튼 클릭으로 재시도 가능)
   _runSolve();
 };
 
@@ -97,6 +97,10 @@ async function _runSolve() {
     usedSolver = true;  // 솔루션이 실제로 셋업될 때만 플래그 설정
     solutionMoves = moves;
     solutionIndex = 0;
+    if (isScanSolve && typeof openGuidedSolve === 'function') {
+      openGuidedSolve();  // 실물 큐브용: 첫 수 자동 실행 없이 가이드 모드로 진입
+      return;
+    }
     stepSolution();  // 광고 소비 직후 첫 수 자동 실행
   } catch (e) {
     document.getElementById('btn-solve').classList.remove('calculating');
@@ -105,7 +109,7 @@ async function _runSolve() {
   }
 }
 
-// ─── 솔루션 전체 자동 실행 ─────────────────────────────────────────────────
+// ─── 솔루션 1수 실행 (Solve 버튼 탭마다) ───────────────────────────────────
 function stepSolution() {
   if (!solutionMoves || solutionIndex >= solutionMoves.length) {
     setStatus('Solved!');

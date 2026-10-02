@@ -11,7 +11,7 @@
 7. `lib/cubing-solver.bundle.js`
 8. `solver/solver-base.js` → `solver-cubing.js` → `solver-factory.js`
 9. `actions.js` → `overlay.js` → `stats.js` → `scoring.js` → `history.js` → `scan/cube-validate.js` → `scan/color-classify.js` → `solve.js` → `shuffle.js`
-10. `animation.js` → `layer-rotation.js` → `layer-snap.js` → `touch.js`
+10. `animation.js` → `layer-rotation.js` → `layer-snap.js` → `touch.js` → `guided-solve.js`
 11. `bridge.js` → `scan/scan-capture.js` → `scan/scan-orientation.js` → `scan/scan-ui.js` → `scan/scan-review.js` → `scan/scan-apply.js`
 12. `theme.js` → `long-press.js` → `dashboard.js`
 
@@ -36,16 +36,17 @@
 | `history.js` | undo·redo 스택 | `undoCube()`, `redoCube()`, `inverseMoveOf()` |
 | `solve.js` | 솔버 연동·step 실행·광고 콜백 | `solveCube()`, `stepSolution()`, `onSolveGranted/Denied()` |
 | `shuffle.js` | 셔플·리셋 | `shuffleCube()`, `resetCube()` |
-| `animation.js` | 프로그래매틱 이동 애니메이션 (90ms) | `performAnimatedMove(name, cb)` |
+| `animation.js` | 프로그래매틱 이동 애니메이션 (기본 90ms) | `performAnimatedMove(name, cb, duration)` |
 | `layer-rotation.js` | 레이어 드래그 감지·회전 확정 | `initLayerRotation()`, `commitLayerRotation()` |
 | `layer-snap.js` | 스냅 애니메이션·fling 물리 | `finishLayerRotation()`, `cancelFling()` |
 | `touch.js` | 터치 진입점 (layer/view/pinch) | dragMode, CAM_MIN=4/CAM_MAX=20 |
+| `guided-solve.js` | 스캔 솔브 따라 하기 (프로토타입): 줄 강조·3D 화살표·반복 미리보기, 탭/스와이프 | `openGuidedSolve()`, `guidedNext()`, `guidedPrev()`, `exitGuidedSolve()` |
 | `bridge.js` | Android↔JS 인터페이스 | `window.AndroidCube.{setInsets, applyMove, shuffle, reset, getFacelets}` |
 | `scan/scan-capture.js` | 6면 RGB 샘플 수집·재촬영 덮어쓰기 | `captureScanFace()`, `getCollectedScanSamples()`, `clearScanSamples()` |
 | `scan/cube-validate.js` | 54칸 조각·방향·패리티 순수 검증 | `validateFacelets()` |
 | `scan/color-classify.js` | CIELAB 센터 앵커·9개 제약 색 분류, 세션 팔레트·경고 | `classifyFacelets()`, `labToRgb()` |
 | `scan/scan-orientation.js` | 색 이름 없는 회전 기반 촬영 순서 순수 모델 | `buildScanSequence()`, `invertScanOps()` |
-| `scan/scan-ui.js` | 6면 촬영 순서·방향·재촬영 가이드 | `startScanFlow()`, `startScanFaceRetake()`, `cancelScanFlow()` |
+| `scan/scan-ui.js` | 6면 촬영 순서·방향·재촬영 가이드, 미니 3D 큐브 가이드(기본 배색 대신 회색/촬영한 센터 색) | `startScanFlow()`, `startScanFaceRetake()`, `resumeScanAtLastFace()`, `cancelScanFlow()` |
 | `scan/scan-review.js` | 전개도 확인·경고 표시·수동 색 수정·면 단위 재촬영 | `openScanReview()`, `confirmScanReview()` |
 | `scan/scan-apply.js` | 검증된 스캔 상태+팔레트 주입·기록/히스토리 초기화 | `applyScannedFacelets(facelets, palette)` |
 | `theme.js` | 다크 모드 토글 (localStorage) | `applyTheme()` |

@@ -10,6 +10,8 @@ const SCAN_WARNING_TEXT = {
   LOW_LIGHT: '전체적으로 어두워요. 더 밝은 곳에서 다시 촬영하면 정확도가 올라갑니다.'
 };
 
+const SCAN_REPEATED_FAILURE_THRESHOLD = 2;
+
 let reviewFacelets = null;
 let reviewConfidence = null;
 let reviewValidation = null;
@@ -17,8 +19,13 @@ let reviewValidation = null;
 let reviewPalette = null;
 let reviewWarnings = [];
 let reviewSimilarFaces = new Set();
+let reviewLowLight = false;
 let selectedReviewIndex = 0;
 let selectedReviewFace = 0;
+// 6면 스캔을 마쳤으나 검증에 실패한 횟수(수동 수정 전 기준). 반복 실패 시 재스캔을 강하게 유도한다.
+let scanFailedAttempts = 0;
+// 확인 화면에서 손으로 고친 칸 (index → color). 마지막 면 재촬영 후에도 다시 적용한다.
+const scanManualOverrides = new Map();
 
 function openScanReview(result) {
   reviewFacelets = result.facelets.slice();
@@ -30,7 +37,15 @@ function openScanReview(result) {
       .filter(warning => warning.code === 'SIMILAR_CENTERS')
       .flatMap(warning => warning.faces)
   );
+  // LOW_LIGHT 경고 배너가 이미 떠 있으면 검증 메시지에 같은 내용을 덧붙이지 않는다.
+  reviewLowLight = !!result.lowLight &&
+    !reviewWarnings.some(warning => warning.code === 'LOW_LIGHT');
   reviewValidation = validateFacelets(reviewFacelets);
+  scanFailedAttempts = reviewValidation.ok ? 0 : scanFailedAttempts + 1;
+  scanManualOverrides.forEach((color, index) => {
+    reviewFacelets[index] = color;
+    reviewConfidence[index] = 1;
+  });
   selectedReviewFace = 0;
   selectedReviewIndex = 0;
   // 3D 큐브의 팔레트는 건드리지 않는다. 스캔 facelets 가 아직 적용되지 않았으므로
@@ -59,9 +74,16 @@ function renderScanReview() {
   document.getElementById('scan-review-badge').textContent =
     `확인이 필요한 칸 ${uncertain}개`;
   const message = document.getElementById('scan-validation-message');
-  message.textContent = reviewValidation.ok
-    ? '큐브 상태가 올바릅니다. Solve를 시작할 수 있어요.'
-    : reviewValidation.message;
+  if (reviewValidation.ok) {
+    message.textContent = '큐브 상태가 올바릅니다. Solve를 시작할 수 있어요.';
+  } else if (scanFailedAttempts >= SCAN_REPEATED_FAILURE_THRESHOLD) {
+    message.textContent =
+      '여러 번 인식에 실패했어요. 밝은 곳에서 큐브를 천천히 다시 스캔해 주세요.';
+  } else {
+    message.textContent = reviewLowLight
+      ? `${reviewValidation.message} (조명이 어두웠어요)`
+      : reviewValidation.message;
+  }
   message.classList.toggle('valid', reviewValidation.ok);
   document.getElementById('btn-scan-apply').disabled = !reviewValidation.ok;
 }
@@ -158,6 +180,7 @@ function setReviewCellColor(color) {
   if (SCAN_CENTER_INDICES.has(selectedReviewIndex)) return;
   reviewFacelets[selectedReviewIndex] = color;
   reviewConfidence[selectedReviewIndex] = 1;
+  scanManualOverrides.set(selectedReviewIndex, color);
   renderScanReview();
 }
 
@@ -174,8 +197,28 @@ function restartScanFromReview() {
   startScanFlow();
 }
 
+// Android 뒤로 가기: 결과를 버리지 않고 마지막 면 재촬영으로 돌아간다.
+// 앞 5면에서 손으로 고친 칸은 재분류 후 다시 덮어쓰고, 다시 찍을 마지막 면의 수정만 버린다.
+// 마지막 면은 촬영 순서 기준이다 — 슬롯 순서가 [0,2,3,1,5,4] 라 B 가 아니라 L 슬롯이다.
+function backFromScanReview() {
+  dropScanManualOverridesForFace(lastScanStepSlot());
+  closeScanReview();
+  if (!resumeScanAtLastFace()) cancelScanReview();
+}
+
+function dropScanManualOverridesForFace(face) {
+  [...scanManualOverrides.keys()]
+    .filter(index => Math.floor(index / 9) === face)
+    .forEach(index => scanManualOverrides.delete(index));
+}
+
+function clearScanManualOverrides() {
+  scanManualOverrides.clear();
+}
+
 function cancelScanReview() {
   closeScanReview();
+  clearScanManualOverrides();
   pendingScanResult = null;
   setStatus('스캔 결과를 적용하지 않았어요.');
 }
@@ -193,8 +236,9 @@ function confirmScanReview() {
       document.getElementById('scan-validation-message').textContent = result.message;
       return;
     }
-    hideScanReviewOverlay();
-    clearScanReviewState();
+    scanFailedAttempts = 0;
+    clearScanManualOverrides();
+    closeScanReview();
     solveCube();
   } else {
     pendingScanResult = {
