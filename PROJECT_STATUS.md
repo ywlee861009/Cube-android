@@ -2,7 +2,7 @@
 
 ## 현재 버전
 
-`versionName = 1.2.0` / `versionCode = 11` (서명 AAB `app-1.2.0-11.aab` · versionCode 10은 Play Console에 이미 사용되어 11로 재빌드)
+`versionName = 1.2.0` / `versionCode = 12` (서명 AAB `app-1.2.0-12.aab` · versionCode 10·11은 Play Console에 이미 사용되어 12로 재빌드)
 
 ### 1.2.0 릴리스 범위 (1.1.2 `8b1bf4f` 이후)
 - 실물 큐브 카메라 스캔 + 임의 배색 스캔 + 3D 미니 큐브 촬영 가이드
@@ -85,7 +85,8 @@
 
 | 커밋 | 내용 |
 |------|------|
-| — | versionCode 11 업데이트 (10은 Play Console 기사용) |
+| — | versionCode 12 업데이트 (11도 Play Console 기사용) |
+| `a349513` | versionCode 11 업데이트 (10은 Play Console 기사용) |
 | `9e5caa7` | PROJECT_STATUS 1.2.0 기준 현행화 |
 | `8fee6e5` | versionName 1.2.0 / versionCode 10 업데이트 |
 | `dba48bc` | origin/main → feature/arbitrary-color-scheme-scan 머지 |
