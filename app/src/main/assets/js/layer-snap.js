@@ -38,6 +38,9 @@ function finishLayerRotation() {
     else if (fraction < -0.39) targetSnaps = Math.ceil(layerAngle / SNAP_UNIT) - 1;
   }
 
+  // 한 제스처당 최대 1회 회전 (플릭 예측 포함)
+  targetSnaps = Math.max(-1, Math.min(1, targetSnaps));
+
   const startAngle = layerAngle;
   const endAngle   = targetSnaps * SNAP_UNIT;
   const axis       = layerAxisName;

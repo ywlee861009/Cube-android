@@ -127,7 +127,8 @@ renderer.domElement.addEventListener('touchmove', e => {
     const s = toNDC(touchStartX, touchStartY);
     const c = toNDC(x, y);
     const progress = new THREE.Vector2(c.x - s.x, c.y - s.y).dot(moveDirNDC);
-    const newAngle  = progress * layerSign * Math.PI;
+    // 한 제스처당 최대 1회 회전: 드래그 각도를 ±90°로 제한
+    const newAngle  = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, progress * layerSign * Math.PI));
 
     const dt = now - prevLayerTime;
     if (dt > 0) {
