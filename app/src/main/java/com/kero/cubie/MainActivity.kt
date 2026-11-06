@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.ApplicationInfo
@@ -18,6 +19,7 @@ import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
@@ -45,6 +47,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 private const val AD_UNIT_ID = "ca-app-pub-2103375309908918/6311668222"
+private const val POLICY_BASE_URL = "https://ywlee861009.github.io/policies/cubie"
 
 class MainActivity : ComponentActivity() {
 
@@ -93,6 +96,9 @@ class MainActivity : ComponentActivity() {
     inner class CubeBridge(private val webView: WebView) {
 
         @JavascriptInterface
+        fun getUiLanguage(): String = getString(R.string.ui_language)
+
+        @JavascriptInterface
         fun hapticFeedback() {
             webView.post {
                 webView.performHapticFeedback(
@@ -134,6 +140,35 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun onScannedStateApplied() {
             solveGranted = false
+        }
+
+        @JavascriptInterface
+        fun showPolicies() {
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+
+                val policies = arrayOf(
+                    getString(R.string.privacy_policy),
+                    getString(R.string.terms_of_service)
+                )
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle(R.string.policies)
+                    .setItems(policies) { _, index ->
+                        val path = if (index == 0) "privacy" else "terms"
+                        val url = Uri.parse("$POLICY_BASE_URL/$path/")
+                        try {
+                            startActivity(Intent(Intent.ACTION_VIEW, url))
+                        } catch (_: ActivityNotFoundException) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                R.string.policy_browser_unavailable,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    .setNegativeButton(R.string.cancel, null)
+                    .show()
+            }
         }
 
         @JavascriptInterface
@@ -295,10 +330,10 @@ class MainActivity : ComponentActivity() {
     private fun showCameraSettingsDialog() {
         if (isFinishing || isDestroyed) return
         AlertDialog.Builder(this)
-            .setTitle("카메라 권한이 필요해요")
-            .setMessage("큐브를 스캔하려면 앱 설정에서 카메라 권한을 허용해 주세요.")
-            .setNegativeButton("취소", null)
-            .setPositiveButton("설정 열기") { _, _ ->
+            .setTitle(R.string.camera_permission_title)
+            .setMessage(R.string.camera_permission_message)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.open_settings) { _, _ ->
                 startActivity(
                     Intent(
                         Settings.ACTION_APPLICATION_DETAILS_SETTINGS,

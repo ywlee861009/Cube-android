@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -10,49 +10,50 @@
 <div id="solved-overlay" class="hidden">
   <div id="solved-card">
     <div id="solved-emoji">🎉</div>
-    <div id="solved-title">Solved!</div>
+    <div id="solved-title" data-i18n>Solved!</div>
     <div id="solved-stats">
-      <div class="s-stat">
+      <div class="s-stat" id="solved-time-stat">
         <span class="s-val" id="s-time">—</span>
-        <span class="s-lbl">Time</span>
+        <span class="s-lbl" data-i18n>Time</span>
       </div>
       <div class="s-stat">
         <span class="s-val" id="s-moves">—</span>
-        <span class="s-lbl">Moves</span>
+        <span class="s-lbl" data-i18n>Moves</span>
       </div>
     </div>
-    <div id="solved-new-best" class="hidden">New Best!</div>
+    <div id="solved-new-best" class="hidden" data-i18n>New Best!</div>
     <div id="solved-pb" class="hidden">
       <div class="pb-divider"></div>
       <div id="solved-pb-stats">
         <div class="s-stat">
           <span class="s-val" id="s-pb-time">—</span>
-          <span class="s-lbl pb-lbl">Best Time</span>
+          <span class="s-lbl pb-lbl" data-i18n>Best Time</span>
         </div>
         <div class="s-stat">
           <span class="s-val" id="s-pb-moves">—</span>
-          <span class="s-lbl pb-lbl">Best Moves</span>
+          <span class="s-lbl pb-lbl" data-i18n>Best Moves</span>
         </div>
       </div>
     </div>
-    <button id="btn-play-again" onclick="playAgain()">⇄ Play Again</button>
+    <p id="solved-detail" hidden></p>
+    <button id="btn-play-again" onclick="playAgain()" data-i18n>⇄ Play Again</button>
   </div>
 </div>
 
 <div id="stats-overlay" class="hidden">
   <div id="stats-card">
     <div id="stats-header">
-      <span id="stats-title">Statistics</span>
-      <button id="btn-stats-close" onclick="closeDashboard()" aria-label="Close statistics">✕</button>
+      <span id="stats-title" data-i18n>Statistics</span>
+      <button id="btn-stats-close" onclick="closeDashboard()" data-i18n-label aria-label="Close statistics">✕</button>
     </div>
     <div id="stats-grid">
       <div class="st-cell">
         <span class="st-val" id="ds-solves">—</span>
-        <span class="st-lbl">Solves</span>
+        <span class="st-lbl" data-i18n>Solves</span>
       </div>
       <div class="st-cell">
         <span class="st-val" id="ds-best">—</span>
-        <span class="st-lbl">Best</span>
+        <span class="st-lbl" data-i18n>Best</span>
       </div>
       <div class="st-cell">
         <span class="st-val" id="ds-ao5">—</span>
@@ -68,7 +69,7 @@
       </div>
       <div class="st-cell">
         <span class="st-val" id="ds-mean">—</span>
-        <span class="st-lbl">Mean</span>
+        <span class="st-lbl" data-i18n>Mean</span>
       </div>
     </div>
     <div id="ds-sparkline-wrap">
@@ -80,7 +81,7 @@
 
 <div id="scan-overlay" class="hidden" aria-live="polite">
   <div id="scan-header">
-    <div id="scan-progress">1 / 6 — 기준면</div>
+    <div id="scan-progress" data-i18n>1 / 6 — 기준면</div>
     <div id="scan-direction"></div>
     <div id="scan-rotation"></div>
     <div id="scan-3d-guide" aria-hidden="true"></div>
@@ -93,12 +94,12 @@
     <div id="scan-rgb-preview"></div>
   </div>
   <div id="scan-controls">
-    <div id="scan-message">카메라를 준비하고 있어요…</div>
+    <div id="scan-message" data-i18n>카메라를 준비하고 있어요…</div>
     <div class="scan-control-row">
-      <button id="btn-scan-previous" onclick="retakePreviousScanFace()" disabled>↶ 이전 면</button>
-      <button id="btn-scan-capture" onclick="captureCurrentScanFace()" disabled>● 촬영</button>
+      <button id="btn-scan-previous" onclick="retakePreviousScanFace()" disabled data-i18n>↶ 이전 면</button>
+      <button id="btn-scan-capture" onclick="captureCurrentScanFace()" disabled data-i18n>● 촬영</button>
     </div>
-    <button id="btn-scan-cancel" onclick="cancelScanFlow()">취소</button>
+    <button id="btn-scan-cancel" onclick="cancelScanFlow()" data-i18n>취소</button>
   </div>
 </div>
 
@@ -106,49 +107,64 @@
   <div id="scan-review-card">
     <div id="scan-review-header">
       <div>
-        <div id="scan-review-title">스캔 결과 확인</div>
-        <div id="scan-review-badge">확인이 필요한 칸 0개</div>
+        <div id="scan-review-title" data-i18n>스캔 결과 확인</div>
+        <div id="scan-review-badge"></div>
       </div>
-      <button id="btn-scan-review-close" onclick="cancelScanReview()" aria-label="스캔 결과 닫기">✕</button>
+      <button id="btn-scan-review-close" onclick="cancelScanReview()" data-i18n-label aria-label="스캔 결과 닫기">✕</button>
     </div>
     <div id="scan-warnings" aria-live="polite"></div>
-    <div id="scan-net" aria-label="큐브 6면 전개도"></div>
-    <div id="scan-face-editor-title">U 면</div>
+    <div id="scan-net" data-i18n-label aria-label="큐브 6면 전개도"></div>
+    <div id="scan-face-editor-title"></div>
     <div id="scan-face-editor"></div>
-    <button id="btn-scan-retake-face" onclick="retakeSelectedScanFace()">U 면 다시 촬영</button>
-    <div id="scan-palette" aria-label="색 선택 팔레트"></div>
+    <button id="btn-scan-retake-face" onclick="retakeSelectedScanFace()"></button>
+    <div id="scan-palette" data-i18n-label aria-label="색 선택 팔레트"></div>
     <div id="scan-validation-message"></div>
     <div id="scan-review-actions">
-      <button id="btn-scan-again" onclick="restartScanFromReview()">다시 스캔</button>
-      <button id="btn-scan-apply" onclick="confirmScanReview()" disabled>Solve 시작</button>
+      <button id="btn-scan-again" onclick="restartScanFromReview()" data-i18n>다시 스캔</button>
+      <button id="btn-scan-apply" onclick="confirmScanReview()" disabled data-i18n>Start solving</button>
     </div>
   </div>
 </div>
 
 <div id="guided-layer" class="hidden">
   <div id="guided-progress"><div id="guided-progress-fill"></div></div>
-  <button id="btn-guided-exit" onclick="exitGuidedSolve()" aria-label="따라 하기 닫기">✕</button>
-  <div id="guided-hint">화면과 똑같이 들고, 탭하세요</div>
+  <button id="btn-guided-exit" onclick="exitGuidedSolve()" data-i18n-label aria-label="따라 하기 닫기">✕</button>
+  <div id="guided-hint" data-i18n>화면과 똑같이 들고, 탭하세요</div>
 </div>
 
 <div id="top-bar">
   <div id="timer">0.0s</div>
   <div id="moves">Moves: 0</div>
 </div>
-<button id="btn-theme" aria-label="Toggle dark mode">🌙</button>
-<button id="btn-stats" onclick="openDashboard()" aria-label="Open statistics">📊</button>
+<details id="app-options">
+  <summary data-i18n-label aria-label="Options">⋯</summary>
+  <div id="options-panel">
+    <button id="btn-theme" type="button" data-i18n>Dark mode</button>
+    <button id="btn-policies" type="button" onclick="document.getElementById('app-options').open = false; window.AndroidBridge?.showPolicies()" data-i18n>Policies</button>
+  </div>
+</details>
+<button id="btn-stats" onclick="openDashboard()" data-i18n-label aria-label="Open statistics">📊</button>
 <div id="ui">
-  <div class="ui-row">
-    <button id="btn-undo" onclick="undoCube()" disabled>↩ Undo</button>
-    <button id="btn-redo" onclick="redoCube()" disabled>Redo ↪</button>
+  <button id="btn-daily" type="button" onclick="startDailyChallenge()" data-i18n>Daily 3 Moves</button>
+  <div id="challenge-controls" hidden>
+    <p id="challenge-message" aria-live="polite"></p>
+    <div class="ui-row">
+      <button id="btn-challenge-hint" type="button" onclick="showChallengeHint()" data-i18n>Hint</button>
+      <button id="btn-lesson-turn" type="button" onclick="turnLessonLayer()" hidden data-i18n>Turn top layer</button>
+      <button id="btn-challenge-exit" type="button" onclick="exitChallenge()" data-i18n>Free play</button>
+    </div>
   </div>
   <div class="ui-row">
-    <button id="btn-shuffle" onclick="shuffleCube()">⇄ Shuffle</button>
-    <button id="btn-solve"   onclick="solveCube()">📺 Solve</button>
+    <button id="btn-undo" onclick="undoCube()" disabled data-i18n>↩ Undo</button>
+    <button id="btn-redo" onclick="redoCube()" disabled data-i18n>Redo ↪</button>
   </div>
-  <div class="ui-row">
-    <button id="btn-scan" onclick="startScanFlow()">📷 Scan Cube</button>
+  <div id="free-play-controls">
+    <div class="ui-row">
+      <button id="btn-shuffle" onclick="shuffleCube()" data-i18n>⇄ Shuffle</button>
+      <button id="btn-solve"   onclick="solveCube()" data-i18n>📺 Solve</button>
+    </div>
   </div>
+  <button id="btn-scan" onclick="scanFromHome()" data-i18n>📷 Scan Cube</button>
 </div>
 
 <!-- Libraries -->
@@ -156,6 +172,7 @@
 <script src="js/three.min.js"></script>
 
 <!-- Core cube -->
+<script src="js/i18n.js"></script>
 <script src="js/constants.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/cubies.js"></script>
@@ -197,5 +214,6 @@
 <script src="js/theme.js"></script>
 <script src="js/long-press.js"></script>
 <script src="js/dashboard.js"></script>
+<script src="js/challenge.js"></script>
 </body>
 </html>

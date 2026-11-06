@@ -51,7 +51,7 @@ renderer.domElement.addEventListener('touchstart', e => {
   if (document.elementFromPoint(_t0.clientX, _t0.clientY) !== renderer.domElement) return;
 
   e.preventDefault();
-  if (isShuffling || isSolving || isUndoRedo) return; // 애니메이션 중 터치 차단
+  if (isShuffling || isSolving || isUndoRedo || animRafId !== null || isChallengeComplete()) return;
   cancelFling(); // 진행 중인 fling 즉시 중단
 
   if (e.touches.length === 1) {

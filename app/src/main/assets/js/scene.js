@@ -23,6 +23,23 @@ function updateCamera() {
 }
 updateCamera();
 
+function updateHomeCubeViewport() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const controls = document.getElementById('ui').getBoundingClientRect();
+  if (width < 600 && controls.height > 0) {
+    const top = document.getElementById('top-bar').getBoundingClientRect().bottom + 12;
+    const bottom = controls.top - 12;
+    const available = Math.max(1, bottom - top);
+    camera.zoom = Math.min(1, width / (height * 0.57), available / (height * 0.58));
+    camera.setViewOffset(width, height, 0, (height - top - bottom) / 2, width, height);
+  } else {
+    camera.zoom = 1;
+    camera.clearViewOffset();
+  }
+  markDirty();
+}
+
 // ─── 조명 ──────────────────────────────────────────────────────────────────
 scene.add(new THREE.AmbientLight(0xffffff, 0.8));
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
@@ -43,8 +60,7 @@ window.addEventListener('resize', () => {
     _vpW = w; _vpH = h;
     renderer.setSize(w, h);
     camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    markDirty();
+    updateHomeCubeViewport();
   }
 });
 
@@ -77,4 +93,6 @@ function animate() {
   _needsRender = false;
   renderer.render(scene, camera);
 }
+new ResizeObserver(updateHomeCubeViewport).observe(document.getElementById('ui'));
+updateHomeCubeViewport();
 animate();

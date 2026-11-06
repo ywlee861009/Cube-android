@@ -45,11 +45,7 @@ function validateFacelets(f) {
     const summary = counts
       .map((count, color) => `${VALIDATE_COLOR_NAMES[color]} ${count}칸`)
       .join(', ');
-    return validationFailure(
-      'COLOR_COUNT',
-      `색마다 9칸이어야 해요. 현재 ${summary}`,
-      badIndices
-    );
+    return { ...validationFailure('COLOR_COUNT', `색마다 9칸이어야 해요. 현재 ${summary}`, badIndices), counts };
   }
 
   const centerColors = VALIDATE_CENTERS.map(index => f[index]);

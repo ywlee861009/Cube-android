@@ -3,11 +3,20 @@
 // Worker+OffscreenCanvas는 Android WebView file:// 보안정책으로 실패 → GPU 충돌 유발.
 // useWorker:false로 메인스레드 2D 캔버스만 사용.
 const _confetti = confetti.create(null, { useWorker: false, resize: true });
+let solvedAction = null;
+let confettiBurst = null;
 
-function showSolvedOverlay(elapsedMs, moves, pbResult) {
+function showSolvedOverlay(elapsedMs, moves, pbResult, challengeResult = null) {
   console.log('[Overlay] showSolvedOverlay called t=' + performance.now().toFixed(0));
+  solvedAction = challengeResult?.onAgain ?? null;
+  document.getElementById('solved-title').textContent = t(challengeResult?.title ?? 'Solved!');
+  document.getElementById('btn-play-again').textContent = t(challengeResult?.action ?? '⇄ Play Again');
+  document.getElementById('solved-time-stat').hidden = !!challengeResult;
+  const detail = document.getElementById('solved-detail');
+  detail.hidden = !challengeResult;
+  detail.textContent = challengeResult?.detail ?? '';
   document.getElementById('s-time').textContent  =
-    elapsedMs === null ? 'Scan' : (elapsedMs / 1000).toFixed(1) + 's';
+    elapsedMs === null ? t('Scan') : (elapsedMs / 1000).toFixed(1) + 's';
   document.getElementById('s-moves').textContent = moves;
 
   // New Best 배지
@@ -38,13 +47,15 @@ function showSolvedOverlay(elapsedMs, moves, pbResult) {
 
 function dismissSolvedOverlay() {
   document.getElementById('solved-overlay').classList.add('hidden');
+  clearTimeout(confettiBurst);
   _confetti.reset();
   resumeRendering();
 }
 
 function playAgain() {
+  const action = solvedAction || shuffleCube;
   dismissSolvedOverlay();
-  shuffleCube();
+  action();
 }
 
 function _spawnConfetti() {
@@ -53,7 +64,8 @@ function _spawnConfetti() {
 
   _confetti(Object.assign({ particleCount: 80, spread: 70, origin: { y: 0.55 } }, opts));
 
-  setTimeout(function () {
+  clearTimeout(confettiBurst);
+  confettiBurst = setTimeout(function () {
     _confetti(Object.assign({ particleCount: 45, angle: 60,  spread: 58, origin: { x: 0,   y: 0.6 } }, opts));
     _confetti(Object.assign({ particleCount: 45, angle: 120, spread: 58, origin: { x: 1,   y: 0.6 } }, opts));
   }, 180);

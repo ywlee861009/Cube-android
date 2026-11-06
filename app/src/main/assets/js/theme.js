@@ -4,12 +4,12 @@
   var DARK_BG  = 0x1c1c1e;
   var btnTheme = document.getElementById('btn-theme');
   var saved = localStorage.getItem('cube-theme');
-  if (saved === 'dark') applyTheme('dark');
+  applyTheme(saved === 'dark' ? 'dark' : 'light');
 
   function applyTheme(theme) {
     var isDark = theme === 'dark';
     document.body.setAttribute('data-theme', isDark ? 'dark' : '');
-    btnTheme.textContent = isDark ? '☀️' : '🌙';
+    btnTheme.textContent = isDark ? '☀️ ' + t('Light mode') : '🌙 ' + t('Dark mode');
     setSceneBg(isDark ? DARK_BG : LIGHT_BG);
     localStorage.setItem('cube-theme', theme);
   }

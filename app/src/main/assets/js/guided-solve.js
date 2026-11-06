@@ -62,7 +62,7 @@ function exitGuidedSolve() {
     return true;
   }
   closeGuidedSolve();
-  setStatus('Solve를 누르면 이어서 볼 수 있어요.');
+  setStatus('Tap Solve to continue.');
   return true;
 }
 

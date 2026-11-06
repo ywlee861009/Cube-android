@@ -1,6 +1,6 @@
 // ─── 셔플 ──────────────────────────────────────────────────────────────────
 function shuffleCube() {
-  if (isShuffling) return;
+  if (isShuffling || isChallengeActive()) return;
   cancelFling();                           // 진행 중인 fling RAF 취소 + flingGroup 정리
   if (layerGroup) commitLayerRotation(0);  // mid-drag 상태 정리 (fling 없는 경우)
   if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {
@@ -56,7 +56,7 @@ function shuffleCube() {
 
 // ─── 리셋 ──────────────────────────────────────────────────────────────────
 function resetCube() {
-  if (isShuffling || isSolving) return;
+  if (isShuffling || isSolving || isChallengeActive()) return;
   if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {
     AndroidBridge.onShuffleOrReset();
   }

@@ -40,7 +40,10 @@ function _renderSparkline(stats) {
   var all = getSolveHistory();
   var legit = all.filter(function(e) { return !e.s; }).slice(-15);
   if (legit.length < 2) {
-    container.innerHTML = '<span class="ds-spark-empty">Need more solves</span>';
+    const empty = document.createElement('span');
+    empty.className = 'ds-spark-empty';
+    empty.textContent = t('Need more solves');
+    container.appendChild(empty);
     return;
   }
 
@@ -66,7 +69,10 @@ function _renderHistory() {
 
   var all = getSolveHistory();
   if (all.length === 0) {
-    list.innerHTML = '<div class="ds-empty">No solves yet</div>';
+    const empty = document.createElement('div');
+    empty.className = 'ds-empty';
+    empty.textContent = t('No solves yet');
+    list.appendChild(empty);
     return;
   }
 
@@ -85,11 +91,11 @@ function _renderHistory() {
 
     var movesEl = document.createElement('span');
     movesEl.className = 'ds-row-moves';
-    movesEl.textContent = entry.m + ' moves';
+    movesEl.textContent = t('{count} moves', { count: entry.m });
 
     var tagEl = document.createElement('span');
     tagEl.className = 'ds-row-tag';
-    tagEl.textContent = entry.s ? 'solver' : '';
+    tagEl.textContent = entry.s ? t('Solver') : '';
 
     row.appendChild(numEl);
     row.appendChild(timeEl);

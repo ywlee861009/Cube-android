@@ -21,6 +21,7 @@ canvas { display: block; }
   transform: translateX(-50%);
   display: flex;
   gap: 8px;
+  max-width: calc(100% - 112px - var(--safe-left) - var(--safe-right));
   z-index: 10;
 }
 
@@ -40,11 +41,15 @@ canvas { display: block; }
 
 #timer { display: none; }
 #timer.active { display: block; }
+#moves { min-width: 0; white-space: normal; text-align: center; overflow-wrap: anywhere; }
 
-#btn-theme {
+#app-options {
   position: fixed;
   top: calc(14px + var(--safe-top));
   right: calc(14px + var(--safe-right));
+  z-index: 11;
+}
+#app-options summary {
   width: 38px; height: 38px;
   border-radius: 50%;
   background: rgba(255,255,255,0.82);
@@ -52,7 +57,7 @@ canvas { display: block; }
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 2px 10px rgba(0,0,0,0.08);
   border: none;
-  font-size: 18px;
+  font-size: 24px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -60,9 +65,26 @@ canvas { display: block; }
   padding: 0;
   transition: transform 0.1s ease, opacity 0.1s ease;
   -webkit-tap-highlight-color: transparent;
-  z-index: 10;
 }
-#btn-theme:active { transform: scale(0.9); opacity: 0.7; }
+#app-options summary::-webkit-details-marker { display: none; }
+#options-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 144px;
+  padding: 5px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.16);
+}
+#options-panel button {
+  width: 100%;
+  min-height: 44px;
+  white-space: nowrap;
+  padding: 6px 12px;
+  color: #333;
+  background: transparent;
+}
 
 /* ── Dark Mode ─────────────────────────────────────────────── */
 body[data-theme="dark"] { background: #1c1c1e; }
@@ -72,17 +94,21 @@ body[data-theme="dark"] #moves {
   color: rgba(255,255,255,0.5);
   box-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
-body[data-theme="dark"] #btn-theme {
+body[data-theme="dark"] #app-options summary {
+  color: #eee;
   background: rgba(50,50,52,0.82);
   box-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
+body[data-theme="dark"] #options-panel { background: #303032; }
 body[data-theme="dark"] #ui {
   background: rgba(44,44,46,0.92);
   box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
   border-color: rgba(255,255,255,0.08);
 }
 body[data-theme="dark"] #btn-undo,
-body[data-theme="dark"] #btn-redo {
+body[data-theme="dark"] #btn-redo,
+body[data-theme="dark"] #options-panel button,
+body[data-theme="dark"] #challenge-controls button {
   background: rgba(255,255,255,0.08);
   color: #ddd;
 }
@@ -113,6 +139,34 @@ body[data-theme="dark"] .s-lbl.pb-lbl { color: rgba(255,255,255,0.25); }
 }
 
 .ui-row { display: flex; gap: 8px; }
+#free-play-controls, #challenge-controls { display: grid; gap: 8px; }
+#ui [hidden], #solved-card [hidden] { display: none; }
+#btn-daily {
+  min-height: 44px;
+  background: #5B5FEF;
+  color: #fff;
+  font-size: 15px;
+}
+#challenge-message, #solved-detail {
+  color: #464653;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.35;
+}
+#solved-detail { margin: 0 0 12px; }
+body[data-theme="dark"] #challenge-message,
+body[data-theme="dark"] #solved-detail { color: #eee; }
+#challenge-controls button {
+  flex: 1;
+  min-height: 44px;
+  padding: 6px 8px;
+  color: #333;
+  background: rgba(0,0,0,0.055);
+}
+@media (max-height: 520px) and (max-width: 599px) {
+  #ui { bottom: calc(6px + var(--safe-bottom)); padding: 6px; gap: 4px; }
+  #ui button { padding-block: 6px; }
+}
 
 button {
   border: none;
@@ -130,6 +184,7 @@ button {
 }
 button:active { transform: scale(0.93); opacity: 0.72; }
 button:disabled { opacity: 0.28; pointer-events: none; }
+button:focus-visible, #app-options summary:focus-visible { outline: 2px solid #2F80ED; }
 
 #btn-undo, #btn-redo {
   flex: 1;
@@ -158,7 +213,7 @@ button:disabled { opacity: 0.28; pointer-events: none; }
   color: #fff;
 }
 #btn-scan {
-  flex: 1;
+  flex: 2;
   padding: 12px 0;
   font-size: 14px;
   background: #2F80ED;
@@ -186,7 +241,7 @@ button:disabled { opacity: 0.28; pointer-events: none; }
 #scan-overlay.hidden { display: none; }
 body.scan-active { background: transparent !important; }
 body.scan-active #top-bar,
-body.scan-active #btn-theme,
+body.scan-active #app-options,
 body.scan-active #btn-stats,
 body.scan-active #ui { display: none; }
 
@@ -829,7 +884,7 @@ body[data-theme="dark"] .ds-row-solver .ds-row-time { color: rgba(255,255,255,0.
 }
 #guided-layer.hidden { display: none; }
 body.guided-active #top-bar,
-body.guided-active #btn-theme,
+body.guided-active #app-options,
 body.guided-active #btn-stats,
 body.guided-active #ui { display: none; }
 

@@ -172,7 +172,7 @@ function startScanFaceRetake(slot) {
 }
 
 function beginScanSession() {
-  if (isShuffling || isSolving || isUndoRedo || isScanning) return false;
+  if (isShuffling || isSolving || isUndoRedo || isScanning || isChallengeActive()) return false;
   if (!window.AndroidBridge?.startScan) {
     setStatus('카메라 스캔은 Android 앱에서 사용할 수 있어요.');
     return false;
@@ -308,10 +308,10 @@ function renderScanStep(overrideHints) {
   const step = SCAN_STEPS[currentScanStep];
   const retaking = scanRetakeSlot !== null;
   document.getElementById('scan-progress').textContent = retaking
-    ? `${step.faceLabel.long} 다시 촬영`
-    : `${currentScanStep + 1} / ${SCAN_STEPS.length} — ${step.faceLabel.long}`;
+    ? t('Retake: {face}', { face: t(step.faceLabel.long) })
+    : `${currentScanStep + 1} / ${SCAN_STEPS.length} — ${t(step.faceLabel.long)}`;
   document.getElementById('scan-direction').textContent =
-    currentScanStep === 0 && !retaking ? '' : `${step.topLabel.long}이 위로 오게 들어주세요`;
+    currentScanStep === 0 && !retaking ? '' : t('Hold the cube with the {face} on top.', { face: t(step.topLabel.long) });
   renderScanRotationHints(overrideHints || step.hints);
   document.getElementById('scan-rgb-preview').replaceChildren();
   // 재촬영 모드에는 "이전 면"이 없다 — 누르면 엉뚱한 슬롯을 지운다.
@@ -333,7 +333,7 @@ function renderScanRotationHints(hints) {
     glyph.className = 'scan-rotation-glyph';
     glyph.textContent = hint.glyph;
     const text = document.createElement('span');
-    text.textContent = hints.length > 1 ? `${index + 1}. ${hint.text}` : hint.text;
+    text.textContent = hints.length > 1 ? `${index + 1}. ${t(hint.text)}` : t(hint.text);
     chip.append(glyph, text);
     return chip;
   }));
@@ -373,5 +373,5 @@ function finishScanUi() {
 }
 
 function setScanMessage(message) {
-  document.getElementById('scan-message').textContent = message;
+  document.getElementById('scan-message').textContent = t(message);
 }

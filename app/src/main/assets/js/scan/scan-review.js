@@ -72,17 +72,16 @@ function renderScanReview() {
 
   const uncertain = reviewConfidence.filter(value => value < SCAN_LOW_CONFIDENCE).length;
   document.getElementById('scan-review-badge').textContent =
-    `확인이 필요한 칸 ${uncertain}개`;
+    t('Stickers to check: {count}', { count: uncertain });
   const message = document.getElementById('scan-validation-message');
   if (reviewValidation.ok) {
-    message.textContent = '큐브 상태가 올바릅니다. Solve를 시작할 수 있어요.';
+    message.textContent = t('The cube state is valid. You can start solving.');
   } else if (scanFailedAttempts >= SCAN_REPEATED_FAILURE_THRESHOLD) {
     message.textContent =
-      '여러 번 인식에 실패했어요. 밝은 곳에서 큐브를 천천히 다시 스캔해 주세요.';
+      t('Several scans failed. Scan slowly in a brighter place.');
   } else {
-    message.textContent = reviewLowLight
-      ? `${reviewValidation.message} (조명이 어두웠어요)`
-      : reviewValidation.message;
+    const validationText = localizedValidationMessage(reviewValidation);
+    message.textContent = reviewLowLight ? t('{message} (Low light)', { message: validationText }) : validationText;
   }
   message.classList.toggle('valid', reviewValidation.ok);
   document.getElementById('btn-scan-apply').disabled = !reviewValidation.ok;
@@ -97,7 +96,7 @@ function renderScanWarnings() {
     const faces = warning.faces && warning.faces.length
       ? ` (${warning.faces.map(face => SCAN_FACE_LABELS[face]).join(' / ')})`
       : '';
-    row.textContent = `${SCAN_WARNING_TEXT[warning.code] || warning.code}${faces}`;
+    row.textContent = `${t(SCAN_WARNING_TEXT[warning.code] || warning.code)}${faces}`;
     return row;
   }));
 }
@@ -116,7 +115,9 @@ function renderScanNet() {
       cell.style.gridRow = originRow + Math.floor(position / 3) + 1;
       cell.setAttribute(
         'aria-label',
-        `${SCAN_FACE_LABELS[face]} 면 ${position + 1}번 칸, 현재 ${SCAN_FACE_LABELS[reviewFacelets[index]]}`
+        t('{face} face, sticker {index}, current color {color}', {
+          face: SCAN_FACE_LABELS[face], index: position + 1, color: SCAN_FACE_LABELS[reviewFacelets[index]],
+        })
       );
       cell.onclick = () => selectReviewCell(index);
       net.appendChild(cell);
@@ -126,7 +127,7 @@ function renderScanNet() {
 
 function renderScanFaceEditor() {
   document.getElementById('scan-face-editor-title').textContent =
-    `${SCAN_FACE_LABELS[selectedReviewFace]} 면`;
+    t('{face} face', { face: SCAN_FACE_LABELS[selectedReviewFace] });
   const editor = document.getElementById('scan-face-editor');
   editor.replaceChildren();
   for (let position = 0; position < 9; position++) {
@@ -141,7 +142,7 @@ function renderScanFaceEditor() {
   }
   const retake = document.getElementById('btn-scan-retake-face');
   if (retake) {
-    retake.textContent = `${SCAN_FACE_LABELS[selectedReviewFace]} 면 다시 촬영`;
+    retake.textContent = t('Retake {face} face', { face: SCAN_FACE_LABELS[selectedReviewFace] });
     retake.disabled = typeof startScanFaceRetake !== 'function';
   }
 }
@@ -233,7 +234,7 @@ function confirmScanReview() {
     const palette = reviewPalette && reviewPalette.length === 6 ? reviewPalette : null;
     const result = applyScannedFacelets(reviewFacelets, palette);
     if (!result.ok) {
-      document.getElementById('scan-validation-message').textContent = result.message;
+      document.getElementById('scan-validation-message').textContent = localizedValidationMessage(result);
       return;
     }
     scanFailedAttempts = 0;

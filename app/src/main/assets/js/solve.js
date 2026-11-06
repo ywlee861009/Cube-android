@@ -7,14 +7,16 @@ let _solveAdRequired = !!window.AndroidBridge;
 
 // 솔브 버튼 라벨 갱신 — resetSolution()에서 호출
 function _refreshSolveLabel() {
-  document.getElementById('btn-solve').textContent = _solveAdRequired ? '📺 Solve' : '⚡ Solve';
+  document.getElementById('btn-solve').textContent = solutionMoves
+    ? (solutionIndex + 1) + ' / ' + solutionMoves.length
+    : (_solveAdRequired ? '📺 ' : '⚡ ') + t('Solve');
 }
 
 // ─── Android 광고 콜백 ──────────────────────────────────────────────────────
 // 광고 거부/실패 → 솔브 차단
 window.onSolveDenied = function() {
   document.getElementById('btn-solve').classList.remove('calculating');
-  setStatus('광고를 시청해야 Solve를 사용할 수 있어요.');
+  setStatus('Watch the ad to use the solver.');
   document.getElementById('btn-solve').disabled   = false;
   document.getElementById('btn-shuffle').disabled = false;
 };
@@ -22,13 +24,13 @@ window.onSolveDenied = function() {
 // 광고 허가 후 실행 — 솔루션 계산 후 전체 자동 실행
 window.onSolveGranted = function() {
   _solveAdRequired = false;  // 광고 시청(또는 생략) → 다음 솔브는 바로 실행 가능
-  if (isShuffling || isUndoRedo || isScanning) return;  // 셔플/언두/스캔 중이면 실행 보류 (버튼 클릭으로 재시도 가능)
+  if (isShuffling || isUndoRedo || isScanning || isChallengeActive()) return;
   _runSolve();
 };
 
 // ─── 솔브 진입점 ───────────────────────────────────────────────────────────
 function solveCube() {
-  if (isShuffling || isSolving) return;
+  if (isShuffling || isSolving || isChallengeActive()) return;
 
   // 솔루션이 이미 계산된 상태 → 탭할 때마다 1수씩 실행
   if (solutionMoves && solutionIndex < solutionMoves.length) {
@@ -37,7 +39,7 @@ function solveCube() {
   }
 
   if (isCubeSolved()) {
-    setStatus(isScanSolve ? '스캔한 큐브가 이미 완성되어 있어요.' : 'Already solved!');
+    setStatus(isScanSolve ? 'The scanned cube is already solved.' : 'Already solved!');
     return;
   }
 
@@ -58,13 +60,13 @@ async function _runSolve() {
   try {
     const validation = validateFacelets(facelets);
     if (!validation.ok) {
-      setStatus(validation.message);
+      setStatus(localizedValidationMessage(validation));
       resetButtons();
       return;
     }
     const solver = SolverFactory.create();
     if (!solver.isReady()) {
-      setStatus('Solver loading...');
+      setStatus('Solver loading…');
       document.getElementById('btn-solve').classList.add('calculating');
       // btn-solve는 비활성 유지 — 준비 완료 후 자동 재활성화
       document.getElementById('btn-shuffle').disabled = false;
@@ -80,7 +82,7 @@ async function _runSolve() {
 
     document.getElementById('btn-solve').disabled   = true;
     document.getElementById('btn-shuffle').disabled = true;
-    setStatus('Calculating...');
+    setStatus('Calculating…');
     document.getElementById('btn-solve').classList.add('calculating');
 
     const solution = await solver.solve([...facelets]);
@@ -104,7 +106,8 @@ async function _runSolve() {
     stepSolution();  // 광고 소비 직후 첫 수 자동 실행
   } catch (e) {
     document.getElementById('btn-solve').classList.remove('calculating');
-    setStatus('Error: ' + e.message);
+    console.error('[Solve]', e);
+    setStatus('Could not find a solution. Try again.');
     resetButtons();
   }
 }

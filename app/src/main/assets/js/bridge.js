@@ -12,6 +12,7 @@ window.AndroidCube = {
     document.documentElement.style.setProperty('--safe-bottom', bottom + 'px');
     document.documentElement.style.setProperty('--safe-left', left + 'px');
     document.documentElement.style.setProperty('--safe-right', right + 'px');
+    updateHomeCubeViewport();
   }
 };
 
@@ -25,5 +26,8 @@ function handleAndroidBack() {
   if (isOpen('solved-overlay'))      { dismissSolvedOverlay(); return true; }
   if (isOpen('scan-review-overlay')) { backFromScanReview();   return true; }
   if (isOpen('stats-overlay'))       { closeDashboard();       return true; }
+  const options = document.getElementById('app-options');
+  if (options.open) { options.open = false; return true; }
+  if (isChallengeActive()) { exitChallenge(); return true; }
   return typeof exitGuidedSolve === 'function' && exitGuidedSolve();
 }

@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Cubie</string>
+    <string name="ui_language">en</string>
+    <string name="camera_permission_title">Camera permission required</string>
+    <string name="camera_permission_message">Allow camera access in Settings to scan your cube.</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="cancel">Cancel</string>
+    <string name="policies">Cubie policies</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="terms_of_service">Terms of Service</string>
+    <string name="policy_browser_unavailable">No browser is available to open this page.</string>
 </resources>

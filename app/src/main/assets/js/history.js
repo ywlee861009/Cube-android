@@ -15,7 +15,7 @@ function clearHistory() {
 }
 
 function undoCube() {
-  if (undoStack.length === 0 || isShuffling || isSolving || isUndoRedo || isScanning) return;
+  if (undoStack.length === 0 || isShuffling || isSolving || isUndoRedo || isScanning || isChallengeComplete()) return;
   isUndoRedo = true;
   updateUndoRedoButtons();
   const entry = undoStack.pop();
@@ -23,6 +23,7 @@ function undoCube() {
     try {
       setMoveCount(entry.moveCount);
       redoStack.push(entry);
+      updateChallengeProgress();
     } finally {
       isUndoRedo = false;
       updateUndoRedoButtons();
@@ -31,13 +32,14 @@ function undoCube() {
 }
 
 function redoCube() {
-  if (redoStack.length === 0 || isShuffling || isSolving || isUndoRedo || isScanning) return;
+  if (redoStack.length === 0 || isShuffling || isSolving || isUndoRedo || isScanning || isChallengeComplete()) return;
   isUndoRedo = true;
   updateUndoRedoButtons();
   const entry = redoStack.pop();
   performAnimatedMove(entry.moveName, () => {
     try {
       undoStack.push(entry);
+      updateChallengeProgress();
     } finally {
       isUndoRedo = false;
       updateUndoRedoButtons();

@@ -9,17 +9,17 @@ let isScanSolve = false;
 // ─── UI 헬퍼 ───────────────────────────────────────────────────────────────
 function setMoveCount(n) {
   moveCount = n;
-  document.getElementById('moves').textContent = 'Moves: ' + moveCount;
+  document.getElementById('moves').textContent = t('Moves: {count}', { count: moveCount });
 }
 
 function setStatus(msg) {
-  document.getElementById('moves').textContent = msg;
+  document.getElementById('moves').textContent = t(msg);
 }
 
 function updateUndoRedoButtons() {
   const btnUndo = document.getElementById('btn-undo');
   const btnRedo = document.getElementById('btn-redo');
-  const busy = isShuffling || isSolving || isUndoRedo || isScanning;
+  const busy = isShuffling || isSolving || isUndoRedo || isScanning || isChallengeComplete();
   if (btnUndo) btnUndo.disabled = undoStack.length === 0 || busy;
   if (btnRedo) btnRedo.disabled = redoStack.length === 0 || busy;
 }
@@ -52,6 +52,7 @@ function isCubeSolved() {
 
 // ─── 단일 무브 적용 ────────────────────────────────────────────────────────
 function applyMove(name) {
+  if (isChallengeComplete()) return;
   const f = [...facelets];
   if (!name || (!MOVES[name[0]])) return;
   const isManual = !isShuffling && !isSolving && !isUndoRedo;
@@ -66,8 +67,13 @@ function applyMove(name) {
   }
   setMoveCount(moveCount + 1);
   applyFacelets();
-  if (!isShuffling && !isSolving) checkSolvedAndSubmit();
+  if (isChallengeActive()) {
+    if (isManual) updateChallengeProgress();
+  } else if (!isShuffling && !isSolving) {
+    checkSolvedAndSubmit();
+  }
 }
 
 // 초기 렌더
+setMoveCount(0);
 applyFacelets();
