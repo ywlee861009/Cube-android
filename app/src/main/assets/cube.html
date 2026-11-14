@@ -79,6 +79,14 @@
   </div>
 </div>
 
+<dialog id="daily-history" aria-labelledby="daily-history-title">
+  <header id="daily-history-header">
+    <h2 id="daily-history-title" data-i18n>Daily 3 Moves history</h2>
+    <button id="btn-daily-history-close" type="button" onclick="closeDailyHistory()" data-i18n-label aria-label="Close weekly history" autofocus>✕</button>
+  </header>
+  <ol id="daily-history-list"></ol>
+</dialog>
+
 <div id="scan-overlay" class="hidden" aria-live="polite">
   <div id="scan-header">
     <div id="scan-progress" data-i18n>1 / 6 — 기준면</div>
@@ -128,8 +136,15 @@
 
 <div id="guided-layer" class="hidden">
   <div id="guided-progress"><div id="guided-progress-fill"></div></div>
-  <button id="btn-guided-exit" onclick="exitGuidedSolve()" data-i18n-label aria-label="따라 하기 닫기">✕</button>
-  <div id="guided-hint" data-i18n>화면과 똑같이 들고, 탭하세요</div>
+  <button id="btn-guided-exit" type="button" onclick="exitGuidedSolve()" data-i18n-label aria-label="Close guided solve">✕</button>
+  <div id="guided-controls">
+    <p id="guided-hint" data-i18n>Hold the cube like the picture.</p>
+    <div id="guided-navigation">
+      <button id="btn-guided-prev" type="button" onclick="guidedPrev()" disabled data-i18n>Previous</button>
+      <span id="guided-progress-label" role="status"></span>
+      <button id="btn-guided-next" type="button" onclick="guidedNext()" data-i18n>Next</button>
+    </div>
+  </div>
 </div>
 
 <div id="top-bar">
@@ -145,7 +160,10 @@
 </details>
 <button id="btn-stats" onclick="openDashboard()" data-i18n-label aria-label="Open statistics">📊</button>
 <div id="ui">
-  <button id="btn-daily" type="button" onclick="startDailyChallenge()" data-i18n>Daily 3 Moves</button>
+  <div id="daily-controls" class="ui-row" hidden>
+    <button id="btn-daily" type="button" onclick="startDailyChallenge()" data-i18n>Daily 3 Moves</button>
+    <button id="btn-daily-history" type="button" onclick="openDailyHistory()" aria-haspopup="dialog" data-i18n>Weekly history</button>
+  </div>
   <div id="challenge-controls" hidden>
     <p id="challenge-message" aria-live="polite"></p>
     <div class="ui-row">

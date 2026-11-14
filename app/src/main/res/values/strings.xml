@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Cubie</string>
+    <string name="app_name" translatable="false">Cubie</string>
     <string name="ui_language">en</string>
     <string name="camera_permission_title">Camera permission required</string>
     <string name="camera_permission_message">Allow camera access in Settings to scan your cube.</string>

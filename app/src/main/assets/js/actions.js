@@ -33,6 +33,10 @@ function resetSolution() {
 function resetButtons() {
   isSolving = false;
   resetSolution();
+  enableGameButtons();
+}
+
+function enableGameButtons() {
   document.getElementById('btn-solve').disabled   = false;
   document.getElementById('btn-shuffle').disabled = false;
   document.getElementById('btn-scan').disabled = false;

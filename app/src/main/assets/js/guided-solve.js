@@ -1,6 +1,6 @@
 // ─── 스캔 솔브 가이드 모드 (프로토타입) ──────────────────────────────────────
-// 글 설명 없이 "보고 따라 하기": 움직일 줄만 밝게 + 3D 화살표 + 회전 반복 재생.
-// 탭/왼쪽 스와이프 = 다음 수, 오른쪽 스와이프 = 이전 수.
+// 움직일 줄만 밝게 + 3D 화살표 + 회전 반복 재생.
+// 이전·다음 버튼과 탭/스와이프로 단계를 이동한다.
 // solutionMoves / solutionIndex(solve.js)를 그대로 쓰고, 시점은 표준 각도로 고정한다.
 
 let isGuidedSolve = false;
@@ -38,21 +38,21 @@ function openGuidedSolve() {
   document.body.classList.add('guided-active');
   document.getElementById('guided-layer').classList.remove('hidden');
   document.getElementById('guided-hint').classList.remove('hidden');
-  renderGuidedProgress();
+  renderGuidedControls();
   startGuidedPreview();
 }
 
 function closeGuidedSolve() {
   stopGuidedPreview();
   isGuidedSolve = false;
-  guidedBusy = false;
+  guidedPointer = null;
   document.body.classList.remove('guided-active');
   document.getElementById('guided-layer').classList.add('hidden');
   camDist = 13;
   updateCamera();
   markDirty();
-  resetButtons();
-  setMoveCount(moveCount);
+  _refreshSolveLabel();
+  enableGameButtons();
 }
 
 function exitGuidedSolve() {
@@ -68,36 +68,19 @@ function exitGuidedSolve() {
 
 // ─── 진행 ────────────────────────────────────────────────────────────────
 function guidedNext() {
-  if (!isGuidedSolve || guidedBusy || !solutionMoves) return;
-  if (solutionIndex >= solutionMoves.length) return;
-  hideGuidedHint();
-  runGuidedMove(solutionMoves[solutionIndex], () => {
-    solutionIndex++;
-    if (solutionIndex >= solutionMoves.length) {
-      const total = solutionMoves.length;
-      closeGuidedSolve();
-      setStatus('Solved!');
-      setMoveCount(0);
-      showSolvedOverlay(null, total, null);
-      return;
-    }
-    renderGuidedProgress();
-    startGuidedPreview();
-  });
+  if (!isGuidedSolve || guidedBusy || solutionIndex >= solutionMoves.length) return;
+  runGuidedMove(solutionMoves[solutionIndex], 1);
 }
 
 function guidedPrev() {
-  if (!isGuidedSolve || guidedBusy || !solutionMoves || solutionIndex === 0) return;
-  hideGuidedHint();
-  runGuidedMove(inverseMoveOf(solutionMoves[solutionIndex - 1]), () => {
-    solutionIndex--;
-    renderGuidedProgress();
-    startGuidedPreview();
-  });
+  if (!isGuidedSolve || guidedBusy || solutionIndex === 0) return;
+  runGuidedMove(inverseMoveOf(solutionMoves[solutionIndex - 1]), -1);
 }
 
-function runGuidedMove(moveName, onDone) {
+function runGuidedMove(moveName, stepChange) {
   guidedBusy = true;
+  document.getElementById('guided-hint').classList.add('hidden');
+  renderGuidedControls();
   stopGuidedPreview();
   // isSolving=true → applyMove가 수동 이동으로 취급하지 않음(솔루션 유지·undo 미기록)
   isSolving = true;
@@ -105,20 +88,29 @@ function runGuidedMove(moveName, onDone) {
     isSolving = false;
     guidedBusy = false;
     window.AndroidBridge?.hapticFeedback?.();
-    onDone();
-    // 마지막 수였다면 onDone에서 이미 완료 처리·종료됨 (isGuidedSolve=false)
-    if (guidedExitRequested && isGuidedSolve) exitGuidedSolve();
+    solutionIndex += stepChange;
+    if (solutionIndex === solutionMoves.length) {
+      const total = solutionMoves.length;
+      resetSolution();
+      closeGuidedSolve();
+      setMoveCount(0);
+      showSolvedOverlay(null, total, null);
+    } else if (guidedExitRequested) {
+      exitGuidedSolve();
+    } else {
+      renderGuidedControls();
+      startGuidedPreview();
+    }
   }, GUIDED_MOVE_MS);
 }
 
-function renderGuidedProgress() {
-  const total = solutionMoves ? solutionMoves.length : 0;
-  const ratio = total ? solutionIndex / total : 0;
-  document.getElementById('guided-progress-fill').style.width = (ratio * 100) + '%';
-}
-
-function hideGuidedHint() {
-  document.getElementById('guided-hint').classList.add('hidden');
+function renderGuidedControls() {
+  const total = solutionMoves.length;
+  document.getElementById('guided-progress-label').textContent =
+    t('Step {step} of {total}', { step: solutionIndex + 1, total });
+  document.getElementById('guided-progress-fill').style.width = (solutionIndex / total * 100) + '%';
+  document.getElementById('btn-guided-prev').disabled = guidedBusy || solutionIndex === 0;
+  document.getElementById('btn-guided-next').disabled = guidedBusy;
 }
 
 // ─── 미리보기: 줄 강조 + 화살표 + 반복 회전 ───────────────────────────────
@@ -246,14 +238,15 @@ function buildGuidedArrow(axis, offset, direction, turns) {
   if (!layer) return;
 
   layer.addEventListener('pointerdown', e => {
-    if (e.target.closest('button')) return;
-    guidedPointer = { x: e.clientX, y: e.clientY };
+    if (guidedBusy || e.target.closest('button, #guided-controls')) return;
+    guidedPointer = { id: e.pointerId, x: e.clientX, y: e.clientY };
   });
   layer.addEventListener('pointerup', e => {
-    if (!guidedPointer) return;
+    if (guidedPointer?.id !== e.pointerId) return;
     const dx = e.clientX - guidedPointer.x;
     const dy = e.clientY - guidedPointer.y;
     guidedPointer = null;
+    if (e.target.closest('button, #guided-controls')) return;
     if (Math.abs(dx) > GUIDED_SWIPE_PX && Math.abs(dx) > Math.abs(dy)) {
       if (dx > 0) guidedPrev(); else guidedNext();
     } else if (Math.hypot(dx, dy) < GUIDED_SWIPE_PX) {

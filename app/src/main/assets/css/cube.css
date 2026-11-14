@@ -107,6 +107,7 @@ body[data-theme="dark"] #ui {
 }
 body[data-theme="dark"] #btn-undo,
 body[data-theme="dark"] #btn-redo,
+body[data-theme="dark"] #btn-daily-history,
 body[data-theme="dark"] #options-panel button,
 body[data-theme="dark"] #challenge-controls button {
   background: rgba(255,255,255,0.08);
@@ -142,11 +143,21 @@ body[data-theme="dark"] .s-lbl.pb-lbl { color: rgba(255,255,255,0.25); }
 #free-play-controls, #challenge-controls { display: grid; gap: 8px; }
 #ui [hidden], #solved-card [hidden] { display: none; }
 #btn-daily {
+  flex: 1;
   min-height: 44px;
+  padding: 6px 8px;
   background: #5B5FEF;
   color: #fff;
   font-size: 15px;
 }
+#btn-daily-history {
+  min-height: 44px;
+  padding: 6px 12px;
+  background: rgba(0,0,0,0.055);
+  color: #333;
+  font-size: 14px;
+}
+#btn-daily[hidden] + #btn-daily-history { flex: 1; }
 #challenge-message, #solved-detail {
   color: #464653;
   text-align: center;
@@ -229,6 +240,58 @@ button:focus-visible, #app-options summary:focus-visible { outline: 2px solid #2
   animation: btn-calculating 0.9s ease-in-out infinite;
   pointer-events: none;
 }
+
+#daily-history {
+  position: fixed;
+  inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  margin: auto;
+  width: min(440px, calc(100% - var(--safe-left) - var(--safe-right) - 28px));
+  max-width: none;
+  max-height: calc(100% - var(--safe-top) - var(--safe-bottom) - 28px);
+  border: 0;
+  border-radius: 24px;
+  background: #fff;
+  color: #222;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+}
+#daily-history::backdrop { background: rgba(19,20,32,0.48); }
+#daily-history-header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px 8px;
+  background: inherit;
+}
+#daily-history-title { font-size: 19px; }
+#btn-daily-history-close {
+  flex: 0 0 44px;
+  min-height: 44px;
+  background: rgba(0,0,0,0.055);
+  color: inherit;
+}
+#daily-history-list { list-style: none; padding: 0 10px 12px; }
+#daily-history-list li + li { border-top: 1px solid rgba(0,0,0,0.08); }
+#daily-history-list button {
+  justify-content: space-between;
+  width: 100%;
+  min-height: 56px;
+  gap: 12px;
+  padding: 8px 10px;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+}
+#daily-history-list time { display: block; font-size: 14px; }
+.daily-history-status { display: block; margin-top: 3px; color: #5c5c68; font-size: 13px; }
+.daily-history-action { flex: 0 0 auto; color: #484ccd; font-size: 13px; }
+body[data-theme="dark"] #daily-history { background: #2c2c2e; color: #f0f0f0; }
+body[data-theme="dark"] #btn-daily-history-close { background: rgba(255,255,255,0.08); }
+body[data-theme="dark"] #daily-history-list li + li { border-color: rgba(255,255,255,0.12); }
+body[data-theme="dark"] .daily-history-status { color: #c1c1cc; }
+body[data-theme="dark"] .daily-history-action { color: #b8b9ff; }
 
 /* ── Cube scan ───────────────────────────────────────────────── */
 #scan-overlay {
@@ -916,24 +979,48 @@ body.guided-active #ui { display: none; }
   color: #333;
   font-size: 16px;
 }
-#guided-hint {
+#guided-controls {
   position: absolute;
-  left: 50%;
-  bottom: calc(48px + var(--safe-bottom));
-  transform: translateX(-50%);
-  padding: 10px 18px;
-  border-radius: 20px;
-  background: rgba(0,0,0,0.62);
-  color: #fff;
-  font-size: 15px;
-  white-space: nowrap;
-  pointer-events: none;
-  animation: guidedHintPulse 1.6s ease-in-out infinite;
+  left: calc(14px + var(--safe-left));
+  right: calc(14px + var(--safe-right));
+  bottom: calc(16px + var(--safe-bottom));
+  max-width: 400px;
+  margin-inline: auto;
+  text-align: center;
+  color: #222;
+}
+#guided-hint {
+  display: table;
+  margin: 0 auto 8px;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.92);
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 600;
 }
 #guided-hint.hidden { display: none; }
-@keyframes guidedHintPulse {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
+#guided-navigation {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
 }
+#guided-navigation button {
+  min-height: 44px;
+  padding: 6px 8px;
+  font-size: 14px;
+}
+#btn-guided-prev { background: rgba(0,0,0,0.07); color: inherit; }
+#btn-guided-next { background: #484ccd; color: #fff; }
+#guided-progress-label { font-size: 13px; font-weight: 600; }
+body[data-theme="dark"] #guided-controls { color: #f0f0f0; }
+body[data-theme="dark"] #guided-navigation,
+body[data-theme="dark"] #guided-hint { background: rgba(44,44,46,0.95); }
+body[data-theme="dark"] #btn-guided-prev { background: rgba(255,255,255,0.12); }
 body[data-theme="dark"] #guided-progress { background: rgba(255,255,255,0.14); }
 body[data-theme="dark"] #btn-guided-exit { background: rgba(60,60,64,0.85); color: #f0f0f0; }

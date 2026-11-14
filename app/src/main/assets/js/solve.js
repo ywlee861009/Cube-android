@@ -7,9 +7,12 @@ let _solveAdRequired = !!window.AndroidBridge;
 
 // 솔브 버튼 라벨 갱신 — resetSolution()에서 호출
 function _refreshSolveLabel() {
-  document.getElementById('btn-solve').textContent = solutionMoves
-    ? (solutionIndex + 1) + ' / ' + solutionMoves.length
-    : (_solveAdRequired ? '📺 ' : '⚡ ') + t('Solve');
+  const button = document.getElementById('btn-solve');
+  if (solutionMoves) {
+    button.textContent = isScanSolve ? t('Solve') : (solutionIndex + 1) + ' / ' + solutionMoves.length;
+  } else {
+    button.textContent = (_solveAdRequired ? '📺 ' : '⚡ ') + t('Solve');
+  }
 }
 
 // ─── Android 광고 콜백 ──────────────────────────────────────────────────────
@@ -30,11 +33,12 @@ window.onSolveGranted = function() {
 
 // ─── 솔브 진입점 ───────────────────────────────────────────────────────────
 function solveCube() {
-  if (isShuffling || isSolving || isChallengeActive()) return;
+  if (isShuffling || isSolving || isGuidedSolve || isChallengeActive()) return;
 
-  // 솔루션이 이미 계산된 상태 → 탭할 때마다 1수씩 실행
+  // 계산된 해법이 있으면 현재 위치에서 이어서 진행한다.
   if (solutionMoves && solutionIndex < solutionMoves.length) {
-    stepSolution();
+    if (isScanSolve && (isUndoRedo || layerGroup !== null)) return;
+    continueSolution();
     return;
   }
 
@@ -99,17 +103,18 @@ async function _runSolve() {
     usedSolver = true;  // 솔루션이 실제로 셋업될 때만 플래그 설정
     solutionMoves = moves;
     solutionIndex = 0;
-    if (isScanSolve && typeof openGuidedSolve === 'function') {
-      openGuidedSolve();  // 실물 큐브용: 첫 수 자동 실행 없이 가이드 모드로 진입
-      return;
-    }
-    stepSolution();  // 광고 소비 직후 첫 수 자동 실행
+    continueSolution();
   } catch (e) {
     document.getElementById('btn-solve').classList.remove('calculating');
     console.error('[Solve]', e);
     setStatus('Could not find a solution. Try again.');
     resetButtons();
   }
+}
+
+function continueSolution() {
+  if (isScanSolve) openGuidedSolve();
+  else stepSolution();
 }
 
 // ─── 솔루션 1수 실행 (Solve 버튼 탭마다) ───────────────────────────────────

@@ -3,20 +3,26 @@ const DAILY_SCRAMBLES = [
   "F R' U", "R U F'", "U F R'", "F' U' R", "R F' U'", "U' R' F",
   "R' U' F'", "F U R", "U R' F'", "F' R U'", "R' F U", "U' F' R'",
   "U F' R", "R U' F",
+  "R F R'", "U R U'", "F U F'", "U' R U", "F' U F", "R' F R",
+  "U F U", "F R F", "R U R", "U' F' U'", "F' R' F'", "R' U' R'",
+  "R U' R", "F R' F", "U F' U", "F' U' F'",
 ];
 const CHALLENGE_KEY = 'cubie-challenge-v1';
+const DAY_MS = 86400000;
+const LEGACY_DAILY_COUNT = 14;
+// Keep earlier dates on their original schedule and lead with the new puzzles.
+const DAILY_CATALOG_START = Date.UTC(2026, 10, 15) / DAY_MS;
 const LESSON_MOVE = "U'";
 const CHALLENGE_FACES = { U: 'top', R: 'right', F: 'front', D: 'bottom', L: 'left', B: 'back' };
 const challengeButton = document.getElementById('btn-daily');
+const dailyHistoryDialog = document.getElementById('daily-history');
 const lessonButton = document.getElementById('btn-lesson-turn');
 const hintButton = document.getElementById('btn-challenge-hint');
+const dailyDateFormat = new Intl.DateTimeFormat(uiLocale, {
+  month: 'short', day: 'numeric', weekday: 'short', timeZone: 'UTC',
+});
 
-let challengeData = {};
-try {
-  const saved = JSON.parse(localStorage.getItem(CHALLENGE_KEY));
-  if (saved && typeof saved === 'object' && !Array.isArray(saved)) challengeData = saved;
-} catch (_) { /* Storage can be unavailable in a browser preview. */ }
-
+const challengeData = loadChallengeData();
 let challenge = null;
 let freePlay = null;
 let challengeArrow = null;
@@ -31,7 +37,32 @@ function saveChallengeData() {
 
 function dailyDate() {
   const now = new Date();
-  return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000;
+  return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / DAY_MS;
+}
+
+function dailyScramble(date) {
+  const legacy = date < DAILY_CATALOG_START;
+  const length = legacy ? LEGACY_DAILY_COUNT : DAILY_SCRAMBLES.length;
+  const index = legacy ? date : date - DAILY_CATALOG_START + LEGACY_DAILY_COUNT;
+  return DAILY_SCRAMBLES[((index % length) + length) % length];
+}
+
+function loadChallengeData() {
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem(CHALLENGE_KEY)); }
+  catch (_) { /* Storage can be unavailable in a browser preview. */ }
+
+  const { lessonSeen, days, completedDate, draft } = saved ?? {};
+  const entries = days && typeof days === 'object' && !Array.isArray(days) ? days : {};
+  if (Number.isSafeInteger(completedDate) && !entries[completedDate]) {
+    const index = ((completedDate % LEGACY_DAILY_COUNT) + LEGACY_DAILY_COUNT) % LEGACY_DAILY_COUNT;
+    entries[completedDate] = { scramble: DAILY_SCRAMBLES[index], best: {} };
+  }
+  if (Number.isSafeInteger(draft?.date) && DAILY_SCRAMBLES.includes(draft.scramble)) {
+    const entry = entries[draft.date] ??= { scramble: draft.scramble };
+    entry.draft ??= { moves: draft.moves, hints: draft.hints };
+  }
+  return { lessonSeen, days: entries };
 }
 
 function challengeBusy() {
@@ -39,17 +70,19 @@ function challengeBusy() {
     animRafId !== null || layerGroup !== null || document.getElementById('btn-shuffle').disabled;
 }
 
-function startDailyChallenge() {
-  if (challengeBusy() || (challenge && !challenge.completed)) return;
-  const date = dailyDate();
-  const scramble = DAILY_SCRAMBLES[((date % DAILY_SCRAMBLES.length) + DAILY_SCRAMBLES.length) % DAILY_SCRAMBLES.length];
-  const draft = challengeData.draft;
-  const resume = draft?.date === date && DAILY_SCRAMBLES.includes(draft.scramble) &&
-    Array.isArray(draft.moves) && draft.moves.every(move => Object.prototype.hasOwnProperty.call(MOVE_ANIM_MAP, move));
+function startDailyChallenge(date = challenge?.date ?? dailyDate()) {
+  if (challengeBusy() || (challenge?.kind === 'lesson' && !challenge.completed)) return false;
+  if (challenge?.date === date && !challenge.completed) return true;
+
+  const entry = challengeData.days[date] ??= { scramble: dailyScramble(date) };
+  const draft = entry.draft;
+  const resume = Array.isArray(draft?.moves) &&
+    draft.moves.every(move => Object.prototype.hasOwnProperty.call(MOVE_ANIM_MAP, move));
   enterChallenge({
-    kind: 'daily', date, scramble: resume ? draft.scramble : scramble,
+    kind: 'daily', date, scramble: entry.scramble,
     hints: resume && Number.isSafeInteger(draft.hints) ? Math.max(0, draft.hints) : 0,
   }, resume ? draft.moves : []);
+  return true;
 }
 
 function enterChallenge(next, moves = []) {
@@ -123,12 +156,12 @@ function exitChallenge() {
 function renderChallengeControls() {
   const lesson = challenge?.kind === 'lesson';
   const playing = challenge && !challenge.completed;
-  const date = dailyDate();
-  const resume = challengeData.draft?.date === date;
-  const dailyLabel = resume ? 'Resume Daily 3 Moves'
-    : challengeData.completedDate === date ? 'Daily 3 Moves · Completed' : 'Daily 3 Moves';
+  const today = challengeData.days[dailyDate()];
+  const dailyLabel = today?.draft ? 'Resume Daily 3 Moves'
+    : today?.best ? 'Daily 3 Moves · Completed' : 'Daily 3 Moves';
   challengeButton.hidden = !!playing;
   challengeButton.textContent = t(challenge?.kind === 'daily' ? 'Try again' : dailyLabel);
+  document.getElementById('daily-controls').hidden = lesson && !!playing;
   document.getElementById('free-play-controls').hidden = !!challenge;
   document.getElementById('btn-scan').hidden = !!challenge && !lesson;
   document.getElementById('challenge-controls').hidden = !challenge;
@@ -155,18 +188,18 @@ function updateChallengeProgress() {
   if (solved) {
     challenge.completed = true;
     if (lesson) challengeData.lessonSeen = true;
-    else {
-      challengeData.completedDate = challenge.date;
-      delete challengeData.draft;
-    }
+    else recordDailyCompletion();
     saveChallengeData();
-    setChallengeMessage(lesson ? 'Try today’s puzzle next.' : 'A new puzzle arrives tomorrow.');
+    const today = challenge.date === dailyDate();
+    const message = lesson ? 'Try today’s puzzle next.'
+      : today ? 'A new puzzle arrives tomorrow.' : 'Puzzle completed.';
+    setChallengeMessage(message);
     showSolvedOverlay(null, moveCount, null, {
-      title: lesson ? 'Your first solve!' : 'Today’s cube is solved!',
+      title: lesson ? 'Your first solve!' : today ? 'Today’s cube is solved!' : 'Puzzle solved!',
       detail: lesson ? t('Try today’s puzzle next.') : [
         challenge.hints ? t('Hints used: {count}', { count: challenge.hints }) : t('No hints used'),
-        t('A new puzzle arrives tomorrow.'),
-      ].join(' · '),
+        today ? t(message) : '',
+      ].filter(Boolean).join(' · '),
       action: lesson ? 'Daily 3 Moves' : 'Try again',
       onAgain: startDailyChallenge,
     });
@@ -177,17 +210,86 @@ function updateChallengeProgress() {
     drawChallengeArrow(firstMove ? LESSON_MOVE : inverseMoveOf(undoStack[undoStack.length - 1].moveName));
   } else {
     saveDailyDraft();
-    setChallengeMessage('Solve the cube in three moves.');
+    if (challenge.date === dailyDate()) setChallengeMessage('Solve the cube in three moves.');
+    else setChallengeMessage('Puzzle for {date} · Solve the cube in three moves.', {
+      date: dailyDateFormat.format(challenge.date * DAY_MS),
+    });
   }
   renderChallengeControls();
 }
 
 function saveDailyDraft() {
-  challengeData.draft = {
-    date: challenge.date, scramble: challenge.scramble, hints: challenge.hints,
+  challengeData.days[challenge.date].draft = {
+    hints: challenge.hints,
     moves: undoStack.map(entry => entry.moveName),
   };
   saveChallengeData();
+}
+
+function recordDailyCompletion() {
+  const entry = challengeData.days[challenge.date];
+  const best = entry.best;
+  if (best?.moves === undefined || moveCount < best.moves ||
+      (moveCount === best.moves && challenge.hints < best.hints)) {
+    entry.best = { moves: moveCount, hints: challenge.hints };
+  }
+  delete entry.draft;
+}
+
+function openDailyHistory() {
+  if (challengeBusy() || dailyHistoryDialog.open) return;
+  renderDailyHistory();
+  dailyHistoryDialog.showModal();
+}
+
+function closeDailyHistory() {
+  if (!dailyHistoryDialog.open) return false;
+  dailyHistoryDialog.close();
+  return true;
+}
+
+function renderDailyHistory() {
+  const today = dailyDate();
+  const list = document.getElementById('daily-history-list');
+  list.replaceChildren();
+  for (let date = today; date > today - 7; date--) {
+    const entry = challengeData.days[date];
+    const best = entry?.best;
+    const calendarDate = new Date(date * DAY_MS);
+    const dateLabel = dailyDateFormat.format(calendarDate);
+    const time = document.createElement('time');
+    time.dateTime = calendarDate.toISOString().slice(0, 10);
+    time.textContent = date === today ? t('Today · {date}', { date: dateLabel }) : dateLabel;
+
+    const status = document.createElement('span');
+    status.className = 'daily-history-status';
+    if (best?.moves !== undefined) {
+      status.textContent = [
+        t('Best · {count} moves', { count: best.moves }),
+        t(best.hints ? 'Hint used' : 'No hints used'),
+      ].join(' · ');
+    } else if (best) {
+      status.textContent = t('Completed · Details unavailable');
+    } else {
+      status.textContent = t(entry?.draft ? 'In progress' : 'Not solved');
+    }
+
+    const info = document.createElement('span');
+    info.append(time, status);
+    const action = document.createElement('span');
+    action.className = 'daily-history-action';
+    action.textContent = t(entry?.draft ? 'Resume puzzle' : best ? 'Replay puzzle' : 'Play puzzle');
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.append(info, action);
+    button.addEventListener('click', () => {
+      if (startDailyChallenge(date)) closeDailyHistory();
+    });
+    const item = document.createElement('li');
+    item.append(button);
+    list.append(item);
+  }
 }
 
 function turnLessonLayer() {
@@ -241,6 +343,7 @@ function clearChallengeArrow() {
 // Returning to a home screen that stayed open across midnight updates its CTA.
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && !challenge) renderChallengeControls();
+  if (!document.hidden && dailyHistoryDialog.open) renderDailyHistory();
 });
 
 const options = document.getElementById('app-options');

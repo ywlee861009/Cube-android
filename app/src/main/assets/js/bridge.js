@@ -19,6 +19,7 @@ window.AndroidCube = {
 // Android 뒤로 가기: 열린 화면을 위에 있는 것부터 하나 닫고 true, 닫을 게 없으면 false(앱 종료).
 // 스캔 카메라 화면은 네이티브(MainActivity)에서 먼저 처리한다.
 function handleAndroidBack() {
+  if (closeDailyHistory()) return true;
   const isOpen = id => {
     const el = document.getElementById(id);
     return !!el && !el.classList.contains('hidden');
