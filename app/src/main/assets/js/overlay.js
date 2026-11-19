@@ -13,6 +13,14 @@ function showSolvedOverlay(elapsedMs, moves, pbResult, challengeResult = null) {
   solvedAction = challengeResult?.onAgain ?? null;
   document.getElementById('solved-title').textContent = t(challengeResult?.title ?? 'Solved!');
   document.getElementById('btn-play-again').textContent = t(challengeResult?.action ?? '⇄ Play Again');
+  const secondary = challengeResult?.secondary;
+  const secondaryButton = document.getElementById('btn-solved-secondary');
+  secondaryButton.hidden = !secondary;
+  secondaryButton.textContent = secondary ? t(secondary.label) : '';
+  secondaryButton.onclick = secondary ? () => {
+    dismissSolvedOverlay();
+    secondary.onClick();
+  } : null;
   document.getElementById('solved-time-stat').hidden = !!challengeResult;
   const detail = document.getElementById('solved-detail');
   detail.hidden = !challengeResult;

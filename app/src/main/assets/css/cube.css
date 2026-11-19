@@ -112,6 +112,8 @@ body[data-theme="dark"] #ui {
 body[data-theme="dark"] #btn-undo,
 body[data-theme="dark"] #btn-redo,
 body[data-theme="dark"] #btn-daily-history,
+body[data-theme="dark"] #btn-daily-bonus,
+body[data-theme="dark"] #btn-solved-secondary,
 body[data-theme="dark"] #options-panel button,
 body[data-theme="dark"] #challenge-controls button {
   background: rgba(255,255,255,0.08);
@@ -160,6 +162,13 @@ body[data-theme="dark"] .pb-divider { background: rgba(255,255,255,0.1); }
   font-size: 14px;
 }
 #btn-daily[hidden] + #btn-daily-history { flex: 1; }
+#btn-daily-bonus {
+  min-height: 44px;
+  padding: 6px 12px;
+  background: rgba(91,95,239,0.10);
+  color: #3739a8;
+  font-size: 14px;
+}
 #challenge-message, #solved-detail {
   color: #464653;
   text-align: center;
@@ -241,7 +250,6 @@ body[data-theme="dark"] #btn-solve-exit { background: rgba(255,255,255,0.08); co
   background: var(--action-blue);
   color: #fff;
 }
-
 @keyframes btn-calculating {
   0%   { opacity: 1; }
   50%  { opacity: 0.45; }
@@ -746,6 +754,15 @@ body[data-theme="dark"] .s-val.pb-new { color: #ffce66; }
 #btn-play-again {
   width: 100%; padding: 13px 0; font-size: 15px;
   background: #5B5FEF; color: #fff; border-radius: 16px;
+}
+#btn-solved-secondary {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: rgba(0,0,0,0.055);
+  color: #333;
+  font-size: 14px;
 }
 
 /* ── Stats Button ────────────────────────────────────────────── */

@@ -38,6 +38,7 @@
     </div>
     <p id="solved-detail" hidden></p>
     <button id="btn-play-again" onclick="playAgain()" autofocus data-i18n>⇄ Play Again</button>
+    <button id="btn-solved-secondary" type="button" hidden></button>
   </div>
 </dialog>
 
@@ -182,10 +183,12 @@
     <button id="btn-daily" type="button" onclick="startDailyChallenge()" data-i18n>Daily 3 Moves</button>
     <button id="btn-daily-history" type="button" onclick="openDailyHistory()" aria-haspopup="dialog" data-i18n>Weekly history</button>
   </div>
+  <button id="btn-daily-bonus" type="button" onclick="startDailyBonusChallenge()" hidden data-i18n>Daily 5 Moves</button>
   <div id="challenge-controls" hidden>
     <p id="challenge-message" aria-live="polite"></p>
     <div class="ui-row">
       <button id="btn-challenge-hint" type="button" onclick="showChallengeHint()" data-i18n>Hint</button>
+      <button id="btn-daily-bonus-restart" type="button" onclick="restartDailyBonus()" hidden data-i18n>Restart puzzle</button>
       <button id="btn-lesson-turn" type="button" onclick="turnLessonLayer()" hidden data-i18n>Turn top layer</button>
       <button id="btn-challenge-exit" type="button" onclick="exitChallenge()" data-i18n>Free play</button>
     </div>

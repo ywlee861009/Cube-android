@@ -7,6 +7,18 @@ const DAILY_SCRAMBLES = [
   "U F U", "F R F", "R U R", "U' F' U'", "F' R' F'", "R' U' R'",
   "R U' R", "F R' F", "U F' U", "F' U' F'",
 ];
+const DAILY_BONUS_SCRAMBLES = [
+  "R' F R' F U'", "U R U R' U'", "U' F' U F U'",
+  "F' U' R F R", "U R' U R U'", "F U R' U R",
+  "U R' F R F'", "R U' F' U' R", "R U R' U' R",
+  "F' R' F' R F", "U' R F R F'", "U' R' F' R F'",
+  "U R F' R' U'", "R U' F' U' R'", "U' F R U R",
+  "F U' F R' F", "U' F U F' U'", "R' F U' R U'",
+  "U R U' F U'", "R F' U' F U'", "U R' U F U'",
+  "U' R F R' F'", "F' U R' F' U", "U R F U' F'",
+  "F' U R' U F", "U R' F' U R'", "U F' U' R' U",
+  "F' U F U R'", "U' R F' U R'", "F' U R U F'",
+];
 const CHALLENGE_KEY = 'cubie-challenge-v1';
 const DAY_MS = 86400000;
 const LEGACY_DAILY_COUNT = 14;
@@ -15,6 +27,8 @@ const DAILY_CATALOG_START = Date.UTC(2026, 10, 15) / DAY_MS;
 const LESSON_MOVE = "U'";
 const CHALLENGE_FACES = { U: 'top', R: 'right', F: 'front', D: 'bottom', L: 'left', B: 'back' };
 const challengeButton = document.getElementById('btn-daily');
+const bonusButton = document.getElementById('btn-daily-bonus');
+const bonusRestartButton = document.getElementById('btn-daily-bonus-restart');
 const dailyHistoryDialog = document.getElementById('daily-history');
 const lessonButton = document.getElementById('btn-lesson-turn');
 const hintButton = document.getElementById('btn-challenge-hint');
@@ -47,13 +61,20 @@ function dailyScramble(date) {
   return DAILY_SCRAMBLES[((index % length) + length) % length];
 }
 
+function dailyBonusScramble(date) {
+  const length = DAILY_BONUS_SCRAMBLES.length;
+  const index = date - DAILY_CATALOG_START;
+  return DAILY_BONUS_SCRAMBLES[((index % length) + length) % length];
+}
+
 function loadChallengeData() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(CHALLENGE_KEY)); }
   catch (_) { /* Storage can be unavailable in a browser preview. */ }
 
-  const { lessonSeen, days, completedDate, draft } = saved ?? {};
+  const { lessonSeen, days, bonusDays, completedDate, draft } = saved ?? {};
   const entries = days && typeof days === 'object' && !Array.isArray(days) ? days : {};
+  const bonusEntries = bonusDays && typeof bonusDays === 'object' && !Array.isArray(bonusDays) ? bonusDays : {};
   if (Number.isSafeInteger(completedDate) && !entries[completedDate]) {
     const index = ((completedDate % LEGACY_DAILY_COUNT) + LEGACY_DAILY_COUNT) % LEGACY_DAILY_COUNT;
     entries[completedDate] = { scramble: DAILY_SCRAMBLES[index], best: {} };
@@ -62,7 +83,7 @@ function loadChallengeData() {
     const entry = entries[draft.date] ??= { scramble: draft.scramble };
     entry.draft ??= { moves: draft.moves, hints: draft.hints };
   }
-  return { lessonSeen, days: entries };
+  return { lessonSeen, days: entries, bonusDays: bonusEntries };
 }
 
 function challengeBusy() {
@@ -70,19 +91,40 @@ function challengeBusy() {
     animRafId !== null || layerGroup !== null || document.getElementById('btn-shuffle').disabled;
 }
 
-function startDailyChallenge(date = challenge?.date ?? dailyDate()) {
-  if (challengeBusy() || (challenge?.kind === 'lesson' && !challenge.completed)) return false;
-  if (challenge?.date === date && !challenge.completed) return true;
+function startDailyChallenge(date = challenge?.kind === 'daily' ? challenge.date : dailyDate()) {
+  return startDailyPuzzle('daily', date);
+}
 
-  const entry = challengeData.days[date] ??= { scramble: dailyScramble(date) };
+function startDailyBonusChallenge(date = challenge?.kind === 'bonus' ? challenge.date : dailyDate()) {
+  if (!challengeData.days[date]?.best) return false;
+  return startDailyPuzzle('bonus', date);
+}
+
+function dailyEntries(kind) {
+  return kind === 'bonus' ? challengeData.bonusDays : challengeData.days;
+}
+
+function startDailyPuzzle(kind, date) {
+  if (challengeBusy() || (challenge?.kind === 'lesson' && !challenge.completed)) return false;
+  if (challenge?.kind === kind && challenge.date === date && !challenge.completed) return true;
+
+  const entry = dailyEntries(kind)[date] ??= {
+    scramble: kind === 'bonus' ? dailyBonusScramble(date) : dailyScramble(date),
+  };
   const draft = entry.draft;
   const resume = Array.isArray(draft?.moves) &&
     draft.moves.every(move => Object.prototype.hasOwnProperty.call(MOVE_ANIM_MAP, move));
   enterChallenge({
-    kind: 'daily', date, scramble: entry.scramble,
+    kind, date, scramble: entry.scramble,
     hints: resume && Number.isSafeInteger(draft.hints) ? Math.max(0, draft.hints) : 0,
   }, resume ? draft.moves : []);
   return true;
+}
+
+function restartDailyBonus() {
+  if (challenge?.kind !== 'bonus' || challenge.completed || challengeBusy()) return;
+  const { date, scramble } = challenge;
+  enterChallenge({ kind: 'bonus', date, scramble, hints: 0 });
 }
 
 function startLesson() {
@@ -165,11 +207,15 @@ function exitChallenge() {
 function renderChallengeControls() {
   const lesson = challenge?.kind === 'lesson';
   const playing = challenge && !challenge.completed;
-  const today = challengeData.days[dailyDate()];
+  const date = dailyDate();
+  const today = challengeData.days[date];
   const dailyLabel = today?.draft ? 'Resume Daily 3 Moves'
     : today?.best ? 'Daily 3 Moves · Completed' : 'Daily 3 Moves';
   challengeButton.hidden = !!playing;
   challengeButton.textContent = t(challenge?.kind === 'daily' ? 'Try again' : dailyLabel);
+  bonusButton.hidden = !today?.best || !!playing || (challenge?.date != null && challenge.date !== date);
+  bonusButton.textContent = t(dailyBonusLabel(date));
+  bonusRestartButton.hidden = !(playing && challenge.kind === 'bonus');
   document.getElementById('daily-controls').hidden = lesson && !!playing;
   document.getElementById('free-play-controls').hidden = !!challenge;
   document.getElementById('btn-scan').hidden = !!challenge && !lesson;
@@ -183,6 +229,12 @@ function renderChallengeControls() {
   updateUndoRedoButtons();
 }
 
+function dailyBonusLabel(date) {
+  const bonus = challengeData.bonusDays[date];
+  if (bonus?.draft) return 'Resume Daily 5 Moves';
+  return bonus?.best ? 'Replay Daily 5 Moves' : 'Daily 5 Moves';
+}
+
 function scanFromHome() {
   if (!challenge || (challenge.kind === 'lesson' && exitChallenge())) {
     saveFreePlaySession();
@@ -192,6 +244,40 @@ function scanFromHome() {
 
 function setChallengeMessage(message, values) {
   document.getElementById('challenge-message').textContent = t(message, values);
+}
+
+function showDailyCompletion() {
+  const { kind, date, hints } = challenge;
+  const today = date === dailyDate();
+  const bonus = kind === 'bonus';
+  const offerBonus = !bonus && today;
+  const message = offerBonus ? 'Try today’s 5-move challenge.'
+    : today ? 'A new puzzle arrives tomorrow.' : 'Puzzle completed.';
+  setChallengeMessage(message);
+
+  const details = [hints ? t('Hints used: {count}', { count: hints }) : t('No hints used')];
+  if (bonus) details.push(t('Best · {count} moves', { count: challengeData.bonusDays[date].best.moves }));
+  if (today) details.push(t(message));
+
+  let actions = { action: 'Try again', onAgain: () => startDailyChallenge(date) };
+  if (bonus) {
+    actions = {
+      action: 'Replay Daily 5 Moves',
+      onAgain: () => startDailyBonusChallenge(date),
+      secondary: { label: 'Free play', onClick: exitChallenge },
+    };
+  } else if (offerBonus) {
+    actions = {
+      action: dailyBonusLabel(date),
+      onAgain: () => startDailyBonusChallenge(date),
+      secondary: { label: 'Replay Daily 3 Moves', onClick: () => startDailyChallenge(date) },
+    };
+  }
+  showSolvedOverlay(null, moveCount, null, {
+    title: bonus ? 'Daily 5 Moves complete!' : today ? 'Today’s cube is solved!' : 'Puzzle solved!',
+    detail: details.join(' · '),
+    ...actions,
+  });
 }
 
 function updateChallengeProgress() {
@@ -204,19 +290,18 @@ function updateChallengeProgress() {
     if (lesson) challengeData.lessonSeen = true;
     else recordDailyCompletion();
     saveChallengeData();
-    const today = challenge.date === dailyDate();
-    const message = lesson ? 'Try today’s puzzle next.'
-      : today ? 'A new puzzle arrives tomorrow.' : 'Puzzle completed.';
-    setChallengeMessage(message);
-    showSolvedOverlay(null, moveCount, null, {
-      title: lesson ? 'Your first solve!' : today ? 'Today’s cube is solved!' : 'Puzzle solved!',
-      detail: lesson ? t('Try today’s puzzle next.') : [
-        challenge.hints ? t('Hints used: {count}', { count: challenge.hints }) : t('No hints used'),
-        today ? t(message) : '',
-      ].filter(Boolean).join(' · '),
-      action: lesson ? 'Daily 3 Moves' : 'Try again',
-      onAgain: startDailyChallenge,
-    });
+    if (lesson) {
+      const message = 'Try today’s puzzle next.';
+      setChallengeMessage(message);
+      showSolvedOverlay(null, moveCount, null, {
+        title: 'Your first solve!',
+        detail: t(message),
+        action: 'Daily 3 Moves',
+        onAgain: startDailyChallenge,
+      });
+    } else {
+      showDailyCompletion();
+    }
   } else if (lesson) {
     const firstMove = undoStack.length === 0;
     setChallengeMessage(firstMove ? 'One turn to go! Follow the arrow on the top layer.'
@@ -224,7 +309,8 @@ function updateChallengeProgress() {
     drawChallengeArrow(firstMove ? LESSON_MOVE : inverseMoveOf(undoStack[undoStack.length - 1].moveName));
   } else {
     saveDailyDraft();
-    if (challenge.date === dailyDate()) setChallengeMessage('Solve the cube in three moves.');
+    if (challenge.kind === 'bonus') setChallengeMessage('Solve the cube in five moves.');
+    else if (challenge.date === dailyDate()) setChallengeMessage('Solve the cube in three moves.');
     else setChallengeMessage('Puzzle for {date} · Solve the cube in three moves.', {
       date: dailyDateFormat.format(challenge.date * DAY_MS),
     });
@@ -233,7 +319,7 @@ function updateChallengeProgress() {
 }
 
 function saveDailyDraft() {
-  challengeData.days[challenge.date].draft = {
+  dailyEntries(challenge.kind)[challenge.date].draft = {
     hints: challenge.hints,
     moves: undoStack.map(entry => entry.moveName),
   };
@@ -241,7 +327,7 @@ function saveDailyDraft() {
 }
 
 function recordDailyCompletion() {
-  const entry = challengeData.days[challenge.date];
+  const entry = dailyEntries(challenge.kind)[challenge.date];
   const best = entry.best;
   if (best?.moves === undefined || moveCount < best.moves ||
       (moveCount === best.moves && challenge.hints < best.hints)) {
@@ -312,7 +398,7 @@ function turnLessonLayer() {
 }
 
 function showChallengeHint() {
-  if (challenge?.kind !== 'daily' || challenge.completed || challengeArrow || challengeBusy()) return;
+  if (!challenge || challenge.kind === 'lesson' || challenge.completed || challengeArrow || challengeBusy()) return;
   const solution = challenge.scramble.split(' ').reverse().map(inverseMoveOf);
   const position = Array.from({ length: 54 }, (_, i) => Math.floor(i / 9));
   challenge.scramble.split(' ').forEach(move => applyMoveInPlace(move, position));
