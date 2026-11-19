@@ -42,6 +42,17 @@ function clearTouchFeedback() {
   clearTouchedStickerHighlight();
 }
 
+function rollbackLayerDrag() {
+  if (dragMode === 'layer' && animRafId === null) commitLayerRotation(0);
+}
+
+function beginPinch() {
+  rollbackLayerDrag();
+  dragMode = 'pinch';
+  hitMesh = null;
+  clearTouchFeedback();
+}
+
 // ─── touchstart ──────────────────────────────────────────────────────────
 renderer.domElement.addEventListener('touchstart', e => {
   // Android WebView는 버튼 위를 탭해도 캔버스에 touchstart를 전달할 수 있음.
@@ -74,6 +85,7 @@ renderer.domElement.addEventListener('touchstart', e => {
       hitMesh = null;
     }
   } else if (e.touches.length === 2) {
+    beginPinch();
     prevPinchDist = getTouchDist(e.touches);
   }
 }, { passive: false });
@@ -84,7 +96,7 @@ renderer.domElement.addEventListener('touchmove', e => {
 
   // 핀치 줌
   if (e.touches.length === 2) {
-    dragMode = 'pinch';
+    if (dragMode !== 'pinch') beginPinch();
     const dist = getTouchDist(e.touches);
     if (prevPinchDist) {
       camDist = Math.max(CAM_MIN, Math.min(CAM_MAX, camDist * prevPinchDist / dist));
@@ -193,7 +205,6 @@ renderer.domElement.addEventListener('touchend', e => {
     clearTouchFeedback();
     dragMode = null; hitMesh = null; prevPinchDist = null;
   } else if (e.touches.length === 1) {
-    if (dragMode === 'pinch') dragMode = null;
     prevX = e.touches[0].clientX;
     prevY = e.touches[0].clientY;
     prevPinchDist = null;
@@ -201,6 +212,7 @@ renderer.domElement.addEventListener('touchend', e => {
 });
 
 renderer.domElement.addEventListener('touchcancel', () => {
+  rollbackLayerDrag();
   clearTouchFeedback();
   dragMode = null;
   hitMesh = null;
