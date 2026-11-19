@@ -1,5 +1,11 @@
 // ─── Fling RAF ID (레이어 & 뷰 fling 공유) ───────────────────────────────
 let flingRafId = null;
+const SNAP_UNIT = Math.PI / 2;
+
+function nearestLayerSnap(angle) {
+  const turns = Math.round(Math.abs(angle) / SNAP_UNIT);
+  return turns === 0 ? 0 : Math.sign(angle) * turns;
+}
 
 function cancelFling() {
   if (flingRafId === null) return;
@@ -7,7 +13,7 @@ function cancelFling() {
   flingRafId = null;
   // 레이어 fling 진행 중이면 현재 위치에서 즉시 스냅 확정
   if (layerGroup) {
-    commitLayerRotation(Math.round(layerAngle / (Math.PI / 2)));
+    commitLayerRotation(nearestLayerSnap(layerAngle));
   }
   viewVelX = viewVelY = 0;
 }
@@ -19,23 +25,18 @@ function finishLayerRotation() {
   // 손가락 정지 후 들어올린 경우 velocity 무효화
   if (performance.now() - prevLayerTime > 100) layerVelocity = 0;
 
-  const SNAP_UNIT = Math.PI / 2;
-  const baseSnap  = Math.round(layerAngle / SNAP_UNIT);
-
-  // 방향 의도 감지: 속도가 있고 같은 방향이면 35°(~38%) 부터 스냅 허용
   const INTENT_THRESHOLD = 0.0004; // rad/ms (낮춰서 가벼운 플릭도 감지)
-  let targetSnaps = baseSnap;
+  let targetSnaps;
 
   if (Math.abs(layerVelocity) > INTENT_THRESHOLD) {
     // 속도 방향으로 100ms 예측 (최대 ±1칸)
+    const baseSnap = nearestLayerSnap(layerAngle);
     const projected = layerAngle + layerVelocity * 100;
-    const projSnap  = Math.round(projected / SNAP_UNIT);
+    const projSnap = nearestLayerSnap(projected);
     targetSnaps = Math.max(baseSnap - 1, Math.min(baseSnap + 1, projSnap));
   } else {
-    // 속도 없을 때: 35° (약 38%) 넘었으면 그 방향으로 스냅
-    const fraction = layerAngle / SNAP_UNIT - Math.floor(layerAngle / SNAP_UNIT);
-    if (fraction > 0.39) targetSnaps = Math.floor(layerAngle / SNAP_UNIT) + 1;
-    else if (fraction < -0.39) targetSnaps = Math.ceil(layerAngle / SNAP_UNIT) - 1;
+    // 정지 후 놓으면 양쪽 모두 약 35°를 기준으로 확정한다.
+    targetSnaps = Math.abs(layerAngle) > SNAP_UNIT * 0.39 ? Math.sign(layerAngle) : 0;
   }
 
   // 한 제스처당 최대 1회 회전 (플릭 예측 포함)
