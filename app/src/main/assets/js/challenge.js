@@ -95,6 +95,7 @@ function startLesson() {
 function enterChallenge(next, moves = []) {
   if (!challenge) {
     saveFreePlaySession();
+    saveScanGuideProgress();
     freePlay = {
       facelets, moveCount, manualMoveCount, solveStartTime, usedSolver, isScanSolve,
       solutionMoves, solutionIndex, colors: activeFaceColors,
@@ -178,6 +179,7 @@ function renderChallengeControls() {
   hintButton.hidden = lesson || !playing;
   document.getElementById('btn-reset').hidden = !!challenge;
   document.getElementById('btn-practice').hidden = lesson && !!playing;
+  refreshScanResumeControls();
   updateUndoRedoButtons();
 }
 

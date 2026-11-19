@@ -10,6 +10,7 @@ let nextScanCaptureId = 0;
 let pendingScanCaptureId = null;
 let scanAdvanceTimer = null;
 let scanCameraReady = false;
+let scanResumePose = false;
 // null 이 아니면 "그 면 하나만 다시 촬영" 모드다. 검토 화면에서 진입한다.
 let scanRetakeSlot = null;
 
@@ -139,6 +140,7 @@ function renderScan3DLoop() {
 }
 
 function startScanFlow() {
+  if (hasSavedScan()) return resumeSavedScan();
   if (!beginScanSession()) return;
   currentScanStep = 0;
   scanRetakeSlot = null;
@@ -148,23 +150,6 @@ function startScanFlow() {
   startScanCamera();
 }
 
-// 스캔 결과 확인에서 뒤로 가기: 앞 5면 샘플은 유지하고 마지막 스텝의 면만 다시 찍는다.
-// 면 단위 재촬영과 달리 일반 진행 모드라 다시 뒤로 가면 스캔을 빠져나간다.
-function resumeScanAtLastFace() {
-  if (!beginScanSession()) return false;
-  currentScanStep = SCAN_STEPS.length - 1;
-  scanRetakeSlot = null;
-  pendingScanResult = null;
-  clearScanFace(currentScanSlot());
-  startScanCamera();
-  return true;
-}
-
-// 촬영 순서상 마지막 면의 슬롯. 슬롯 순서가 [0,2,3,1,5,4] 라 B(5)가 아니다.
-function lastScanStepSlot() {
-  return SCAN_STEPS[SCAN_STEPS.length - 1].slot;
-}
-
 // 센터 색이 잘못 읽히면 팔레트 전체가 틀어지는데 센터는 직접 편집할 수 없다.
 // 그 면만 다시 찍어 팔레트를 갱신하는 유일한 복구 경로다.
 function startScanFaceRetake(slot) {
@@ -172,12 +157,17 @@ function startScanFaceRetake(slot) {
   scanRetakeSlot = slot;
   currentScanStep = SCAN_STEPS.findIndex(step => step.slot === slot);
   startScanCamera();
-  setScanMessage('이 면만 다시 촬영합니다. 안내한 방향으로 맞춰 주세요.');
+  setScanMessage('Retake just this face. Match the orientation shown.');
   return true;
 }
 
+function canOpenScanFlow() {
+  return !isShuffling && !isSolving && !isUndoRedo && !isScanning && !isGuidedSolve &&
+    !isChallengeActive() && layerGroup === null && animRafId === null;
+}
+
 function beginScanSession() {
-  if (isShuffling || isSolving || isUndoRedo || isScanning || isChallengeActive()) return false;
+  if (!canOpenScanFlow()) return false;
   if (!window.AndroidBridge?.startScan) {
     setStatus('Camera scanning is available in the Android app.');
     return false;
@@ -192,8 +182,17 @@ function beginScanSession() {
   return true;
 }
 
-function startScanCamera() {
-  renderScanStep();
+function startScanCamera(resuming = false) {
+  const reference = scanFaceSamples[SCAN_STEPS[0].slot];
+  scanResumePose = resuming && reference !== null;
+  if (scanResumePose) {
+    const panel = document.getElementById('scan-resume-reference');
+    if (panel) {
+      panel.hidden = false;
+      renderRgbPreview(reference, 'scan-resume-reference-grid');
+    }
+  }
+  renderScanStep(scanResumePose ? scanResumeHints() : undefined);
   window.AndroidBridge.startScan(scanSessionId);
   if (!scan3DAnimationId) {
     renderScan3DLoop();
@@ -226,7 +225,7 @@ function onScanCancelled(sessionId, reason) {
     camera_error: 'Could not start the camera.',
     app_update_active: 'Try again after the update.'
   };
-  setStatus(messages[reason] || 'Scan cancelled.');
+  setStatus(messages[reason] || (hasSavedScan() ? 'Cube setup saved.' : 'Scan cancelled.'));
 }
 
 function captureCurrentScanFace() {
@@ -258,7 +257,7 @@ function retakePreviousScanFace() {
   cancelPendingScanCapture();
   const undoOps = invertScanOps(SCAN_STEPS[currentScanStep].ops);
   currentScanStep--;
-  renderScanStep(undoOps.map(op => SCAN_ROTATION_HINTS[op]));
+  renderScanStep(scanResumePose ? scanResumeHints() : undoOps.map(op => SCAN_ROTATION_HINTS[op]));
   setScanMessage('Back one step. Turn the cube as shown, then capture.');
 }
 
@@ -272,14 +271,16 @@ function cancelScanFlow() {
     if (pendingScanResult) openScanReview(pendingScanResult);
     return;
   }
-  clearScanSamples();
+  saveCapturedScanProgress();
   finishScanUi();
-  setStatus('Scan cancelled.');
+  setStatus(hasSavedScan() ? 'Cube setup saved.' : 'Scan cancelled.');
 }
 
 function acceptCapturedScanFace(faceIndex, samples) {
   pendingScanCaptureId = null;
   dropScanManualOverridesForFace(faceIndex);
+  clearScanResumePose();
+  saveCapturedScanProgress();
   renderRgbPreview(samples);
   const nextStep = SCAN_STEPS.findIndex(step => scanFaceSamples[step.slot] === null);
   if (nextStep === -1) {
@@ -305,21 +306,37 @@ function acceptCapturedScanFace(faceIndex, samples) {
 // 6면이 모두 모이면 분류한다. 재촬영이면 한 면만 교체된 상태로 전체를 다시 분류하므로
 // 팔레트도 함께 갱신된다. 확인 화면의 수동 수정은 다시 찍은 면의 것만 버리고 재적용한다.
 function finalizeScanCapture() {
-  const allSamples = getCollectedScanSamples();
   window.AndroidBridge?.stopScan?.(scanSessionId);
   const wasRetake = scanRetakeSlot !== null;
   scanRetakeSlot = null;
   finishScanUi();
+  reviewCapturedScan();
+  if (wasRetake) setStatus('Colors updated from the retaken face.');
+}
+
+function reviewCapturedScan() {
+  const allSamples = getCollectedScanSamples();
+  if (!allSamples) return;
   pendingScanResult = classifyFacelets(allSamples);
   pendingScanResult.validation = validateFacelets(pendingScanResult.facelets);
   pendingScanResult.lowLight = isScanTooDark(allSamples);
   window.dispatchEvent(new CustomEvent('scan-classified', { detail: pendingScanResult }));
   if (typeof openScanReview === 'function') {
     openScanReview(pendingScanResult);
-    if (wasRetake) setStatus('Colors updated from the retaken face.');
   } else {
     setStatus('All six faces captured.');
   }
+}
+
+function scanResumeHints() {
+  const ops = SCAN_STEPS.slice(0, currentScanStep + 1).flatMap(step => step.ops);
+  return ops.length ? ops.map(op => SCAN_ROTATION_HINTS[op]) : [SCAN_REFERENCE_HINT];
+}
+
+function clearScanResumePose() {
+  scanResumePose = false;
+  const panel = document.getElementById('scan-resume-reference');
+  if (panel) panel.hidden = true;
 }
 
 function onFaceSampleFailed(sessionId, captureId, faceIndex, reason) {
@@ -346,6 +363,9 @@ function renderScanStep(overrideHints) {
   document.getElementById('scan-rgb-preview').replaceChildren();
   // 재촬영 모드에는 "이전 면"이 없다 — 누르면 엉뚱한 슬롯을 지운다.
   document.getElementById('btn-scan-previous').disabled = retaking || currentScanStep === 0;
+  document.getElementById('btn-scan-cancel').textContent = t(
+    !retaking && hasSavedScan() ? 'Save and exit' : 'Cancel'
+  );
   updateScanCaptureButton();
   setScanMessage(scanCameraReady ? 'Line up one face with the grid, then capture.' : 'Getting the camera ready…');
   
@@ -369,8 +389,8 @@ function renderScanRotationHints(hints) {
   }));
 }
 
-function renderRgbPreview(samples) {
-  const container = document.getElementById('scan-rgb-preview');
+function renderRgbPreview(samples, id = 'scan-rgb-preview') {
+  const container = document.getElementById(id);
   container.replaceChildren(...samples.map(rgb => {
     const cell = document.createElement('div');
     cell.className = 'scan-rgb-cell';
@@ -396,6 +416,7 @@ function applyNativeScanGuideRect() {
 
 function finishScanUi() {
   cancelPendingScanCapture();
+  clearScanResumePose();
   scanCameraReady = false;
   isScanning = false;
   document.body.classList.remove('scan-active');

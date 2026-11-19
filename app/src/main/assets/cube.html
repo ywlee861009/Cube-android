@@ -103,6 +103,10 @@
   <div id="scan-header">
     <div id="scan-progress" data-i18n>1 / 6 — 기준면</div>
     <div id="scan-direction"></div>
+    <div id="scan-resume-reference" hidden>
+      <span data-i18n>Match this starting face and edge first.</span>
+      <div id="scan-resume-reference-grid" aria-hidden="true"></div>
+    </div>
     <div id="scan-rotation"></div>
     <div id="scan-3d-guide" aria-hidden="true"></div>
   </div>
@@ -197,6 +201,10 @@
       <button id="btn-solve-exit" type="button" onclick="exitSolution()" hidden data-i18n>End solve</button>
     </div>
   </div>
+  <div id="scan-resume-controls" class="ui-row" hidden>
+    <button id="btn-scan-resume" type="button" onclick="resumeSavedScan()" data-i18n>Resume scan</button>
+    <button id="btn-scan-discard" type="button" onclick="discardSavedScan()" data-i18n>Discard saved setup</button>
+  </div>
   <button id="btn-scan" onclick="scanFromHome()" data-i18n>📷 Scan Cube</button>
 </div>
 
@@ -242,6 +250,7 @@
 <script src="js/scan/scan-ui.js"></script>
 <script src="js/scan/scan-review.js"></script>
 <script src="js/scan/scan-apply.js"></script>
+<script src="js/scan/scan-persistence.js"></script>
 
 <!-- UI extras -->
 <script src="js/theme.js"></script>

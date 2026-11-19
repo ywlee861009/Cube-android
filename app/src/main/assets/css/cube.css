@@ -233,7 +233,7 @@ button:focus-visible, #app-options summary:focus-visible { outline: 2px solid #2
   color: #333;
 }
 body[data-theme="dark"] #btn-solve-exit { background: rgba(255,255,255,0.08); color: #ddd; }
-#btn-scan {
+#btn-scan, #btn-scan-resume {
   flex: 2;
   padding: 12px 0;
   font-size: 14px;
@@ -251,6 +251,14 @@ body[data-theme="dark"] #btn-solve-exit { background: rgba(255,255,255,0.08); co
   animation: btn-calculating 0.9s ease-in-out infinite;
   pointer-events: none;
 }
+#scan-resume-controls:not([hidden]) ~ #btn-scan { display: none; }
+#btn-scan-discard {
+  min-height: 48px;
+  padding: 6px 10px;
+  color: var(--muted-text);
+  background: rgba(0,0,0,0.055);
+}
+body[data-theme="dark"] #btn-scan-discard { background: rgba(255,255,255,0.08); }
 
 #daily-history {
   position: fixed;
@@ -356,6 +364,23 @@ body.scan-active #ui { display: none; }
   flex-direction: column;
   gap: 4px;
   margin-top: 8px;
+}
+#scan-resume-reference:not([hidden]) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.25;
+}
+#scan-resume-reference-grid {
+  flex: 0 0 34px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 2px;
+  height: 34px;
 }
 .scan-rotation-step {
   display: flex;

@@ -182,6 +182,7 @@ function setReviewCellColor(color) {
   reviewFacelets[selectedReviewIndex] = color;
   reviewConfidence[selectedReviewIndex] = 1;
   scanManualOverrides.set(selectedReviewIndex, color);
+  saveCapturedScanProgress();
   renderScanReview();
 }
 
@@ -195,16 +196,12 @@ function retakeSelectedScanFace() {
 
 function restartScanFromReview() {
   closeScanReview();
+  writeSavedScan(null);
   startScanFlow();
 }
 
-// Android 뒤로 가기: 결과를 버리지 않고 마지막 면 재촬영으로 돌아간다.
-// 앞 5면에서 손으로 고친 칸은 재분류 후 다시 덮어쓰고, 다시 찍을 마지막 면의 수정만 버린다.
-// 마지막 면은 촬영 순서 기준이다 — 슬롯 순서가 [0,2,3,1,5,4] 라 B 가 아니라 L 슬롯이다.
 function backFromScanReview() {
-  dropScanManualOverridesForFace(lastScanStepSlot());
-  closeScanReview();
-  if (!resumeScanAtLastFace()) cancelScanReview();
+  cancelScanReview();
 }
 
 function dropScanManualOverridesForFace(face) {
@@ -219,9 +216,8 @@ function clearScanManualOverrides() {
 
 function cancelScanReview() {
   closeScanReview();
-  clearScanManualOverrides();
   pendingScanResult = null;
-  setStatus('스캔 결과를 적용하지 않았어요.');
+  setStatus(hasSavedScan() ? 'Cube setup saved.' : 'Scan discarded.');
 }
 
 function confirmScanReview() {
@@ -232,11 +228,13 @@ function confirmScanReview() {
   }
   if (typeof applyScannedFacelets === 'function') {
     const palette = reviewPalette && reviewPalette.length === 6 ? reviewPalette : null;
+    if (!isScanSolve && typeof saveFreePlaySession === 'function') saveFreePlaySession();
     const result = applyScannedFacelets(reviewFacelets, palette);
     if (!result.ok) {
       document.getElementById('scan-validation-message').textContent = localizedValidationMessage(result);
       return;
     }
+    saveScanGuideProgress(true);
     scanFailedAttempts = 0;
     clearScanManualOverrides();
     closeScanReview();

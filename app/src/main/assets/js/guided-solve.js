@@ -38,6 +38,7 @@ function openGuidedSolve() {
   document.body.classList.add('guided-active');
   document.getElementById('guided-layer').classList.remove('hidden');
   document.getElementById('guided-hint').classList.remove('hidden');
+  saveScanGuideProgress();
   renderGuidedControls();
   startGuidedPreview();
 }
@@ -91,15 +92,24 @@ function runGuidedMove(moveName, stepChange) {
     solutionIndex += stepChange;
     if (solutionIndex === solutionMoves.length) {
       const total = solutionMoves.length;
+      const solved = isCubeSolved();
       resetSolution();
       closeGuidedSolve();
+      saveScanGuideProgress();
+      if (!solved) {
+        setStatus('The cube is still unsolved. Tap Solve to recalculate.');
+        return;
+      }
       setMoveCount(0);
       showSolvedOverlay(null, total, null);
-    } else if (guidedExitRequested) {
-      exitGuidedSolve();
     } else {
-      renderGuidedControls();
-      startGuidedPreview();
+      saveScanGuideProgress();
+      if (guidedExitRequested) {
+        exitGuidedSolve();
+      } else {
+        renderGuidedControls();
+        startGuidedPreview();
+      }
     }
   }, GUIDED_MOVE_MS);
 }
