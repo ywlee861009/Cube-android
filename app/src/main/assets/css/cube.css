@@ -145,7 +145,7 @@ body[data-theme="dark"] .pb-divider { background: rgba(255,255,255,0.1); }
 
 .ui-row { display: flex; gap: 8px; }
 #free-play-controls, #challenge-controls { display: grid; gap: 8px; }
-#ui [hidden], #solved-card [hidden] { display: none; }
+#ui [hidden], #solved-card [hidden], #scan-review-card [hidden] { display: none; }
 #btn-daily {
   flex: 1;
   min-height: 44px;
