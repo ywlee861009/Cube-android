@@ -5,6 +5,11 @@ const SCAN_STEPS = buildScanSequence();
 
 let currentScanStep = 0;
 let pendingScanResult = null;
+let scanSessionId = 0;
+let nextScanCaptureId = 0;
+let pendingScanCaptureId = null;
+let scanAdvanceTimer = null;
+let scanCameraReady = false;
 // null 이 아니면 "그 면 하나만 다시 촬영" 모드다. 검토 화면에서 진입한다.
 let scanRetakeSlot = null;
 
@@ -174,9 +179,11 @@ function startScanFaceRetake(slot) {
 function beginScanSession() {
   if (isShuffling || isSolving || isUndoRedo || isScanning || isChallengeActive()) return false;
   if (!window.AndroidBridge?.startScan) {
-    setStatus('카메라 스캔은 Android 앱에서 사용할 수 있어요.');
+    setStatus('Camera scanning is available in the Android app.');
     return false;
   }
+  scanSessionId++;
+  scanCameraReady = false;
   isScanning = true;
   document.body.classList.add('scan-active');
   document.getElementById('scan-overlay').classList.remove('hidden');
@@ -187,21 +194,24 @@ function beginScanSession() {
 
 function startScanCamera() {
   renderScanStep();
-  window.AndroidBridge.startScan();
+  window.AndroidBridge.startScan(scanSessionId);
   if (!scan3DAnimationId) {
     renderScan3DLoop();
   }
 }
 
-function onScanReady() {
-  if (!isScanning) return;
+function onScanReady(sessionId) {
+  if (!isScanning || sessionId !== scanSessionId) return;
   applyNativeScanGuideRect();
-  document.getElementById('btn-scan-capture').disabled = false;
-  setScanMessage('격자에 한 면을 맞춘 뒤 촬영하세요.');
+  scanCameraReady = true;
+  updateScanCaptureButton();
+  if (pendingScanCaptureId === null && scanAdvanceTimer === null) {
+    setScanMessage('Line up one face with the grid, then capture.');
+  }
 }
 
-function onScanCancelled(reason) {
-  if (!isScanning) return;
+function onScanCancelled(sessionId, reason) {
+  if (!isScanning || sessionId !== scanSessionId) return;
   const wasRetake = scanRetakeSlot !== null;
   scanRetakeSlot = null;
   finishScanUi();
@@ -210,35 +220,51 @@ function onScanCancelled(reason) {
     openScanReview(pendingScanResult);
   }
   const messages = {
-    permission_denied: '카메라 권한이 거부됐어요.',
-    permission_permanently_denied: '설정에서 카메라 권한을 허용해 주세요.',
-    camera_unavailable: '사용 가능한 카메라가 없어요.',
-    camera_error: '카메라를 시작하지 못했어요.',
-    back_pressed: '스캔을 취소했어요.',
-    app_update_active: '업데이트가 끝난 뒤 다시 시도해 주세요.'
+    permission_denied: 'Camera permission was denied.',
+    permission_permanently_denied: 'Allow camera access in Settings.',
+    camera_unavailable: 'No camera is available.',
+    camera_error: 'Could not start the camera.',
+    app_update_active: 'Try again after the update.'
   };
-  setStatus(messages[reason] || '스캔을 취소했어요.');
+  setStatus(messages[reason] || 'Scan cancelled.');
 }
 
 function captureCurrentScanFace() {
-  if (!isScanning) return;
-  document.getElementById('btn-scan-capture').disabled = true;
-  setScanMessage('색을 읽고 있어요…');
-  captureScanFace(currentScanSlot());
+  if (!isScanning || !scanCameraReady || pendingScanCaptureId !== null || scanAdvanceTimer !== null) return;
+  pendingScanCaptureId = ++nextScanCaptureId;
+  updateScanCaptureButton();
+  setScanMessage('Reading colors…');
+  captureScanFace(scanSessionId, pendingScanCaptureId, currentScanSlot());
+}
+
+function matchesScanCapture(sessionId, captureId, faceIndex) {
+  return isScanning && sessionId === scanSessionId && pendingScanCaptureId !== null &&
+    captureId === pendingScanCaptureId && faceIndex === currentScanSlot();
+}
+
+function cancelPendingScanCapture() {
+  pendingScanCaptureId = null;
+  clearTimeout(scanAdvanceTimer);
+  scanAdvanceTimer = null;
+}
+
+function updateScanCaptureButton() {
+  document.getElementById('btn-scan-capture').disabled =
+    !scanCameraReady || pendingScanCaptureId !== null || scanAdvanceTimer !== null;
 }
 
 function retakePreviousScanFace() {
-  if (!isScanning || currentScanStep <= 0) return;
+  if (!isScanning || scanRetakeSlot !== null || currentScanStep <= 0) return;
+  cancelPendingScanCapture();
   const undoOps = invertScanOps(SCAN_STEPS[currentScanStep].ops);
   currentScanStep--;
-  clearScanFace(currentScanSlot());
   renderScanStep(undoOps.map(op => SCAN_ROTATION_HINTS[op]));
-  setScanMessage('한 단계 되돌렸어요. 안내대로 큐브를 되돌린 뒤 촬영하세요.');
+  setScanMessage('Back one step. Turn the cube as shown, then capture.');
 }
 
 function cancelScanFlow() {
   if (!isScanning) return;
-  window.AndroidBridge?.stopScan?.();
+  window.AndroidBridge?.stopScan?.(scanSessionId);
   // 면 단위 재촬영을 취소하면 기존 6면 샘플을 버리지 않고 검토 화면으로 되돌아간다.
   if (scanRetakeSlot !== null) {
     scanRetakeSlot = null;
@@ -248,61 +274,64 @@ function cancelScanFlow() {
   }
   clearScanSamples();
   finishScanUi();
-  setStatus('스캔을 취소했어요.');
+  setStatus('Scan cancelled.');
 }
 
-window.addEventListener('scan-face-sampled', event => {
-  if (!isScanning || event.detail.faceIndex !== currentScanSlot()) return;
-  renderRgbPreview(event.detail.samples);
-  if (scanRetakeSlot !== null || currentScanStep === SCAN_STEPS.length - 1) {
+function acceptCapturedScanFace(faceIndex, samples) {
+  pendingScanCaptureId = null;
+  dropScanManualOverridesForFace(faceIndex);
+  renderRgbPreview(samples);
+  const nextStep = SCAN_STEPS.findIndex(step => scanFaceSamples[step.slot] === null);
+  if (nextStep === -1) {
     finalizeScanCapture();
     return;
   }
-  setTimeout(() => {
-    if (!isScanning) return;
-    currentScanStep++;
-    renderScanStep();
+  const sessionId = scanSessionId;
+  const capturedStep = currentScanStep;
+  const timer = setTimeout(() => {
+    if (!isScanning || scanSessionId !== sessionId || scanAdvanceTimer !== timer) return;
+    scanAdvanceTimer = null;
+    const steps = SCAN_STEPS.slice(Math.min(capturedStep, nextStep) + 1, Math.max(capturedStep, nextStep) + 1);
+    const ops = steps.flatMap(step => step.ops);
+    const rotation = nextStep > capturedStep ? ops : invertScanOps(ops);
+    currentScanStep = nextStep;
+    scanRetakeSlot = null;
+    renderScanStep(rotation.map(op => SCAN_ROTATION_HINTS[op]));
+    if (nextStep !== capturedStep + 1) setScanMessage('Capture the missing face.');
   }, 350);
-});
+  scanAdvanceTimer = timer;
+}
 
 // 6면이 모두 모이면 분류한다. 재촬영이면 한 면만 교체된 상태로 전체를 다시 분류하므로
 // 팔레트도 함께 갱신된다. 확인 화면의 수동 수정은 다시 찍은 면의 것만 버리고 재적용한다.
 function finalizeScanCapture() {
   const allSamples = getCollectedScanSamples();
-  window.AndroidBridge?.stopScan?.();
+  window.AndroidBridge?.stopScan?.(scanSessionId);
   const wasRetake = scanRetakeSlot !== null;
-  // 다시 찍은 면의 수동 수정은 버린다 — 새 촬영 결과를 덮어쓰면 재촬영한 의미가 없다.
-  // 재촬영을 취소하면 여기까지 오지 않으므로 수정이 그대로 남는다.
-  if (wasRetake && typeof dropScanManualOverridesForFace === 'function') {
-    dropScanManualOverridesForFace(scanRetakeSlot);
-  }
   scanRetakeSlot = null;
   finishScanUi();
-  if (!allSamples) {
-    setStatus('촬영되지 않은 면이 있어요. 처음부터 다시 스캔해 주세요.');
-    return;
-  }
   pendingScanResult = classifyFacelets(allSamples);
   pendingScanResult.validation = validateFacelets(pendingScanResult.facelets);
   pendingScanResult.lowLight = isScanTooDark(allSamples);
   window.dispatchEvent(new CustomEvent('scan-classified', { detail: pendingScanResult }));
   if (typeof openScanReview === 'function') {
     openScanReview(pendingScanResult);
-    if (wasRetake) setStatus('다시 촬영한 면으로 색을 새로 판정했어요.');
+    if (wasRetake) setStatus('Colors updated from the retaken face.');
   } else {
-    setStatus('6면 촬영을 완료했어요.');
+    setStatus('All six faces captured.');
   }
 }
 
-window.addEventListener('scan-face-sample-failed', event => {
-  if (!isScanning || event.detail.faceIndex !== currentScanSlot()) return;
-  document.getElementById('btn-scan-capture').disabled = false;
+function onFaceSampleFailed(sessionId, captureId, faceIndex, reason) {
+  if (!matchesScanCapture(sessionId, captureId, faceIndex)) return;
+  pendingScanCaptureId = null;
+  updateScanCaptureButton();
   setScanMessage(
-    event.detail.reason === 'frame_unavailable'
-      ? '카메라 준비가 끝나면 다시 촬영해 주세요.'
-      : '색을 읽지 못했어요. 다시 촬영해 주세요.'
+    reason === 'frame_unavailable'
+      ? 'Try again when the camera is ready.'
+      : 'Could not read the colors. Try again.'
   );
-});
+}
 
 function renderScanStep(overrideHints) {
   const step = SCAN_STEPS[currentScanStep];
@@ -311,13 +340,14 @@ function renderScanStep(overrideHints) {
     ? t('Retake: {face}', { face: t(step.faceLabel.long) })
     : `${currentScanStep + 1} / ${SCAN_STEPS.length} — ${t(step.faceLabel.long)}`;
   document.getElementById('scan-direction').textContent =
-    currentScanStep === 0 && !retaking ? '' : t('Hold the cube with the {face} on top.', { face: t(step.topLabel.long) });
+    currentScanStep === 0 && !retaking && !overrideHints
+      ? '' : t('Hold the cube with the {face} on top.', { face: t(step.topLabel.long) });
   renderScanRotationHints(overrideHints || step.hints);
   document.getElementById('scan-rgb-preview').replaceChildren();
   // 재촬영 모드에는 "이전 면"이 없다 — 누르면 엉뚱한 슬롯을 지운다.
   document.getElementById('btn-scan-previous').disabled = retaking || currentScanStep === 0;
-  document.getElementById('btn-scan-capture').disabled = false;
-  setScanMessage('격자에 한 면을 맞춘 뒤 촬영하세요.');
+  updateScanCaptureButton();
+  setScanMessage(scanCameraReady ? 'Line up one face with the grid, then capture.' : 'Getting the camera ready…');
   
   updateScanCubeMaterials();
   animateScanCubeTransition(step.slot);
@@ -365,6 +395,8 @@ function applyNativeScanGuideRect() {
 }
 
 function finishScanUi() {
+  cancelPendingScanCapture();
+  scanCameraReady = false;
   isScanning = false;
   document.body.classList.remove('scan-active');
   document.getElementById('scan-overlay').classList.add('hidden');

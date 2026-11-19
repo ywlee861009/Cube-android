@@ -1,36 +1,34 @@
 // CameraX에서 전달된 면별 RGB 샘플을 보관한다. 색 판정은 color-classifier의 책임이다.
 const scanFaceSamples = Array(6).fill(null);
 
-function onFaceSampled(faceIndex, rgbJson) {
-  if (!Number.isInteger(faceIndex) || faceIndex < 0 || faceIndex >= 6) return;
+function isScanRgbFace(samples) {
+  return Array.isArray(samples) && samples.length === 9 &&
+    samples.every(rgb => Array.isArray(rgb) && rgb.length === 3 &&
+      rgb.every(channel => Number.isInteger(channel) && channel >= 0 && channel <= 255));
+}
+
+function onFaceSampled(sessionId, captureId, faceIndex, rgbJson) {
+  if (!matchesScanCapture(sessionId, captureId, faceIndex)) return;
+  let samples;
   try {
-    const samples = JSON.parse(rgbJson);
-    if (!Array.isArray(samples) || samples.length !== 9 ||
-        samples.some(rgb => !Array.isArray(rgb) || rgb.length !== 3 ||
-          rgb.some(channel => !Number.isInteger(channel) || channel < 0 || channel > 255))) {
-      throw new Error('Invalid RGB sample payload');
-    }
-    scanFaceSamples[faceIndex] = samples.map(rgb => rgb.slice());
-    window.dispatchEvent(new CustomEvent('scan-face-sampled', {
-      detail: { faceIndex, samples: scanFaceSamples[faceIndex] }
-    }));
-  } catch (error) {
-    onFaceSampleFailed(faceIndex, 'invalid_payload');
+    samples = JSON.parse(rgbJson);
+  } catch (_) {
+    // A malformed payload follows the same retry path as an invalid RGB sample.
   }
-}
-
-function onFaceSampleFailed(faceIndex, reason) {
-  window.dispatchEvent(new CustomEvent('scan-face-sample-failed', {
-    detail: { faceIndex, reason }
-  }));
-}
-
-function captureScanFace(faceIndex) {
-  if (!window.AndroidBridge?.captureFace) {
-    onFaceSampleFailed(faceIndex, 'bridge_unavailable');
+  if (!isScanRgbFace(samples)) {
+    onFaceSampleFailed(sessionId, captureId, faceIndex, 'invalid_payload');
     return;
   }
-  AndroidBridge.captureFace(faceIndex);
+  scanFaceSamples[faceIndex] = samples;
+  acceptCapturedScanFace(faceIndex, samples);
+}
+
+function captureScanFace(sessionId, captureId, faceIndex) {
+  if (!window.AndroidBridge?.captureFace) {
+    onFaceSampleFailed(sessionId, captureId, faceIndex, 'bridge_unavailable');
+    return;
+  }
+  window.AndroidBridge.captureFace(sessionId, captureId, faceIndex);
 }
 
 function getCollectedScanSamples() {

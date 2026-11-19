@@ -62,21 +62,30 @@ class MainActivity : ComponentActivity() {
     private var solveGranted = false  // 광고 시청 후 true, 셔플/리셋 시 false
     private var isUpdateFlowActive = false
     private var cameraPermissionRequested = false
+    private var activeScanSession: Int? = null
+    private var permissionScanSession: Int? = null
+    private var cameraPermissionInFlight = false
     private val capturedFaces = arrayOfNulls<List<List<Int>>>(6)
 
     private val cameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) {
-                beginCameraPreview()
-            } else {
-                val permanentlyDenied =
-                    cameraPermissionRequested &&
-                        !shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)
-                cancelScan(
-                    if (permanentlyDenied) "permission_permanently_denied"
-                    else "permission_denied"
-                )
-                if (permanentlyDenied) showCameraSettingsDialog()
+            cameraPermissionInFlight = false
+            val sessionId = permissionScanSession
+            permissionScanSession = null
+            if (sessionId != null && sessionId == activeScanSession) {
+                if (granted) {
+                    beginCameraPreview(sessionId)
+                } else {
+                    val permanentlyDenied =
+                        cameraPermissionRequested &&
+                            !shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)
+                    cancelScan(
+                        sessionId,
+                        if (permanentlyDenied) "permission_permanently_denied"
+                        else "permission_denied"
+                    )
+                    if (permanentlyDenied) showCameraSettingsDialog()
+                }
             }
             cameraPermissionRequested = true
             getPreferences(MODE_PRIVATE)
@@ -172,41 +181,32 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
-        fun startScan() {
-            runOnUiThread { requestCameraAndStartScan() }
+        fun startScan(sessionId: Int) {
+            runOnUiThread { requestCameraAndStartScan(sessionId) }
         }
 
         @JavascriptInterface
-        fun stopScan() {
-            runOnUiThread { stopCameraPreview() }
+        fun stopScan(sessionId: Int) {
+            runOnUiThread { stopCameraPreview(sessionId) }
         }
 
         @JavascriptInterface
-        fun captureFace(faceIndex: Int) {
-            if (faceIndex !in 0..5) {
-                runOnUiThread { notifyFaceSampleFailed(faceIndex, "invalid_face_index") }
-                return
-            }
-            cubeScanner.capture(
-                onSampled = { samples ->
-                    capturedFaces[faceIndex] = samples
-                    val isDebuggable =
-                        applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
-                    if (isDebuggable && capturedFaces.all { it != null }) {
-                        Log.d("CubeScanner", "RGB fixture=${JSONArray(capturedFaces.toList())}")
-                    }
-                    runOnUiThread {
-                        val json = JSONArray(samples).toString()
-                        callJs(
-                            "window.onFaceSampled && " +
-                                "window.onFaceSampled($faceIndex,${JSONObject.quote(json)})"
-                        )
-                    }
-                },
-                onError = { reason ->
-                    runOnUiThread { notifyFaceSampleFailed(faceIndex, reason) }
+        fun captureFace(sessionId: Int, captureId: Int, faceIndex: Int) {
+            runOnUiThread {
+                if (sessionId != activeScanSession) return@runOnUiThread
+                if (faceIndex !in 0..5) {
+                    notifyFaceSampleFailed(sessionId, captureId, faceIndex, "invalid_face_index")
+                    return@runOnUiThread
                 }
-            )
+                cubeScanner.capture(
+                    onSampled = { samples ->
+                        runOnUiThread { notifyFaceSampled(sessionId, captureId, faceIndex, samples) }
+                    },
+                    onError = { reason ->
+                        runOnUiThread { notifyFaceSampleFailed(sessionId, captureId, faceIndex, reason) }
+                    }
+                )
+            }
         }
 
         @JavascriptInterface
@@ -262,9 +262,9 @@ class MainActivity : ComponentActivity() {
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (cubeScanner.isActive()) {
-                    stopCameraPreview()
-                    callJs("window.onScanCancelled && window.onScanCancelled('back_pressed')")
+                val sessionId = activeScanSession
+                if (sessionId != null) {
+                    cancelScan(sessionId, "back_pressed")
                 } else {
                     // 따라 하기 모드 등 JS 화면이 뒤로 가기를 먼저 처리하게 한다.
                     webView.evaluateJavascript(
@@ -279,51 +279,89 @@ class MainActivity : ComponentActivity() {
 
     // ── Camera scan ─────────────────────────────────────────────────────────
 
-    private fun requestCameraAndStartScan() {
-        if (cubeScanner.isActive()) return
+    private fun requestCameraAndStartScan(sessionId: Int) {
+        if (activeScanSession == sessionId) return
+        activeScanSession?.let { stopCameraPreview(it) }
+        activeScanSession = sessionId
         if (isUpdateFlowActive) {
-            cancelScan("app_update_active")
+            cancelScan(sessionId, "app_update_active")
             return
         }
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
-            cancelScan("camera_unavailable")
+            cancelScan(sessionId, "camera_unavailable")
             return
         }
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
             PackageManager.PERMISSION_GRANTED
         ) {
-            beginCameraPreview()
+            beginCameraPreview(sessionId)
         } else {
-            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            permissionScanSession = sessionId
+            if (!cameraPermissionInFlight) {
+                cameraPermissionInFlight = true
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
         }
     }
 
-    private fun beginCameraPreview() {
+    private fun beginCameraPreview(sessionId: Int) {
         previewView.visibility = View.VISIBLE
         webView.setBackgroundColor(Color.TRANSPARENT)
         cubeScanner.start(
-            onReady = { callJs("window.onScanReady && window.onScanReady()") },
-            onError = { reason -> cancelScan(reason) }
+            onReady = { notifyScanReady(sessionId) },
+            onError = { reason -> cancelScan(sessionId, reason) }
         )
     }
 
-    private fun stopCameraPreview() {
+    private fun stopCameraPreview(sessionId: Int) {
+        if (sessionId != activeScanSession) return
+        activeScanSession = null
+        permissionScanSession = null
         cubeScanner.stop()
         capturedFaces.fill(null)
         previewView.visibility = View.GONE
         webView.setBackgroundColor(Color.TRANSPARENT)
     }
 
-    private fun cancelScan(reason: String) {
-        stopCameraPreview()
-        callJs("window.onScanCancelled && window.onScanCancelled('$reason')")
+    private fun cancelScan(sessionId: Int, reason: String) {
+        if (sessionId != activeScanSession) return
+        stopCameraPreview(sessionId)
+        callJs(
+            "window.onScanCancelled && " +
+                "window.onScanCancelled($sessionId,${JSONObject.quote(reason)})"
+        )
     }
 
-    private fun notifyFaceSampleFailed(faceIndex: Int, reason: String) {
+    private fun notifyScanReady(sessionId: Int) {
+        if (sessionId != activeScanSession) return
+        callJs("window.onScanReady && window.onScanReady($sessionId)")
+    }
+
+    private fun notifyFaceSampled(
+        sessionId: Int,
+        captureId: Int,
+        faceIndex: Int,
+        samples: List<List<Int>>
+    ) {
+        if (sessionId != activeScanSession) return
+        capturedFaces[faceIndex] = samples
+        val isDebuggable = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+        if (isDebuggable && capturedFaces.all { it != null }) {
+            Log.d("CubeScanner", "RGB fixture=${JSONArray(capturedFaces.toList())}")
+        }
+        val json = JSONArray(samples).toString()
+        callJs(
+            "window.onFaceSampled && " +
+                "window.onFaceSampled($sessionId,$captureId,$faceIndex,${JSONObject.quote(json)})"
+        )
+    }
+
+    private fun notifyFaceSampleFailed(sessionId: Int, captureId: Int, faceIndex: Int, reason: String) {
+        if (sessionId != activeScanSession) return
         callJs(
             "window.onFaceSampleFailed && " +
-                "window.onFaceSampleFailed($faceIndex,${JSONObject.quote(reason)})"
+                "window.onFaceSampleFailed($sessionId,$captureId,$faceIndex,${JSONObject.quote(reason)})"
         )
     }
 
@@ -469,10 +507,11 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         resumeInProgressAppUpdate()
-        if (::cubeScanner.isInitialized && cubeScanner.isActive()) {
+        val sessionId = activeScanSession
+        if (sessionId != null && ::cubeScanner.isInitialized && cubeScanner.isActive()) {
             cubeScanner.resume(
-                onReady = { callJs("window.onScanReady && window.onScanReady()") },
-                onError = { reason -> cancelScan(reason) }
+                onReady = { notifyScanReady(sessionId) },
+                onError = { reason -> cancelScan(sessionId, reason) }
             )
         }
     }

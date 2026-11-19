@@ -113,7 +113,7 @@ const koreanStrings = {
   'Try again after the update.': '업데이트가 끝난 뒤 다시 시도해 주세요.',
   'Reading colors…': '색을 읽고 있어요…',
   'Back one step. Turn the cube as shown, then capture.': '한 단계 되돌렸어요. 안내대로 큐브를 되돌린 뒤 촬영하세요.',
-  'Some faces are missing. Scan the cube again.': '촬영되지 않은 면이 있어요. 처음부터 다시 스캔해 주세요.',
+  'Capture the missing face.': '아직 촬영하지 않은 면을 찍어 주세요.',
   'Colors updated from the retaken face.': '다시 촬영한 면으로 색을 새로 판정했어요.',
   'All six faces captured.': '6면 촬영을 완료했어요.',
   'Try again when the camera is ready.': '카메라 준비가 끝나면 다시 촬영해 주세요.',

@@ -29,7 +29,8 @@ class CubeScanner(
     private var cameraProvider: ProcessCameraProvider? = null
     private var active = false
     private var sessionId = 0
-    @Volatile private var latestFrame: FaceSampler.RgbaFrame? = null
+    private data class SessionFrame(val sessionId: Int, val frame: FaceSampler.RgbaFrame)
+    @Volatile private var latestFrame: SessionFrame? = null
     private val analysisExecutor = Executors.newSingleThreadExecutor()
 
     fun start(onReady: () -> Unit, onError: (String) -> Unit) {
@@ -41,7 +42,7 @@ class CubeScanner(
             try {
                 val provider = future.get()
                 cameraProvider = provider
-                val camera = bindPreview(provider, lockAe = false, lockAwb = false)
+                val camera = bindPreview(provider, currentSession, lockAe = false, lockAwb = false)
                 val (aeLockSupported, awbLockSupported) = lockSupport(camera)
                 Log.i(
                     TAG,
@@ -55,7 +56,7 @@ class CubeScanner(
                 previewView.postDelayed({
                     if (!active || currentSession != sessionId) return@postDelayed
                     try {
-                        bindPreview(provider, aeLockSupported, awbLockSupported)
+                        bindPreview(provider, currentSession, aeLockSupported, awbLockSupported)
                         onReady()
                     } catch (error: Exception) {
                         Log.e(TAG, "Unable to lock camera preview", error)
@@ -92,7 +93,7 @@ class CubeScanner(
     fun isActive(): Boolean = active
 
     fun capture(onSampled: (List<List<Int>>) -> Unit, onError: (String) -> Unit) {
-        val frame = latestFrame
+        val frame = latestFrame?.takeIf { it.sessionId == sessionId }?.frame
         if (!active || frame == null) {
             onError("frame_unavailable")
             return
@@ -118,6 +119,7 @@ class CubeScanner(
     @androidx.annotation.OptIn(markerClass = [ExperimentalCamera2Interop::class])
     private fun bindPreview(
         provider: ProcessCameraProvider,
+        currentSession: Int,
         lockAe: Boolean,
         lockAwb: Boolean
     ): Camera {
@@ -142,7 +144,7 @@ class CubeScanner(
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
             .build()
-            .also { it.setAnalyzer(analysisExecutor, ::cacheFrame) }
+            .also { it.setAnalyzer(analysisExecutor) { image -> cacheFrame(currentSession, image) } }
         return provider.bindToLifecycle(
             lifecycleOwner,
             CameraSelector.DEFAULT_BACK_CAMERA,
@@ -151,20 +153,23 @@ class CubeScanner(
         )
     }
 
-    private fun cacheFrame(image: ImageProxy) {
+    private fun cacheFrame(currentSession: Int, image: ImageProxy) {
         try {
             val plane = image.planes.firstOrNull() ?: return
             val buffer = plane.buffer
             buffer.rewind()
             val bytes = ByteArray(buffer.remaining())
             buffer.get(bytes)
-            latestFrame = FaceSampler.RgbaFrame(
-                bytes = bytes,
-                width = image.width,
-                height = image.height,
-                rowStride = plane.rowStride,
-                pixelStride = plane.pixelStride,
-                rotationDegrees = image.imageInfo.rotationDegrees
+            latestFrame = SessionFrame(
+                currentSession,
+                FaceSampler.RgbaFrame(
+                    bytes = bytes,
+                    width = image.width,
+                    height = image.height,
+                    rowStride = plane.rowStride,
+                    pixelStride = plane.pixelStride,
+                    rotationDegrees = image.imageInfo.rotationDegrees
+                )
             )
         } finally {
             image.close()
