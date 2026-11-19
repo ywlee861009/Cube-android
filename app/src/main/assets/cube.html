@@ -7,7 +7,8 @@
   <link rel="stylesheet" href="css/cube.css">
 </head>
 <body>
-<div id="solved-overlay" class="hidden">
+<dialog id="solved-overlay" class="hidden" aria-labelledby="solved-title">
+  <canvas id="solved-confetti" aria-hidden="true"></canvas>
   <div id="solved-card">
     <div id="solved-emoji">🎉</div>
     <div id="solved-title" data-i18n>Solved!</div>
@@ -36,15 +37,15 @@
       </div>
     </div>
     <p id="solved-detail" hidden></p>
-    <button id="btn-play-again" onclick="playAgain()" data-i18n>⇄ Play Again</button>
+    <button id="btn-play-again" onclick="playAgain()" autofocus data-i18n>⇄ Play Again</button>
   </div>
-</div>
+</dialog>
 
-<div id="stats-overlay" class="hidden">
+<dialog id="stats-overlay" class="hidden" aria-labelledby="stats-title">
   <div id="stats-card">
     <div id="stats-header">
       <span id="stats-title" data-i18n>Statistics</span>
-      <button id="btn-stats-close" onclick="closeDashboard()" data-i18n-label aria-label="Close statistics">✕</button>
+      <button id="btn-stats-close" onclick="closeDashboard()" data-i18n-label aria-label="Close statistics" autofocus>✕</button>
     </div>
     <div id="stats-grid">
       <div class="st-cell">
@@ -77,7 +78,7 @@
     </div>
     <div id="ds-history-list"></div>
   </div>
-</div>
+</dialog>
 
 <dialog id="daily-history" aria-labelledby="daily-history-title">
   <header id="daily-history-header">

@@ -1,13 +1,20 @@
 // ─── 통계 대시보드 오버레이 (ST-100) ─────────────────────────────────────
 
+const statsDialog = document.getElementById('stats-overlay');
+
 function openDashboard() {
+  if (statsDialog.open || isShuffling || isSolving || isUndoRedo || isScanning || isGuidedSolve ||
+      animRafId !== null || layerGroup !== null) return;
   _renderDashboard();
-  document.getElementById('stats-overlay').classList.remove('hidden');
+  statsDialog.classList.remove('hidden');
+  statsDialog.showModal();
   pauseRendering();
 }
 
 function closeDashboard() {
-  document.getElementById('stats-overlay').classList.add('hidden');
+  if (!statsDialog.open) return;
+  statsDialog.close();
+  statsDialog.classList.add('hidden');
   resumeRendering();
 }
 
@@ -106,6 +113,10 @@ function _renderHistory() {
 }
 
 // 배경 탭 → 닫기
-document.getElementById('stats-overlay').addEventListener('click', function(e) {
+statsDialog.addEventListener('click', function(e) {
   if (e.target === this) closeDashboard();
+});
+statsDialog.addEventListener('cancel', event => {
+  event.preventDefault();
+  closeDashboard();
 });

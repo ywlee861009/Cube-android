@@ -3,6 +3,9 @@
   --safe-bottom: 0px;
   --safe-left: 0px;
   --safe-right: 0px;
+  --action-green: #08783e;
+  --action-blue: #175fbe;
+  --muted-text: #52525d;
 
   /* 레이아웃 토큰 — 폰 기본값. ≥600px에서 값만 오버라이드해 폰/태블릿이 같은 규칙을
      공유한다. 실제 컴포넌트 재배치는 Phase 2·3에서 이 토큰을 소비한다(Phase 1은 정의만). */
@@ -21,7 +24,7 @@ canvas { display: block; }
   transform: translateX(-50%);
   display: flex;
   gap: 8px;
-  max-width: calc(100% - 112px - var(--safe-left) - var(--safe-right));
+  max-width: calc(100% - 136px - var(--safe-left) - var(--safe-right));
   z-index: 10;
 }
 
@@ -33,7 +36,7 @@ canvas { display: block; }
   padding: 6px 20px;
   font-size: 13px;
   font-weight: 600;
-  color: rgba(0,0,0,0.5);
+  color: var(--muted-text);
   letter-spacing: 0.4px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.08);
   white-space: nowrap;
@@ -50,7 +53,7 @@ canvas { display: block; }
   z-index: 11;
 }
 #app-options summary {
-  width: 38px; height: 38px;
+  width: 48px; height: 48px;
   border-radius: 50%;
   background: rgba(255,255,255,0.82);
   backdrop-filter: blur(12px);
@@ -79,7 +82,7 @@ canvas { display: block; }
 }
 #options-panel button {
   width: 100%;
-  min-height: 44px;
+  min-height: 48px;
   white-space: nowrap;
   padding: 6px 12px;
   color: #333;
@@ -88,11 +91,11 @@ canvas { display: block; }
 #options-panel button[hidden] { display: none; }
 
 /* ── Dark Mode ─────────────────────────────────────────────── */
-body[data-theme="dark"] { background: #1c1c1e; }
+body[data-theme="dark"] { background: #1c1c1e; --muted-text: #c9c9d4; }
 body[data-theme="dark"] #timer,
 body[data-theme="dark"] #moves {
   background: rgba(50,50,52,0.82);
-  color: rgba(255,255,255,0.5);
+  color: var(--muted-text);
   box-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 body[data-theme="dark"] #app-options summary {
@@ -119,9 +122,7 @@ body[data-theme="dark"] #solved-card {
 }
 body[data-theme="dark"] #solved-title { color: #f0f0f0; }
 body[data-theme="dark"] .s-val { color: #f0f0f0; }
-body[data-theme="dark"] .s-lbl { color: rgba(255,255,255,0.35); }
 body[data-theme="dark"] .pb-divider { background: rgba(255,255,255,0.1); }
-body[data-theme="dark"] .s-lbl.pb-lbl { color: rgba(255,255,255,0.25); }
 
 #ui {
   position: fixed;
@@ -221,14 +222,15 @@ button:focus-visible, #app-options summary:focus-visible { outline: 2px solid #2
   flex: 1;
   padding: 14px 0;
   font-size: 14px;
-  background: #17B06B;
+  background: var(--action-green);
   color: #fff;
 }
 #btn-scan {
   flex: 2;
   padding: 12px 0;
   font-size: 14px;
-  background: #2F80ED;
+  min-height: 48px;
+  background: var(--action-blue);
   color: #fff;
 }
 
@@ -285,8 +287,8 @@ body[data-theme="dark"] #reset-dialog { background: #303032; color: #f2f2f4; }
 }
 #daily-history-title { font-size: 19px; }
 #btn-daily-history-close {
-  flex: 0 0 44px;
-  min-height: 44px;
+  flex: 0 0 48px;
+  min-height: 48px;
   background: rgba(0,0,0,0.055);
   color: inherit;
 }
@@ -430,11 +432,11 @@ body.scan-active #ui { display: none; }
 #scan-message { min-height: 18px; text-align: center; font-size: 13px; margin-bottom: 10px; }
 .scan-control-row { display: flex; gap: 9px; }
 #btn-scan-previous, #btn-scan-capture, #btn-scan-cancel {
-  min-height: 46px;
+  min-height: 48px;
   color: #fff;
 }
 #btn-scan-previous { flex: 1; background: rgba(255,255,255,0.16); }
-#btn-scan-capture { flex: 2; background: #2F80ED; font-size: 16px; }
+#btn-scan-capture { flex: 2; background: var(--action-blue); font-size: 16px; }
 #btn-scan-cancel {
   width: 100%;
   margin-top: 8px;
@@ -493,7 +495,7 @@ body.scan-active #ui { display: none; }
   font-weight: 750;
 }
 #btn-scan-review-close {
-  width: 36px; height: 36px;
+  flex: 0 0 48px; height: 48px;
   border-radius: 50%;
   background: rgba(0,0,0,0.07);
   color: #555;
@@ -612,7 +614,7 @@ body.scan-active #ui { display: none; }
 }
 #btn-scan-again, #btn-scan-apply { flex: 1; min-height: 48px; color: #fff; }
 #btn-scan-again { background: #6B7280; }
-#btn-scan-apply { background: #17B06B; }
+#btn-scan-apply { background: var(--action-green); }
 
 body[data-theme="dark"] #scan-review-card { background: rgba(28,28,30,0.99); }
 body[data-theme="dark"] #scan-review-title,
@@ -624,6 +626,13 @@ body[data-theme="dark"] #btn-scan-retake-face { background: rgba(255,255,255,0.1
 body[data-theme="dark"] .scan-warning { background: rgba(217,48,37,0.20); color: #FFB4AB; }
 
 /* ── Solved Overlay ────────────────────────────────────────────── */
+#solved-overlay, #stats-overlay {
+  width: 100%; height: 100%;
+  max-width: none; max-height: none;
+  margin: 0; border: 0;
+  color: inherit;
+}
+#solved-overlay::backdrop, #stats-overlay::backdrop { background: transparent; }
 #solved-overlay {
   position: fixed;
   inset: 0;
@@ -633,8 +642,16 @@ body[data-theme="dark"] .scan-warning { background: rgba(217,48,37,0.20); color:
   justify-content: center;
   z-index: 100;
   animation: fadeIn 0.25s ease;
+  padding: var(--safe-top) max(12px, var(--safe-right)) var(--safe-bottom) max(12px, var(--safe-left));
 }
 #solved-overlay.hidden { display: none; }
+#solved-confetti {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 102;
+}
 
 #solved-card {
   background: rgba(255,255,255,0.97);
@@ -670,11 +687,11 @@ body[data-theme="dark"] .scan-warning { background: rgba(217,48,37,0.20); color:
 .s-val  { font-size: 22px; font-weight: 700; color: #1a1a1a; }
 .s-lbl  {
   font-size: 10px; font-weight: 600;
-  color: rgba(0,0,0,0.38); text-transform: uppercase; letter-spacing: 0.9px;
+  color: var(--muted-text); text-transform: uppercase; letter-spacing: 0.9px;
 }
 
 #solved-new-best {
-  background: #FFB800; color: #fff;
+  background: #FFB800; color: #291e05;
   border-radius: 999px; padding: 4px 14px;
   font-size: 11px; font-weight: 700;
   letter-spacing: 0.8px; text-transform: uppercase;
@@ -690,8 +707,8 @@ body[data-theme="dark"] .scan-warning { background: rgba(217,48,37,0.20); color:
 #solved-pb-stats {
   display: flex; gap: 28px; justify-content: center;
 }
-.s-val.pb-new { color: #FFB800; }
-.s-lbl.pb-lbl { color: rgba(0,0,0,0.25); }
+.s-val.pb-new { color: #8a5000; }
+body[data-theme="dark"] .s-val.pb-new { color: #ffce66; }
 
 #btn-play-again {
   width: 100%; padding: 13px 0; font-size: 15px;
@@ -703,7 +720,7 @@ body[data-theme="dark"] .scan-warning { background: rgba(217,48,37,0.20); color:
   position: fixed;
   top: calc(14px + var(--safe-top));
   left: calc(14px + var(--safe-left));
-  width: 38px; height: 38px;
+  width: 48px; height: 48px;
   border-radius: 50%;
   background: rgba(255,255,255,0.82);
   backdrop-filter: blur(12px);
@@ -769,7 +786,7 @@ body[data-theme="dark"] #btn-stats {
   font-size: 18px; font-weight: 800; color: #1a1a1a;
 }
 #btn-stats-close {
-  width: 30px; height: 30px; border-radius: 50%;
+  width: 48px; height: 48px; border-radius: 50%;
   background: rgba(0,0,0,0.07);
   color: rgba(0,0,0,0.45);
   font-size: 13px; font-weight: 700;
@@ -801,7 +818,7 @@ body[data-theme="dark"] #btn-stats {
 }
 .st-lbl {
   font-size: 10px; font-weight: 600;
-  color: rgba(0,0,0,0.35); text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--muted-text); text-transform: uppercase; letter-spacing: 0.8px;
 }
 
 /* Sparkline */
@@ -824,7 +841,7 @@ body[data-theme="dark"] #btn-stats {
   min-height: 4px;
 }
 .ds-spark-empty {
-  font-size: 11px; color: rgba(0,0,0,0.3);
+  font-size: 11px; color: var(--muted-text);
   display: flex; align-items: center; justify-content: center;
   width: 100%; height: 100%;
 }
@@ -838,7 +855,7 @@ body[data-theme="dark"] #btn-stats {
   flex: 1;
 }
 .ds-empty {
-  font-size: 13px; color: rgba(0,0,0,0.3);
+  font-size: 13px; color: var(--muted-text);
   text-align: center; padding: 24px 0;
 }
 .ds-row {
@@ -850,7 +867,7 @@ body[data-theme="dark"] #btn-stats {
 }
 .ds-row:last-child { border-bottom: none; }
 .ds-row-num {
-  font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.28);
+  font-size: 11px; font-weight: 600; color: var(--muted-text);
   width: 28px; text-align: right; flex-shrink: 0;
 }
 .ds-row-time {
@@ -858,13 +875,13 @@ body[data-theme="dark"] #btn-stats {
   flex: 1;
 }
 .ds-row-moves {
-  font-size: 12px; color: rgba(0,0,0,0.4); flex-shrink: 0;
+  font-size: 12px; color: var(--muted-text); flex-shrink: 0;
 }
 .ds-row-tag {
   font-size: 10px; font-weight: 600; color: #5B5FEF;
   text-transform: uppercase; letter-spacing: 0.6px; flex-shrink: 0; min-width: 36px;
 }
-.ds-row-solver .ds-row-time { color: rgba(0,0,0,0.35); }
+.ds-row-solver .ds-row-time { color: var(--muted-text); }
 
 /* ── Dark mode: Stats ────────────────────────────────────────── */
 body[data-theme="dark"] #stats-card {
@@ -881,15 +898,11 @@ body[data-theme="dark"] .st-cell {
   background: rgba(44,44,46,0.95);
 }
 body[data-theme="dark"] .st-val { color: #f0f0f0; }
-body[data-theme="dark"] .st-lbl { color: rgba(255,255,255,0.3); }
 body[data-theme="dark"] .ds-bar { opacity: 0.85; }
-body[data-theme="dark"] .ds-spark-empty { color: rgba(255,255,255,0.2); }
-body[data-theme="dark"] .ds-empty { color: rgba(255,255,255,0.2); }
 body[data-theme="dark"] .ds-row { border-bottom-color: rgba(255,255,255,0.07); }
-body[data-theme="dark"] .ds-row-num { color: rgba(255,255,255,0.22); }
 body[data-theme="dark"] .ds-row-time { color: #f0f0f0; }
-body[data-theme="dark"] .ds-row-moves { color: rgba(255,255,255,0.35); }
-body[data-theme="dark"] .ds-row-solver .ds-row-time { color: rgba(255,255,255,0.3); }
+body[data-theme="dark"] .ds-row-tag { color: #b8b9ff; }
+body[data-theme="dark"] .ds-row-solver .ds-row-time { color: var(--muted-text); }
 
 /* ── 태블릿·넓은 화면 (≥600px) ─────────────────────────────────────
    WebView가 width=device-width라 CSS px ≈ dp → Android sw600dp에 대응한다.
@@ -990,9 +1003,9 @@ body.guided-active #ui { display: none; }
   position: absolute;
   top: calc(12px + var(--safe-top));
   right: calc(14px + var(--safe-right));
-  width: 40px;
-  height: 40px;
-  border-radius: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
   background: rgba(255,255,255,0.82);
   color: #333;
   font-size: 16px;

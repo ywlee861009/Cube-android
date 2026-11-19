@@ -2,7 +2,9 @@
 
 // Worker+OffscreenCanvas는 Android WebView file:// 보안정책으로 실패 → GPU 충돌 유발.
 // useWorker:false로 메인스레드 2D 캔버스만 사용.
-const _confetti = confetti.create(null, { useWorker: false, resize: true });
+const solvedDialog = document.getElementById('solved-overlay');
+const solvedCanvas = document.getElementById('solved-confetti');
+const _confetti = confetti.create(solvedCanvas, { useWorker: false, resize: true, disableForReducedMotion: true });
 let solvedAction = null;
 let confettiBurst = null;
 
@@ -40,13 +42,18 @@ function showSolvedOverlay(elapsedMs, moves, pbResult, challengeResult = null) {
     pbSection.classList.add('hidden');
   }
 
-  document.getElementById('solved-overlay').classList.remove('hidden');
+  if (!solvedDialog.open) {
+    solvedDialog.classList.remove('hidden');
+    solvedDialog.showModal();
+  }
   pauseRendering();
   _spawnConfetti();
 }
 
 function dismissSolvedOverlay() {
-  document.getElementById('solved-overlay').classList.add('hidden');
+  if (!solvedDialog.open) return;
+  solvedDialog.close();
+  solvedDialog.classList.add('hidden');
   clearTimeout(confettiBurst);
   _confetti.reset();
   resumeRendering();
@@ -72,6 +79,10 @@ function _spawnConfetti() {
 }
 
 // 오버레이 배경 탭 → 닫기 (카드 내부 탭 제외)
-document.getElementById('solved-overlay').addEventListener('click', function(e) {
+solvedDialog.addEventListener('click', function(e) {
   if (e.target === this) dismissSolvedOverlay();
+});
+solvedDialog.addEventListener('cancel', event => {
+  event.preventDefault();
+  dismissSolvedOverlay();
 });
