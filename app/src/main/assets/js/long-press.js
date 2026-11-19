@@ -11,7 +11,7 @@
       triggered = true;
       btn.classList.add('long-press-active');
       setTimeout(function () { btn.classList.remove('long-press-active'); }, 200);
-      resetCube();
+      requestCubeReset();
     }, LONG_PRESS_MS);
   }
 

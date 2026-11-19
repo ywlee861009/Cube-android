@@ -55,6 +55,23 @@ function shuffleCube() {
 }
 
 // ─── 리셋 ──────────────────────────────────────────────────────────────────
+const resetDialog = document.getElementById('reset-dialog');
+
+function requestCubeReset() {
+  if (isChallengeActive() || challengeBusy() || resetDialog.open) return;
+  document.getElementById('app-options').open = false;
+  if (moveCount === 0 && solveStartTime === null && !isScanSolve && isCubeSolved()) {
+    resetCube();
+    return;
+  }
+  resetDialog.returnValue = 'cancel';
+  resetDialog.showModal();
+}
+
+resetDialog.addEventListener('close', () => {
+  if (resetDialog.returnValue === 'reset') resetCube();
+});
+
 function resetCube() {
   if (isShuffling || isSolving || isChallengeActive()) return;
   if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {

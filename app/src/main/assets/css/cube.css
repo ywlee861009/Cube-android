@@ -85,6 +85,7 @@ canvas { display: block; }
   color: #333;
   background: transparent;
 }
+#options-panel button[hidden] { display: none; }
 
 /* ── Dark Mode ─────────────────────────────────────────────── */
 body[data-theme="dark"] { background: #1c1c1e; }
@@ -255,6 +256,23 @@ button:focus-visible, #app-options summary:focus-visible { outline: 2px solid #2
   box-shadow: 0 12px 40px rgba(0,0,0,0.22);
 }
 #daily-history::backdrop { background: rgba(19,20,32,0.48); }
+#reset-dialog {
+  position: fixed;
+  inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  margin: auto;
+  width: min(360px, calc(100% - var(--safe-left) - var(--safe-right) - 28px));
+  padding: 20px;
+  border: 0;
+  border-radius: 20px;
+  color: #252530;
+  background: #fff;
+}
+#reset-dialog::backdrop { background: rgba(19,20,32,0.48); }
+#reset-dialog h2 { font-size: 20px; }
+#reset-dialog p { margin: 10px 0 16px; font-size: 14px; }
+#reset-dialog button { flex: 1; min-height: 48px; color: #222; background: #eee; }
+#reset-dialog button[value="reset"] { color: #fff; background: #ac3333; }
+body[data-theme="dark"] #reset-dialog { background: #303032; color: #f2f2f4; }
 #daily-history-header {
   position: sticky;
   top: 0;

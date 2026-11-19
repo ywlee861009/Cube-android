@@ -87,6 +87,17 @@
   <ol id="daily-history-list"></ol>
 </dialog>
 
+<dialog id="reset-dialog" aria-labelledby="reset-title" aria-describedby="reset-description">
+  <form method="dialog">
+    <h2 id="reset-title" data-i18n>Reset cube?</h2>
+    <p id="reset-description" data-i18n>The current cube and its moves will be cleared.</p>
+    <div class="ui-row">
+      <button value="cancel" autofocus data-i18n>Cancel</button>
+      <button value="reset" data-i18n>Reset cube</button>
+    </div>
+  </form>
+</dialog>
+
 <div id="scan-overlay" class="hidden" aria-live="polite">
   <div id="scan-header">
     <div id="scan-progress" data-i18n>1 / 6 — 기준면</div>
@@ -154,6 +165,8 @@
 <details id="app-options">
   <summary data-i18n-label aria-label="Options">⋯</summary>
   <div id="options-panel">
+    <button id="btn-practice" type="button" onclick="startLesson()" data-i18n>Practice controls</button>
+    <button id="btn-reset" type="button" onclick="requestCubeReset()" aria-haspopup="dialog" data-i18n>Reset cube</button>
     <button id="btn-theme" type="button" data-i18n>Dark mode</button>
     <button id="btn-policies" type="button" onclick="document.getElementById('app-options').open = false; window.AndroidBridge?.showPolicies()" data-i18n>Policies</button>
   </div>

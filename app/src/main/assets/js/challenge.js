@@ -85,6 +85,13 @@ function startDailyChallenge(date = challenge?.date ?? dailyDate()) {
   return true;
 }
 
+function startLesson() {
+  if (challengeBusy() || (challenge?.kind === 'lesson' && !challenge.completed)) return false;
+  document.getElementById('app-options').open = false;
+  enterChallenge({ kind: 'lesson', scramble: 'U' });
+  return true;
+}
+
 function enterChallenge(next, moves = []) {
   if (!challenge) {
     freePlay = {
@@ -168,7 +175,8 @@ function renderChallengeControls() {
   lessonButton.hidden = !lesson || !playing;
   lessonButton.disabled = undoStack.length !== 0;
   hintButton.hidden = lesson || !playing;
-  document.getElementById('btn-challenge-exit').textContent = t(lesson && playing ? 'Skip' : 'Free play');
+  document.getElementById('btn-reset').hidden = !!challenge;
+  document.getElementById('btn-practice').hidden = lesson && !!playing;
   updateUndoRedoButtons();
 }
 
@@ -352,7 +360,7 @@ document.addEventListener('pointerdown', event => {
 });
 
 if (!challengeData.lessonSeen && !getSolveHistory().length) {
-  enterChallenge({ kind: 'lesson', scramble: 'U' });
+  startLesson();
 } else {
   renderChallengeControls();
 }
