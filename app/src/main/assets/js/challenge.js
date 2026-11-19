@@ -218,7 +218,7 @@ function renderChallengeControls() {
   bonusRestartButton.hidden = !(playing && challenge.kind === 'bonus');
   document.getElementById('daily-controls').hidden = lesson && !!playing;
   document.getElementById('free-play-controls').hidden = !!challenge;
-  document.getElementById('btn-scan').hidden = !!challenge && !lesson;
+  document.getElementById('scan-entry-actions').hidden = !!challenge && !lesson;
   document.getElementById('challenge-controls').hidden = !challenge;
   lessonButton.hidden = !lesson || !playing;
   lessonButton.disabled = undoStack.length !== 0;
@@ -235,10 +235,10 @@ function dailyBonusLabel(date) {
   return bonus?.best ? 'Replay Daily 5 Moves' : 'Daily 5 Moves';
 }
 
-function scanFromHome() {
+function scanFromHome(start = startScanFlow) {
   if (!challenge || (challenge.kind === 'lesson' && exitChallenge())) {
     saveFreePlaySession();
-    startScanFlow();
+    start();
   }
 }
 

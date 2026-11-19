@@ -11,6 +11,13 @@ function loadSavedScan() {
 }
 
 function validateSavedScan(draft) {
+  if (draft?.kind === 'manual') {
+    const { colors } = draft;
+    if (!Array.isArray(colors) || colors.length !== 54 || !colors.some(Number.isInteger) ||
+        !colors.every(color => color === null || (Number.isInteger(color) && color >= 0 && color < 6))) return null;
+    return { kind: 'manual', colors };
+  }
+
   if (draft?.kind === 'capture' || draft?.kind === 'review') {
     const { samples, overrides } = draft;
     if (!Array.isArray(samples) || samples.length !== 6 || !samples.some(isScanRgbFace) ||
@@ -71,6 +78,8 @@ function hasSavedScan() {
 }
 
 function refreshScanResumeControls() {
+  const manual = document.getElementById('btn-scan-manual');
+  if (manual) manual.hidden = !!savedScan || document.getElementById('btn-scan').hidden;
   const row = document.getElementById('scan-resume-controls');
   if (!row) return;
   row.hidden = !savedScan || isChallengeActive();
@@ -78,7 +87,8 @@ function refreshScanResumeControls() {
   const labels = {
     capture: 'Resume scan',
     review: 'Review saved scan',
-    guide: 'Resume cube guide'
+    guide: 'Resume cube guide',
+    manual: 'Resume entering colors'
   };
   document.getElementById('btn-scan-resume').textContent = t(labels[savedScan.kind]);
 }
@@ -110,6 +120,10 @@ function saveScanGuideProgress(replaceCapture = false) {
 function resumeSavedScan() {
   if (!savedScan || !canOpenScanFlow()) return false;
   const draft = savedScan;
+  if (draft.kind === 'manual') {
+    openManualScanReview(draft.colors);
+    return true;
+  }
   if (draft.kind === 'guide') {
     if (!isScanSolve && typeof saveFreePlaySession === 'function') saveFreePlaySession();
     const result = applyScannedFacelets(draft.facelets, draft.palette);

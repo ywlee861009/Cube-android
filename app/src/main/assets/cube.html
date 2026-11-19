@@ -128,28 +128,29 @@
   </div>
 </div>
 
-<div id="scan-review-overlay" class="hidden">
+<dialog id="scan-review-overlay" class="hidden" aria-labelledby="scan-review-title">
   <div id="scan-review-card">
     <div id="scan-review-header">
       <div>
         <div id="scan-review-title" data-i18n>스캔 결과 확인</div>
         <div id="scan-review-badge"></div>
       </div>
-      <button id="btn-scan-review-close" onclick="cancelScanReview()" data-i18n-label aria-label="스캔 결과 닫기">✕</button>
+      <button id="btn-scan-review-close" onclick="cancelScanReview()" autofocus data-i18n-label aria-label="스캔 결과 닫기">✕</button>
     </div>
     <div id="scan-warnings" aria-live="polite"></div>
+    <p id="scan-manual-orientation" hidden></p>
     <div id="scan-net" data-i18n-label aria-label="큐브 6면 전개도"></div>
     <div id="scan-face-editor-title"></div>
     <div id="scan-face-editor"></div>
     <button id="btn-scan-retake-face" onclick="retakeSelectedScanFace()"></button>
     <div id="scan-palette" data-i18n-label aria-label="색 선택 팔레트"></div>
-    <div id="scan-validation-message"></div>
+    <div id="scan-validation-message" aria-live="polite"></div>
     <div id="scan-review-actions">
       <button id="btn-scan-again" onclick="restartScanFromReview()" data-i18n>다시 스캔</button>
       <button id="btn-scan-apply" onclick="confirmScanReview()" disabled data-i18n>Start solving</button>
     </div>
   </div>
-</div>
+</dialog>
 
 <div id="guided-layer" class="hidden">
   <div id="guided-progress"><div id="guided-progress-fill"></div></div>
@@ -208,7 +209,10 @@
     <button id="btn-scan-resume" type="button" onclick="resumeSavedScan()" data-i18n>Resume scan</button>
     <button id="btn-scan-discard" type="button" onclick="discardSavedScan()" data-i18n>Discard saved setup</button>
   </div>
-  <button id="btn-scan" onclick="scanFromHome()" data-i18n>📷 Scan Cube</button>
+  <div id="scan-entry-actions" class="ui-row">
+    <button id="btn-scan" onclick="scanFromHome()" data-i18n>📷 Scan Cube</button>
+    <button id="btn-scan-manual" type="button" onclick="scanFromHome(startManualScanFlow)" data-i18n>Enter cube colors</button>
+  </div>
 </div>
 
 <!-- Libraries -->
@@ -254,6 +258,7 @@
 <script src="js/scan/scan-review.js"></script>
 <script src="js/scan/scan-apply.js"></script>
 <script src="js/scan/scan-persistence.js"></script>
+<script src="js/scan/scan-manual.js"></script>
 
 <!-- UI extras -->
 <script src="js/theme.js"></script>
