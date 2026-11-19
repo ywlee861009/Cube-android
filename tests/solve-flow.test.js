@@ -44,6 +44,8 @@ function loadSolve({ bridge, solve = () => Promise.resolve("R' U'") } = {}) {
     applyFacelets() {},
     updateChallengeProgress() {},
     stopTimer() {},
+    saveFreePlaySession() {},
+    clearFreePlaySession() {},
     t: (message, values = {}) => message.replace(/\{(\w+)\}/g, (_, key) => values[key]),
     recordSolve,
     showSolvedOverlay,

@@ -94,6 +94,7 @@ function startLesson() {
 
 function enterChallenge(next, moves = []) {
   if (!challenge) {
+    saveFreePlaySession();
     freePlay = {
       facelets, moveCount, manualMoveCount, solveStartTime, usedSolver, isScanSolve,
       solutionMoves, solutionIndex, colors: activeFaceColors,
@@ -181,7 +182,10 @@ function renderChallengeControls() {
 }
 
 function scanFromHome() {
-  if (!challenge || (challenge.kind === 'lesson' && exitChallenge())) startScanFlow();
+  if (!challenge || (challenge.kind === 'lesson' && exitChallenge())) {
+    saveFreePlaySession();
+    startScanFlow();
+  }
 }
 
 function setChallengeMessage(message, values) {
@@ -359,7 +363,9 @@ document.addEventListener('pointerdown', event => {
   if (!options.contains(event.target)) options.open = false;
 });
 
-if (!challengeData.lessonSeen && !getSolveHistory().length) {
+if (restoreFreePlaySession()) {
+  renderChallengeControls();
+} else if (!challengeData.lessonSeen && !getSolveHistory().length) {
   startLesson();
 } else {
   renderChallengeControls();

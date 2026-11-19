@@ -69,6 +69,7 @@ function applyMove(name) {
     if (isManual) updateChallengeProgress();
   } else if (!isShuffling && !isSolving) {
     checkSolvedAndSubmit();
+    if (isManual) saveFreePlaySession();
   }
 }
 

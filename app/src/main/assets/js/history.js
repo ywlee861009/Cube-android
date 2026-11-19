@@ -27,6 +27,7 @@ function undoCube() {
     } finally {
       isUndoRedo = false;
       updateUndoRedoButtons();
+      saveFreePlaySession();
     }
   });
 }
@@ -43,6 +44,7 @@ function redoCube() {
     } finally {
       isUndoRedo = false;
       updateUndoRedoButtons();
+      saveFreePlaySession();
     }
   });
 }

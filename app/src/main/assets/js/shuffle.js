@@ -46,6 +46,7 @@ function shuffleCube() {
         updateUndoRedoButtons();
       } finally {
         isShuffling = false;
+        saveFreePlaySession();
       }
       return;
     }
@@ -72,7 +73,7 @@ resetDialog.addEventListener('close', () => {
   if (resetDialog.returnValue === 'reset') resetCube();
 });
 
-function resetCube() {
+function resetCube({ preserveFreePlay = false } = {}) {
   if (isShuffling || isSolving || isUndoRedo || isScanning || isGuidedSolve || isChallengeActive()) return;
   if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {
     AndroidBridge.onShuffleOrReset();
@@ -88,6 +89,7 @@ function resetCube() {
   solveStartTime  = null;
   manualMoveCount = 0;
   usedSolver      = false;
+  if (!preserveFreePlay) clearFreePlaySession();
   stopTimer();
   applyFacelets();
   document.getElementById('btn-shuffle').disabled = false;

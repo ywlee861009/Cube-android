@@ -16,6 +16,7 @@ function loadChallenge(saved = { lessonSeen: true }) {
     },
     uiLocale: 'en',
     t: message => message,
+    restoreFreePlaySession: () => false,
     applyFacelets() {},
     localStorage: {
       getItem: () => stored,

@@ -162,6 +162,7 @@ function stepSolution() {
     if (solutionIndex < moves.length) {
       _setSolveBusy(false);
       setMoveCount(moveCount);
+      saveFreePlaySession();
       return;
     }
 
@@ -169,6 +170,7 @@ function stepSolution() {
     resetSolution();
     _setSolveBusy(false);
     if (!solved) {
+      saveFreePlaySession();
       setStatus('Could not find a solution. Try again.');
       return;
     }
@@ -177,6 +179,7 @@ function stepSolution() {
     solveStartTime = null;
     stopTimer();
     setMoveCount(0);
+    clearFreePlaySession();
     recordSolve(elapsed, moves.length, true);
     showSolvedOverlay(elapsed, moves.length, null);
   });
