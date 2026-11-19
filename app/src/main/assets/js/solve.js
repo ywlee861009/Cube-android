@@ -1,115 +1,145 @@
 // ─── 솔브 상태 ─────────────────────────────────────────────────────────────
 let solutionMoves = null;  // 계산된 솔루션 배열 (null이면 비활성)
 let solutionIndex = 0;     // 다음에 실행할 수 인덱스
+let pendingSolveRequest = null;
 
 // Android 환경이면 초기에는 광고 필요, 브라우저 테스트는 바로 실행
 let _solveAdRequired = !!window.AndroidBridge;
 
-// 솔브 버튼 라벨 갱신 — resetSolution()에서 호출
 function _refreshSolveLabel() {
   const button = document.getElementById('btn-solve');
-  if (solutionMoves) {
-    button.textContent = isScanSolve ? t('Solve') : (solutionIndex + 1) + ' / ' + solutionMoves.length;
+  const hasSteps = !isScanSolve && solutionMoves && solutionIndex < solutionMoves.length;
+  if (hasSteps) {
+    button.textContent = t('Next move · {step}/{total}', {
+      step: solutionIndex + 1,
+      total: solutionMoves.length
+    });
   } else {
     button.textContent = (_solveAdRequired ? '📺 ' : '⚡ ') + t('Solve');
   }
+
+  const exit = document.getElementById('btn-solve-exit');
+  if (exit) {
+    exit.hidden = !hasSteps;
+    exit.disabled = isSolving;
+  }
+}
+
+function _setSolveBusy(busy) {
+  isSolving = busy;
+  if (busy) {
+    for (const id of ['btn-solve', 'btn-shuffle', 'btn-scan']) {
+      document.getElementById(id).disabled = true;
+    }
+    updateUndoRedoButtons();
+  } else {
+    enableGameButtons();
+  }
+  _refreshSolveLabel();
+}
+
+function _finishSolveRequest(request) {
+  if (pendingSolveRequest !== request) return;
+  pendingSolveRequest = null;
+  document.getElementById('btn-solve').classList.remove('calculating');
+  _setSolveBusy(false);
+}
+
+function exitSolution() {
+  if (isSolving || isScanSolve || !solutionMoves) return false;
+  resetSolution();
+  setMoveCount(moveCount);
+  return true;
 }
 
 // ─── Android 광고 콜백 ──────────────────────────────────────────────────────
-// 광고 거부/실패 → 솔브 차단
 window.onSolveDenied = function() {
-  document.getElementById('btn-solve').classList.remove('calculating');
+  if (!pendingSolveRequest?.awaitingAd) return;
+  _finishSolveRequest(pendingSolveRequest);
   setStatus('Watch the ad to use the solver.');
-  document.getElementById('btn-solve').disabled   = false;
-  document.getElementById('btn-shuffle').disabled = false;
 };
 
-// 광고 허가 후 실행 — 솔루션 계산 후 전체 자동 실행
 window.onSolveGranted = function() {
-  _solveAdRequired = false;  // 광고 시청(또는 생략) → 다음 솔브는 바로 실행 가능
-  if (isShuffling || isUndoRedo || isScanning || isChallengeActive()) return;
-  _runSolve();
+  if (!pendingSolveRequest?.awaitingAd) return;
+  _solveAdRequired = false;
+  _runSolve(pendingSolveRequest);
 };
 
 // ─── 솔브 진입점 ───────────────────────────────────────────────────────────
 function solveCube() {
-  if (isShuffling || isSolving || isGuidedSolve || isChallengeActive()) return;
+  if (isShuffling || isSolving || isScanning || isUndoRedo || isGuidedSolve ||
+      isChallengeActive() || layerGroup !== null || animRafId !== null) return;
 
-  // 계산된 해법이 있으면 현재 위치에서 이어서 진행한다.
   if (solutionMoves && solutionIndex < solutionMoves.length) {
-    if (isScanSolve && (isUndoRedo || layerGroup !== null)) return;
     continueSolution();
     return;
   }
-
   if (isCubeSolved()) {
     setStatus(isScanSolve ? 'The scanned cube is already solved.' : 'Already solved!');
     return;
   }
 
-  document.getElementById('btn-solve').disabled   = true;
-  document.getElementById('btn-shuffle').disabled = true;
+  const request = {
+    source: facelets,
+    facelets: facelets.slice(),
+    isScanSolve,
+    awaitingAd: !!window.AndroidBridge?.requestSolve
+  };
+  pendingSolveRequest = request;
+  _setSolveBusy(true);
 
-  if (window.AndroidBridge && window.AndroidBridge.requestSolve) {
-    AndroidBridge.requestSolve();
-  } else {
-    // 브릿지 없음 (브라우저 테스트 환경) → 바로 실행
-    _runSolve();
-  }
+  if (request.awaitingAd) window.AndroidBridge.requestSolve();
+  else _runSolve(request);
+}
+
+function _solveRequestMatches(request) {
+  return pendingSolveRequest === request &&
+    request.source === facelets &&
+    request.isScanSolve === isScanSolve &&
+    request.facelets.every((color, index) => color === facelets[index]);
 }
 
 // ─── 솔루션 계산 ───────────────────────────────────────────────────────────
-async function _runSolve() {
-  if (isSolving) return;  // ad callback 이중 호출 등으로 인한 중복 실행 방지
+async function _runSolve(request) {
+  request.awaitingAd = false;
   try {
-    const validation = validateFacelets(facelets);
+    if (!_solveRequestMatches(request)) return;
+    const validation = validateFacelets(request.facelets);
     if (!validation.ok) {
       setStatus(localizedValidationMessage(validation));
-      resetButtons();
       return;
     }
     const solver = SolverFactory.create();
     if (!solver.isReady()) {
       setStatus('Solver loading…');
-      document.getElementById('btn-solve').classList.add('calculating');
-      // btn-solve는 비활성 유지 — 준비 완료 후 자동 재활성화
-      document.getElementById('btn-shuffle').disabled = false;
-      setTimeout(() => {
-        if (!isSolving && !isShuffling) {
-          document.getElementById('btn-solve').classList.remove('calculating');
-          document.getElementById('btn-solve').disabled = false;
-          setMoveCount(moveCount);
-        }
-      }, 1500);
       return;
     }
 
-    document.getElementById('btn-solve').disabled   = true;
-    document.getElementById('btn-shuffle').disabled = true;
     setStatus('Calculating…');
     document.getElementById('btn-solve').classList.add('calculating');
-
-    const solution = await solver.solve([...facelets]);
-    document.getElementById('btn-solve').classList.remove('calculating');
+    const solution = await solver.solve(request.facelets.slice());
+    if (!_solveRequestMatches(request)) {
+      setMoveCount(moveCount);
+      return;
+    }
     const moves = solution.trim().split(/\s+/).filter(Boolean);
-
-    if (moves.length === 0) {
-      setStatus('Already solved!');
-      document.getElementById('btn-solve').disabled   = false;
-      document.getElementById('btn-shuffle').disabled = false;
+    if (!moves.length || !moves.every(move => Object.prototype.hasOwnProperty.call(MOVE_ANIM_MAP, move))) {
+      setStatus('Could not find a solution. Try again.');
       return;
     }
 
-    usedSolver = true;  // 솔루션이 실제로 셋업될 때만 플래그 설정
+    usedSolver = true;
     solutionMoves = moves;
     solutionIndex = 0;
-    continueSolution();
-  } catch (e) {
-    document.getElementById('btn-solve').classList.remove('calculating');
-    console.error('[Solve]', e);
+  } catch (error) {
+    console.error('[Solve]', error);
     setStatus('Could not find a solution. Try again.');
-    resetButtons();
+    return;
+  } finally {
+    _finishSolveRequest(request);
   }
+
+  continueSolution();
 }
 
 function continueSolution() {
@@ -119,42 +149,34 @@ function continueSolution() {
 
 // ─── 솔루션 1수 실행 (Solve 버튼 탭마다) ───────────────────────────────────
 function stepSolution() {
-  if (!solutionMoves || solutionIndex >= solutionMoves.length) {
-    setStatus('Solved!');
-    setMoveCount(0);
-    resetButtons();
-    return;
-  }
+  if (isSolving || !solutionMoves || solutionIndex >= solutionMoves.length) return;
 
-  const moveName = solutionMoves[solutionIndex];
-  const step     = solutionIndex + 1;
-  const total    = solutionMoves.length;
-  solutionIndex++;
+  const moves = solutionMoves;
+  const index = solutionIndex;
+  _setSolveBusy(true);
 
-  isSolving = true;
-  document.getElementById('btn-solve').disabled   = true;
-  document.getElementById('btn-shuffle').disabled = true;
-  setStatus(step + ' / ' + total + '  ' + moveName);
-
-  performAnimatedMove(moveName, () => {
-    try {
-      if (solutionIndex >= solutionMoves.length) {
-        const solverMoves = solutionMoves.length;
-        const elapsed = solveStartTime !== null ? Date.now() - solveStartTime : 0;
-        solveStartTime = null;
-        setStatus('Solved!');
-        setMoveCount(0);
-        resetButtons();
-        if (!isScanSolve) recordSolve(elapsed, solverMoves, true);
-        showSolvedOverlay(isScanSolve ? null : elapsed, solverMoves, null);
-      } else {
-        // 다음 수 대기: 버튼에 진행 상황 표시 후 탭 대기
-        document.getElementById('btn-solve').textContent = (solutionIndex + 1) + ' / ' + total;
-        document.getElementById('btn-solve').disabled = false;
-        setMoveCount(moveCount);
-      }
-    } finally {
-      isSolving = false;
+  performAnimatedMove(moves[index], () => {
+    if (solutionMoves !== moves || solutionIndex !== index) return;
+    solutionIndex++;
+    if (solutionIndex < moves.length) {
+      _setSolveBusy(false);
+      setMoveCount(moveCount);
+      return;
     }
+
+    const solved = isCubeSolved();
+    resetSolution();
+    _setSolveBusy(false);
+    if (!solved) {
+      setStatus('Could not find a solution. Try again.');
+      return;
+    }
+
+    const elapsed = solveStartTime !== null ? Date.now() - solveStartTime : 0;
+    solveStartTime = null;
+    stopTimer();
+    setMoveCount(0);
+    recordSolve(elapsed, moves.length, true);
+    showSolvedOverlay(elapsed, moves.length, null);
   });
 }

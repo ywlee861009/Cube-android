@@ -161,7 +161,7 @@
 
 <div id="top-bar">
   <div id="timer">0.0s</div>
-  <div id="moves">Moves: 0</div>
+  <div id="moves" role="status">Moves: 0</div>
 </div>
 <details id="app-options">
   <summary data-i18n-label aria-label="Options">⋯</summary>
@@ -194,6 +194,7 @@
     <div class="ui-row">
       <button id="btn-shuffle" onclick="shuffleCube()" data-i18n>⇄ Shuffle</button>
       <button id="btn-solve"   onclick="solveCube()" data-i18n>📺 Solve</button>
+      <button id="btn-solve-exit" type="button" onclick="exitSolution()" hidden data-i18n>End solve</button>
     </div>
   </div>
   <button id="btn-scan" onclick="scanFromHome()" data-i18n>📷 Scan Cube</button>

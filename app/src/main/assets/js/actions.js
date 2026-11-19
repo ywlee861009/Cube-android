@@ -30,12 +30,6 @@ function resetSolution() {
   _refreshSolveLabel();
 }
 
-function resetButtons() {
-  isSolving = false;
-  resetSolution();
-  enableGameButtons();
-}
-
 function enableGameButtons() {
   document.getElementById('btn-solve').disabled   = false;
   document.getElementById('btn-shuffle').disabled = false;
@@ -62,8 +56,8 @@ function applyMove(name) {
   const isManual = !isShuffling && !isSolving && !isUndoRedo;
   applyMoveInPlace(name, f);
   facelets = f;
+  if (!isShuffling && !isSolving && solutionMoves) resetSolution();
   if (isManual) {
-    if (solutionMoves) resetSolution();  // 솔브 진행 중 수동 이동 → 솔루션 무효화
     undoStack.push({ moveName: name, moveCount });
     redoStack.length = 0;
     updateUndoRedoButtons();

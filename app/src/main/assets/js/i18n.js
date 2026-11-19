@@ -35,6 +35,8 @@ const koreanStrings = {
   'Redo ↪': '다시 실행 ↪',
   '⇄ Shuffle': '⇄ 섞기',
   'Solve': '풀이 보기',
+  'Next move · {step}/{total}': '다음 수 · {step}/{total}',
+  'End solve': '풀이 종료',
   '📺 Solve': '📺 풀이 보기',
   '📷 Scan Cube': '📷 실물 큐브 스캔',
   'Watch the ad to use the solver.': '광고를 시청하면 풀이를 볼 수 있어요.',
