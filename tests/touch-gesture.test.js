@@ -9,6 +9,8 @@ const scripts = ['constants.js', 'cubies.js', 'layer-rotation.js', 'layer-snap.j
 
 function dragLayer() {
   const handlers = new Map();
+  let now = 0;
+  let frame;
   const canvas = {
     addEventListener: (type, listener) => handlers.set(type, listener),
   };
@@ -20,7 +22,7 @@ function dragLayer() {
 
   const applyMove = jest.fn();
   const context = vm.createContext({
-    THREE, camera, cubieGroup, performance, applyMove,
+    THREE, camera, cubieGroup, applyMove,
     console: { log() {} },
     renderer: { domElement: canvas },
     document: { elementFromPoint: () => canvas },
@@ -31,6 +33,11 @@ function dragLayer() {
     isUndoRedo: false,
     animRafId: null,
     camDist: 13,
+    performance: { now: () => now },
+    requestAnimationFrame: callback => {
+      frame = callback;
+      return 1;
+    },
     isChallengeComplete: () => false,
     markDirty() {},
     updateCamera() {},
@@ -39,8 +46,14 @@ function dragLayer() {
   vm.runInContext('cubieGroup.updateMatrixWorld(true); applyFacelets();', context);
 
   function touch(type, ...points) {
+    now += 16;
     const touches = points.map(([clientX, clientY]) => ({ clientX, clientY }));
     handlers.get(type)({ touches, changedTouches: touches, preventDefault() {} });
+  }
+
+  function finishAnimation() {
+    now += 200;
+    frame?.(now);
   }
 
   touch('touchstart', [200, 400]);
@@ -54,7 +67,7 @@ function dragLayer() {
     expect(applyMove).not.toHaveBeenCalled();
   }
 
-  return { touch, expectRolledBack, context };
+  return { touch, finishAnimation, expectRolledBack, applyMove, context };
 }
 
 test('adding a second finger rolls a layer back before zooming', () => {
@@ -72,10 +85,11 @@ test('adding a second finger rolls a layer back before zooming', () => {
 });
 
 test('releasing the second finger without moving either finger does not commit a turn', () => {
-  const { touch, expectRolledBack } = dragLayer();
+  const { touch, finishAnimation, expectRolledBack } = dragLayer();
   touch('touchstart', [245, 400], [280, 430]);
   touch('touchend', [245, 400]);
   touch('touchend');
+  finishAnimation();
   expectRolledBack();
 });
 
@@ -83,4 +97,11 @@ test('cancelling an active touch restores all cubies without applying the drag',
   const { touch, expectRolledBack } = dragLayer();
   touch('touchcancel');
   expectRolledBack();
+});
+
+test('a single-finger release still commits a turn', () => {
+  const { touch, finishAnimation, applyMove } = dragLayer();
+  touch('touchend');
+  finishAnimation();
+  expect(applyMove).toHaveBeenCalledTimes(1);
 });
