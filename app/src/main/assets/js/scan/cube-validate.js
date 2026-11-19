@@ -24,31 +24,32 @@ function validationFailure(code, message, badIndices) {
   return { ok: false, code, message, badIndices: [...new Set(badIndices)].sort((a, b) => a - b) };
 }
 
-function validateFacelets(f) {
-  if (!Array.isArray(f) || f.length !== 54) {
+function validateFacelets(facelets) {
+  if (!Array.isArray(facelets) || facelets.length !== 54) {
     return validationFailure('LENGTH', '큐브의 54칸을 모두 확인해 주세요.', []);
   }
 
   const invalid = [];
-  for (let i = 0; i < f.length; i++) {
-    if (!Number.isInteger(f[i]) || f[i] < 0 || f[i] > 5) invalid.push(i);
+  for (let i = 0; i < facelets.length; i++) {
+    const color = facelets[i];
+    if (!Number.isInteger(color) || color < 0 || color > 5) invalid.push(i);
   }
   if (invalid.length) {
     return validationFailure('VALUE_RANGE', '알 수 없는 색이 있는 칸을 확인해 주세요.', invalid);
   }
 
   const counts = Array(6).fill(0);
-  f.forEach(color => counts[color]++);
+  facelets.forEach(color => counts[color]++);
   if (counts.some(count => count !== 9)) {
     const badColors = new Set(counts.flatMap((count, color) => count === 9 ? [] : [color]));
-    const badIndices = f.flatMap((color, index) => badColors.has(color) ? [index] : []);
+    const badIndices = facelets.flatMap((color, index) => badColors.has(color) ? [index] : []);
     const summary = counts
       .map((count, color) => `${VALIDATE_COLOR_NAMES[color]} ${count}칸`)
       .join(', ');
     return { ...validationFailure('COLOR_COUNT', `색마다 9칸이어야 해요. 현재 ${summary}`, badIndices), counts };
   }
 
-  const centerColors = VALIDATE_CENTERS.map(index => f[index]);
+  const centerColors = VALIDATE_CENTERS.map(index => facelets[index]);
   if (new Set(centerColors).size !== 6) {
     return validationFailure(
       'CENTER_DUPLICATE',
@@ -56,6 +57,17 @@ function validateFacelets(f) {
       VALIDATE_CENTERS
     );
   }
+
+  const standardCenters = centerColors.every((color, face) => color === face);
+  if (!standardCenters && !isLegalCenterOrientation(centerColors)) {
+    return validationFailure(
+      'CENTER_ORIENTATION',
+      '가운데 색 배치를 다시 확인해 주세요.',
+      VALIDATE_CENTERS
+    );
+  }
+  // 중간 층 회전 뒤에는 현재 센터를 기준으로 색 ID만 바꾼다. 스티커 위치와 회전 방향은 유지된다.
+  const f = standardCenters ? facelets : facelets.map(color => centerColors.indexOf(color));
 
   const cornerPermutation = [];
   const cornerOrientation = [];
@@ -143,7 +155,20 @@ function validateFacelets(f) {
       VALIDATE_CORNER_STICKERS.flat().concat(VALIDATE_EDGE_STICKERS.flat())
     );
   }
-  return { ok: true };
+  return standardCenters ? { ok: true } : { ok: true, normalizedFacelets: f };
+}
+
+function isLegalCenterOrientation(centers) {
+  // 반대편 색 쌍과 U-F-R 코너의 순환 순서를 모두 보존하는 24가지 배치만 회전으로 만들 수 있다.
+  const oppositesMatch = centers.slice(0, 3)
+    .every((color, face) => (color + 3) % 6 === centers[face + 3]);
+  if (!oppositesMatch) return false;
+
+  const [up, right, front] = centers;
+  return VALIDATE_CORNER_FACE_CYCLES.some(cycle => {
+    const start = cycle.indexOf(up);
+    return start !== -1 && cycle[(start + 1) % 3] === front && cycle[(start + 2) % 3] === right;
+  });
 }
 
 function permutationParity(permutation) {

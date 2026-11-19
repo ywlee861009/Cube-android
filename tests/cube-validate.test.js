@@ -31,6 +31,33 @@ describe('validateFacelets', () => {
     }
   });
 
+  test.each(['E', 'M', 'S', "M U E F' S2"])('중간 층 회전 %s 이후 현재 센터로 색을 정규화한다', sequence => {
+    const facelets = solved();
+    sequence.split(' ').forEach(move => applyMoveInPlace(move, facelets));
+    const original = facelets.slice();
+    const { ok, normalizedFacelets } = validateFacelets(facelets);
+    expect(ok).toBe(true);
+    expect(facelets).toEqual(original);
+    expect([4, 13, 22, 31, 40, 49].map(index => normalizedFacelets[index])).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(validateFacelets(normalizedFacelets)).toEqual({ ok: true });
+  });
+
+  test.each([
+    ['인접한 두 색 센터 교체', 4, 13],
+    ['좌우 색 센터의 거울 배치', 13, 40],
+  ])('%s를 거부한다', (_, first, second) => {
+    const facelets = solved();
+    [facelets[first], facelets[second]] = [facelets[second], facelets[first]];
+    expect(validateFacelets(facelets).code).toBe('CENTER_ORIENTATION');
+  });
+
+  test('센터 회전 뒤에도 엣지 교환으로 인한 패리티 위반을 찾는다', () => {
+    const facelets = solved();
+    applyMoveInPlace('M', facelets);
+    swapPieces(facelets, [7, 19], [5, 10]);
+    expect(validateFacelets(facelets).code).toBe('PARITY');
+  });
+
   test('색 개수 위반을 찾는다', () => {
     const facelets = solved();
     facelets[0] = 1;

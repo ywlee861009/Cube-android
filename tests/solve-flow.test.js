@@ -136,3 +136,24 @@ test('exhausting an incorrect plan never records or celebrates a solve', async (
   expect(flow.showSolvedOverlay).not.toHaveBeenCalled();
   expect(flow.button('btn-shuffle').disabled).toBe(false);
 });
+
+test.each([
+  ['E', "U' D"],
+  ['M', "R' L"],
+  ['S', "F B'"],
+])('the solver uses fixed center IDs after an %s move and solves the original cube', async (slice, plan) => {
+  const solve = jest.fn(() => Promise.resolve(plan));
+  const flow = loadSolve({ solve });
+  flow.evaluate(`applyMove(${JSON.stringify(slice)})`);
+  const centers = flow.evaluate('VALIDATE_CENTERS.map(index => facelets[index])');
+  flow.evaluate('solveCube()');
+  await settleSolver();
+  expect(solve).toHaveBeenCalledTimes(1);
+  expect([4, 13, 22, 31, 40, 49].map(index => solve.mock.calls[0][0][index])).toEqual([0, 1, 2, 3, 4, 5]);
+  flow.finishMove();
+  flow.evaluate('solveCube()');
+  flow.finishMove();
+  expect(flow.evaluate('isCubeSolved()')).toBe(true);
+  expect(flow.evaluate('VALIDATE_CENTERS.map(index => facelets[index])')).toEqual(centers);
+  expect(flow.recordSolve).toHaveBeenCalledTimes(1);
+});

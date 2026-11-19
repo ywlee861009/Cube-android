@@ -117,7 +117,8 @@ async function _runSolve(request) {
 
     setStatus('Calculating…');
     document.getElementById('btn-solve').classList.add('calculating');
-    const solution = await solver.solve(request.facelets.slice());
+    const solverFacelets = validation.normalizedFacelets ?? request.facelets;
+    const solution = await solver.solve(solverFacelets.slice());
     if (!_solveRequestMatches(request)) {
       setMoveCount(moveCount);
       return;

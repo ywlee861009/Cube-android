@@ -156,6 +156,7 @@ const koreanStrings = {
   'Orange': '주황',
   'Blue': '파랑',
   'All six center colors must be different.': '가운데 색 6개가 서로 달라야 해요.',
+  'Check the arrangement of the center colors.': '가운데 색 배치를 다시 확인해 주세요.',
   'One corner piece was read incorrectly.': '모서리 조각 하나가 잘못 읽혔어요.',
   'Check the colors on the corner pieces.': '모서리 조각의 색 조합을 다시 확인해 주세요.',
   'Check the colors on the edge pieces.': '가장자리 조각의 색 조합을 다시 확인해 주세요.',
