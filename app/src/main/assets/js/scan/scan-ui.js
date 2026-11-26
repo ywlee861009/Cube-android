@@ -353,6 +353,7 @@ function onFaceSampleFailed(sessionId, captureId, faceIndex, reason) {
 function renderScanStep(overrideHints) {
   const step = SCAN_STEPS[currentScanStep];
   const retaking = scanRetakeSlot !== null;
+  document.getElementById('scan-header').scrollTop = 0;
   document.getElementById('scan-progress').textContent = retaking
     ? t('Retake: {face}', { face: t(step.faceLabel.long) })
     : `${currentScanStep + 1} / ${SCAN_STEPS.length} — ${t(step.faceLabel.long)}`;
@@ -404,6 +405,9 @@ function applyNativeScanGuideRect() {
   try {
     const rect = JSON.parse(window.AndroidBridge.getScanGuideRect());
     const guide = document.getElementById('scan-guide');
+    const overlay = document.getElementById('scan-overlay');
+    overlay.style.setProperty('--scan-side-gap', `${rect.left * 100}%`);
+    overlay.style.setProperty('--scan-vertical-gap', `${rect.top * 100}%`);
     guide.style.left = `${rect.left * 100}%`;
     guide.style.top = `${rect.top * 100}%`;
     guide.style.width = `${(rect.right - rect.left) * 100}%`;
@@ -413,6 +417,10 @@ function applyNativeScanGuideRect() {
     setScanMessage('가이드 좌표를 불러오지 못했어요.');
   }
 }
+
+document.defaultView?.addEventListener('resize', () => {
+  if (isScanning && scanCameraReady) applyNativeScanGuideRect();
+});
 
 function finishScanUi() {
   cancelPendingScanCapture();

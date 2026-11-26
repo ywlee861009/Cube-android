@@ -4,7 +4,7 @@ let solutionIndex = 0;     // 다음에 실행할 수 인덱스
 let pendingSolveRequest = null;
 
 // Android 환경이면 초기에는 광고 필요, 브라우저 테스트는 바로 실행
-let _solveAdRequired = !!window.AndroidBridge;
+let _solveAdRequired = !!window.AndroidBridge?.requestSolve;
 
 function _refreshSolveLabel() {
   const button = document.getElementById('btn-solve');
@@ -15,7 +15,7 @@ function _refreshSolveLabel() {
       total: solutionMoves.length
     });
   } else {
-    button.textContent = (_solveAdRequired ? '📺 ' : '⚡ ') + t('Solve');
+    button.textContent = t(_solveAdRequired ? 'Solve · Ad' : 'Solve');
   }
 
   const exit = document.getElementById('btn-solve-exit');
@@ -23,6 +23,7 @@ function _refreshSolveLabel() {
     exit.hidden = !hasSteps;
     exit.disabled = isSolving;
   }
+  document.getElementById('btn-shuffle').hidden = !!hasSteps;
 }
 
 function _setSolveBusy(busy) {
@@ -184,3 +185,5 @@ function stepSolution() {
     showSolvedOverlay(elapsed, moves.length, null);
   });
 }
+
+_refreshSolveLabel();

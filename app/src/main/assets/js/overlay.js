@@ -12,7 +12,7 @@ function showSolvedOverlay(elapsedMs, moves, pbResult, challengeResult = null) {
   console.log('[Overlay] showSolvedOverlay called t=' + performance.now().toFixed(0));
   solvedAction = challengeResult?.onAgain ?? null;
   document.getElementById('solved-title').textContent = t(challengeResult?.title ?? 'Solved!');
-  document.getElementById('btn-play-again').textContent = t(challengeResult?.action ?? '⇄ Play Again');
+  document.getElementById('btn-play-again').textContent = t(challengeResult?.action ?? 'Play again');
   const secondary = challengeResult?.secondary;
   const secondaryButton = document.getElementById('btn-solved-secondary');
   secondaryButton.hidden = !secondary;
@@ -21,12 +21,12 @@ function showSolvedOverlay(elapsedMs, moves, pbResult, challengeResult = null) {
     dismissSolvedOverlay();
     secondary.onClick();
   } : null;
-  document.getElementById('solved-time-stat').hidden = !!challengeResult;
+  document.getElementById('solved-time-stat').hidden = elapsedMs === null || !!challengeResult;
   const detail = document.getElementById('solved-detail');
   detail.hidden = !challengeResult;
   detail.textContent = challengeResult?.detail ?? '';
-  document.getElementById('s-time').textContent  =
-    elapsedMs === null ? t('Scan') : (elapsedMs / 1000).toFixed(1) + 's';
+  document.getElementById('s-time').textContent =
+    elapsedMs === null ? '' : (elapsedMs / 1000).toFixed(1) + 's';
   document.getElementById('s-moves').textContent = moves;
 
   // New Best 배지
@@ -75,7 +75,7 @@ function playAgain() {
 
 function _spawnConfetti() {
   const colors = ['#ffffff', '#ff3333', '#22cc55', '#ffdd00', '#ff8800', '#3388ff'];
-  const opts = { colors: colors, scalar: 1.1, zIndex: 102 };
+  const opts = { colors: colors, scalar: 1.1 };
 
   _confetti(Object.assign({ particleCount: 80, spread: 70, origin: { y: 0.55 } }, opts));
 

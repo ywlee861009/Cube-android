@@ -1,9 +1,6 @@
 const SCAN_FACE_LABELS = ['U', 'R', 'F', 'D', 'L', 'B'];
 const SCAN_CENTER_INDICES = new Set([4, 13, 22, 31, 40, 49]);
 const SCAN_LOW_CONFIDENCE = 0.35;
-const SCAN_NET_ORIGINS = [
-  [3, 0], [6, 3], [3, 3], [3, 6], [0, 3], [9, 3]
-];
 const SCAN_WARNING_TEXT = {
   SIMILAR_CENTERS: '두 면의 색이 카메라에서 거의 같게 보여요. 표시된 칸을 직접 확인해 주세요.',
   CENTER_OVEREXPOSED: '반사광으로 여러 면이 하얗게 날아갔어요. 각도를 바꿔 다시 촬영하세요.',
@@ -15,7 +12,7 @@ const SCAN_REPEATED_FAILURE_THRESHOLD = 2;
 let reviewFacelets = null;
 let reviewConfidence = null;
 let reviewValidation = null;
-// 스캔 세션의 실제 센터 색. 전개도·편집기·팔레트·3D 큐브가 모두 이 값을 쓴다.
+// 스캔 세션의 실제 센터 색. 면 미리보기·편집기·팔레트·3D 큐브가 모두 이 값을 쓴다.
 let reviewPalette = null;
 let reviewWarnings = [];
 let reviewSimilarFaces = new Set();
@@ -47,8 +44,9 @@ function openScanReview(result) {
     reviewFacelets[index] = color;
     reviewConfidence[index] = 1;
   });
-  selectedReviewFace = 0;
-  selectedReviewIndex = 0;
+  reviewValidation = validateFacelets(reviewFacelets);
+  selectedReviewIndex = firstStickerToCheck(0, reviewFacelets.length);
+  selectedReviewFace = Math.floor(selectedReviewIndex / 9);
   // 3D 큐브의 팔레트는 건드리지 않는다. 스캔 facelets 가 아직 적용되지 않았으므로
   // 지금 팔레트만 바꾸면 "이전 상태를 새 색으로 칠한" 화면이 되어 오히려 헷갈린다.
   // 검토 UI 는 activeFaceColors 대신 reviewFaceColor() 로 직접 그린다.
@@ -69,15 +67,34 @@ function reviewFaceColor(face) {
   return FACE_COLORS[face];
 }
 
+function reviewFaceLabel(face) {
+  return SCAN_STEPS.find(({ slot }) => slot === face)?.faceLabel;
+}
+
+function reviewStickerBackground(index) {
+  if (!isManualScanReview()) return reviewFaceColor(reviewFacelets[index]);
+  const color = manualScanColors[index];
+  return color === null ? '' : FACE_COLORS[color];
+}
+
+function firstStickerToCheck(start, end) {
+  const canEdit = index => index >= start && index < end && !SCAN_CENTER_INDICES.has(index);
+  const invalid = reviewValidation.badIndices?.find(canEdit);
+  if (invalid !== undefined) return invalid;
+  const uncertain = reviewConfidence.findIndex((value, index) => canEdit(index) && value < SCAN_LOW_CONFIDENCE);
+  return uncertain < 0 ? start : uncertain;
+}
+
 function renderScanReview() {
   const manual = isManualScanReview();
   if (!manual && !reviewFacelets) return;
   const input = manual ? getManualScanInput(manualScanColors) : null;
   reviewValidation = input?.validation ?? validateFacelets(reviewFacelets);
+  document.getElementById('scan-review-card').classList.toggle('scan-review-manual', manual);
   document.getElementById('scan-review-title').textContent = t(manual ? 'Enter cube colors' : 'Review scan');
   document.getElementById('scan-manual-orientation').hidden = !manual;
   document.getElementById('btn-scan-again').hidden = manual;
-  renderScanNet();
+  renderScanFacePreviews();
   renderScanFaceEditor();
   renderScanPalette();
   renderScanWarnings();
@@ -85,13 +102,17 @@ function renderScanReview() {
   const message = document.getElementById('scan-validation-message');
   message.textContent = manual ? renderManualScanSummary(input) : renderCapturedScanSummary();
   message.classList.toggle('valid', reviewValidation.ok);
-  document.getElementById('btn-scan-apply').disabled = !reviewValidation.ok;
+  message.classList.toggle('invalid', !reviewValidation.ok && reviewValidation.code !== 'INCOMPLETE');
+  const apply = document.getElementById('btn-scan-apply');
+  apply.hidden = manual && !document.getElementById('btn-scan-retake-face').hidden;
+  apply.disabled = !reviewValidation.ok;
 }
 
 function renderCapturedScanSummary() {
   const uncertain = reviewConfidence.filter(value => value < SCAN_LOW_CONFIDENCE).length;
-  document.getElementById('scan-review-badge').textContent =
-    t('Stickers to check: {count}', { count: uncertain });
+  const status = document.getElementById('scan-review-badge');
+  status.hidden = uncertain === 0;
+  status.textContent = uncertain > 0 ? t('Stickers to check: {count}', { count: uncertain }) : '';
   if (reviewValidation.ok) return t('The cube state is valid. You can start solving.');
   if (scanFailedAttempts >= SCAN_REPEATED_FAILURE_THRESHOLD) {
     return t('Several scans failed. Scan slowly in a brighter place.');
@@ -107,33 +128,50 @@ function renderScanWarnings() {
     const row = document.createElement('div');
     row.className = 'scan-warning';
     const faces = warning.faces && warning.faces.length
-      ? ` (${warning.faces.map(face => SCAN_FACE_LABELS[face]).join(' / ')})`
+      ? ` (${warning.faces.map(face => t(reviewFaceLabel(face).short)).join(' / ')})`
       : '';
     row.textContent = `${t(SCAN_WARNING_TEXT[warning.code] || warning.code)}${faces}`;
     return row;
   }));
 }
 
-function renderScanNet() {
-  const net = document.getElementById('scan-net');
-  net.replaceChildren();
-  for (let face = 0; face < 6; face++) {
-    const [originColumn, originRow] = SCAN_NET_ORIGINS[face];
+function renderScanFacePreviews() {
+  const faces = document.getElementById('scan-net');
+  faces.replaceChildren(...SCAN_STEPS.map(({ slot, step, faceLabel }) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'scan-face-preview';
+    button.setAttribute('aria-pressed', slot === selectedReviewFace);
+    button.setAttribute('aria-label', t(faceLabel.long));
+    const preview = document.createElement('span');
+    preview.className = 'scan-face-preview-grid';
+    preview.setAttribute('aria-hidden', 'true');
     for (let position = 0; position < 9; position++) {
-      const index = face * 9 + position;
-      const cell = createReviewCell('scan-net-cell', index);
-      cell.style.gridColumn = originColumn + (position % 3) + 1;
-      cell.style.gridRow = originRow + Math.floor(position / 3) + 1;
-      net.appendChild(cell);
+      const index = slot * 9 + position;
+      const cell = document.createElement('span');
+      cell.className = reviewCellClasses('scan-net-cell', index);
+      cell.style.background = reviewStickerBackground(index);
+      preview.appendChild(cell);
     }
-  }
+    const name = document.createElement('span');
+    name.textContent = t(faceLabel.short);
+    button.appendChild(preview);
+    button.appendChild(name);
+    button.onclick = () => {
+      if (selectedReviewFace === slot) return;
+      const start = slot * 9;
+      const nextSticker = isManualScanReview() ? nextBlankManualSticker(slot) ?? start + 4
+        : firstStickerToCheck(start, start + 9);
+      selectReviewCell(nextSticker);
+      faces.children[step]?.focus();
+    };
+    return button;
+  }));
 }
 
 function renderScanFaceEditor() {
   const manual = isManualScanReview();
-  document.getElementById('scan-face-editor-title').textContent =
-    manual ? t(SCAN_STEPS.find(({ slot }) => slot === selectedReviewFace).faceLabel.long)
-      : t('{face} face', { face: SCAN_FACE_LABELS[selectedReviewFace] });
+  document.getElementById('scan-face-editor-title').textContent = t(reviewFaceLabel(selectedReviewFace).long);
   const editor = document.getElementById('scan-face-editor');
   editor.replaceChildren();
   for (let position = 0; position < 9; position++) {
@@ -146,7 +184,7 @@ function renderScanFaceEditor() {
   }
   const retake = document.getElementById('btn-scan-retake-face');
   if (retake) {
-    retake.textContent = manual ? t('Next face') : t('Retake {face} face', { face: SCAN_FACE_LABELS[selectedReviewFace] });
+    retake.textContent = t(manual ? 'Next face' : 'Retake this face');
     retake.hidden = manual && !nextManualScanFace();
     retake.disabled = manual ? nextBlankManualSticker(selectedReviewFace) !== undefined
       : typeof startScanFaceRetake !== 'function';
@@ -158,12 +196,12 @@ function createReviewCell(className, index) {
   const cell = document.createElement('button');
   const color = manual ? manualScanColors[index] : reviewFacelets[index];
   const face = Math.floor(index / 9);
-  const faceLabel = manual ? t(SCAN_STEPS.find(({ slot }) => slot === face).faceLabel.long) : SCAN_FACE_LABELS[face];
+  const faceLabel = t(reviewFaceLabel(face).long);
   const colorLabel = manual ? (color === null ? t('Unassigned') : t(MANUAL_COLOR_NAMES[color]))
-    : SCAN_FACE_LABELS[color];
+    : t(reviewFaceLabel(color)?.long ?? 'Unassigned');
   cell.type = 'button';
   cell.className = reviewCellClasses(className, index);
-  cell.style.background = manual ? (color === null ? '' : FACE_COLORS[color]) : reviewFaceColor(color);
+  cell.style.background = reviewStickerBackground(index);
   cell.setAttribute('aria-pressed', index === selectedReviewIndex);
   cell.setAttribute('aria-label', t('{face}, sticker {index}, current color {color}', {
     face: faceLabel, index: index % 9 + 1, color: colorLabel
@@ -188,7 +226,7 @@ function renderScanPalette() {
     if (reviewSimilarFaces.has(face)) button.classList.add('similar');
     button.style.background = manual ? FACE_COLORS[face] : reviewFaceColor(face);
     button.textContent = manual ? MANUAL_COLOR_SYMBOLS[face] : label;
-    if (manual) button.setAttribute('aria-label', t(MANUAL_COLOR_NAMES[face]));
+    button.setAttribute('aria-label', t(manual ? MANUAL_COLOR_NAMES[face] : reviewFaceLabel(face).long));
     button.disabled = !manual && SCAN_CENTER_INDICES.has(selectedReviewIndex);
     button.onclick = () => setReviewCellColor(face);
     return button;
@@ -215,16 +253,19 @@ function selectReviewCell(index) {
 }
 
 function setReviewCellColor(color) {
+  const palette = document.getElementById('scan-palette');
+  const restorePaletteFocus = palette.contains(document.activeElement);
   if (isManualScanReview()) {
     setManualStickerColor(color);
-    return;
+  } else {
+    if (SCAN_CENTER_INDICES.has(selectedReviewIndex)) return;
+    reviewFacelets[selectedReviewIndex] = color;
+    reviewConfidence[selectedReviewIndex] = 1;
+    scanManualOverrides.set(selectedReviewIndex, color);
+    saveCapturedScanProgress();
+    renderScanReview();
   }
-  if (SCAN_CENTER_INDICES.has(selectedReviewIndex)) return;
-  reviewFacelets[selectedReviewIndex] = color;
-  reviewConfidence[selectedReviewIndex] = 1;
-  scanManualOverrides.set(selectedReviewIndex, color);
-  saveCapturedScanProgress();
-  renderScanReview();
+  if (restorePaletteFocus) palette.children[color]?.focus();
 }
 
 // 센터 색은 직접 편집할 수 없다 — 센터가 곧 팔레트의 정의라서 편집하면 정합이 깨진다.

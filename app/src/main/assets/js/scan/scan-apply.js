@@ -15,12 +15,13 @@ function applyScannedFacelets(scanned, palette) {
   usedSolver = false;
   stopTimer();
   isScanSolve = true;
-  _solveAdRequired = !!window.AndroidBridge;
+  _solveAdRequired = !!window.AndroidBridge?.requestSolve;
   resetSolution();
   window.AndroidBridge?.onScannedStateApplied?.();
   document.getElementById('btn-shuffle').disabled = false;
   document.getElementById('btn-solve').disabled = false;
   document.getElementById('btn-scan').disabled = false;
+  selectHomeMode('play');
   setStatus('스캔한 큐브를 적용했어요.');
   return { ok: true };
 }

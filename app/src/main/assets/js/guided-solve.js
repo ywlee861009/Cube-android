@@ -248,7 +248,7 @@ function buildGuidedArrow(axis, offset, direction, turns) {
   if (!layer) return;
 
   layer.addEventListener('pointerdown', e => {
-    if (guidedBusy || e.target.closest('button, #guided-controls')) return;
+    if (guidedBusy || e.target.closest('#guided-header, #guided-controls')) return;
     guidedPointer = { id: e.pointerId, x: e.clientX, y: e.clientY };
   });
   layer.addEventListener('pointerup', e => {
@@ -256,7 +256,7 @@ function buildGuidedArrow(axis, offset, direction, turns) {
     const dx = e.clientX - guidedPointer.x;
     const dy = e.clientY - guidedPointer.y;
     guidedPointer = null;
-    if (e.target.closest('button, #guided-controls')) return;
+    if (e.target.closest('#guided-header, #guided-controls')) return;
     if (Math.abs(dx) > GUIDED_SWIPE_PX && Math.abs(dx) > Math.abs(dy)) {
       if (dx > 0) guidedPrev(); else guidedNext();
     } else if (Math.hypot(dx, dy) < GUIDED_SWIPE_PX) {

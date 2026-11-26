@@ -78,8 +78,8 @@ function hasSavedScan() {
 }
 
 function refreshScanResumeControls() {
-  const manual = document.getElementById('btn-scan-manual');
-  if (manual) manual.hidden = !!savedScan || document.getElementById('btn-scan').hidden;
+  document.getElementById('saved-scan-indicator').hidden = !savedScan;
+  document.getElementById('saved-scan-label').hidden = !savedScan;
   const row = document.getElementById('scan-resume-controls');
   if (!row) return;
   row.hidden = !savedScan || isChallengeActive();

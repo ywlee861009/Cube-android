@@ -31,6 +31,7 @@ function handleAndroidBack() {
   const options = document.getElementById('app-options');
   if (options.open) { options.open = false; return true; }
   if (isChallengeActive()) { exitChallenge(); return true; }
+  if (homeMode !== 'play') { selectHomeMode('play'); return true; }
   if (exitSolution()) return true;
   return typeof exitGuidedSolve === 'function' && exitGuidedSolve();
 }

@@ -1,11 +1,5 @@
 // ─── renderer ──────────────────────────────────────────────────────────────
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setClearColor(0xf0f0f0, 1);
-
-function setSceneBg(hex) {
-  renderer.setClearColor(hex, 1);
-  markDirty();
-}
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -13,6 +7,9 @@ document.body.appendChild(renderer.domElement);
 // ─── scene / camera ────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+const sidePanelLayout = window.matchMedia('(min-width: 620px) and (min-aspect-ratio: 6/5)');
+const gameHeader = document.getElementById('game-header');
+const gameControls = document.getElementById('ui');
 
 let camDist = 13;
 const camDir = new THREE.Vector3(4.5, 4, 5.5).normalize();
@@ -26,13 +23,19 @@ updateCamera();
 function updateHomeCubeViewport() {
   const width = window.innerWidth;
   const height = window.innerHeight;
-  const controls = document.getElementById('ui').getBoundingClientRect();
-  if (width < 600 && controls.height > 0) {
-    const top = document.getElementById('top-bar').getBoundingClientRect().bottom + 12;
-    const bottom = controls.top - 12;
-    const available = Math.max(1, bottom - top);
-    camera.zoom = Math.min(1, width / (height * 0.57), available / (height * 0.58));
-    camera.setViewOffset(width, height, 0, (height - top - bottom) / 2, width, height);
+  const controls = gameControls.getBoundingClientRect();
+  if (controls.height > 0) {
+    const header = gameHeader.getBoundingClientRect();
+    const besideControls = sidePanelLayout.matches;
+    const left = header.left;
+    const right = besideControls ? controls.left - 12 : header.right;
+    const top = header.bottom + 12;
+    const safeBottom = parseFloat(getComputedStyle(gameHeader).getPropertyValue('--safe-bottom')) || 0;
+    const bottom = besideControls ? height - safeBottom - 12 : controls.top - 12;
+    camera.zoom = Math.min(1, Math.max(1, right - left) / (height * 0.57),
+      Math.max(1, bottom - top) / (height * 0.58));
+    camera.setViewOffset(width, height, (width - left - right) / 2,
+      (height - top - bottom) / 2, width, height);
   } else {
     camera.zoom = 1;
     camera.clearViewOffset();
@@ -93,6 +96,8 @@ function animate() {
   _needsRender = false;
   renderer.render(scene, camera);
 }
-new ResizeObserver(updateHomeCubeViewport).observe(document.getElementById('ui'));
+const gameLayoutObserver = new ResizeObserver(updateHomeCubeViewport);
+gameLayoutObserver.observe(gameHeader);
+gameLayoutObserver.observe(gameControls);
 updateHomeCubeViewport();
 animate();

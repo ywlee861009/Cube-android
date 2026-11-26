@@ -40,7 +40,9 @@ function nextManualScanFace() {
 
 function advanceManualScanFace() {
   const next = nextManualScanFace();
-  if (next) selectReviewCell(nextBlankManualSticker(next.slot));
+  if (!next) return;
+  selectReviewCell(nextBlankManualSticker(next.slot));
+  document.getElementById('scan-face-editor').children[selectedReviewIndex % 9]?.focus();
 }
 
 function setManualStickerColor(color) {
@@ -49,9 +51,7 @@ function setManualStickerColor(color) {
   manualScanColors[index] = color;
   if (wasBlank) selectedReviewIndex = nextBlankManualSticker(selectedReviewFace) ?? index;
   writeSavedScan({ kind: 'manual', colors: manualScanColors.slice() });
-  const restorePaletteFocus = document.getElementById('scan-palette').contains(document.activeElement);
   renderScanReview();
-  if (restorePaletteFocus) document.getElementById('scan-palette').children[color]?.focus();
 }
 
 function getManualScanInput(colors) {
@@ -82,14 +82,15 @@ function renderManualScanSummary(input) {
   orientation.textContent = step.step === 0 && topColor === null
     ? t('Pick a starting face. Keep track of which edge is on top.')
     : t('Hold {face} in front and {top} on top.', { face, top });
-  document.getElementById('scan-review-badge').textContent =
-    t('{count}/54 stickers entered', { count: manualScanColors.filter(color => color !== null).length });
+  const status = document.getElementById('scan-review-badge');
+  status.hidden = false;
+  status.textContent = t('{count}/54 stickers entered', { count: manualScanColors.filter(color => color !== null).length });
 
   if (input.validation.code === 'INCOMPLETE') {
-    if (SCAN_CENTER_INDICES.has(selectedReviewIndex)) return t('Choose the center sticker color.');
     if (nextBlankManualSticker(selectedReviewFace) === undefined) {
       return t('This face is filled. Continue to the next face.');
     }
+    if (SCAN_CENTER_INDICES.has(selectedReviewIndex)) return t('Choose the center sticker color.');
     return t('Choose a color for sticker {index}.', { index: selectedReviewIndex % 9 + 1 });
   }
   if (input.validation.code === 'COLOR_COUNT') {

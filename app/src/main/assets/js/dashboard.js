@@ -8,6 +8,7 @@ function openDashboard() {
   _renderDashboard();
   statsDialog.classList.remove('hidden');
   statsDialog.showModal();
+  document.getElementById('stats-content').scrollTop = 0;
   pauseRendering();
 }
 
@@ -20,6 +21,11 @@ function closeDashboard() {
 
 function _renderDashboard() {
   const stats = computeStats();
+  const history = getSolveHistory();
+  const hasHistory = history.length > 0;
+  document.getElementById('stats-grid').hidden = !hasHistory;
+  document.getElementById('ds-history').hidden = !hasHistory;
+  document.getElementById('ds-empty').hidden = hasHistory;
 
   // 통계 그리드 값 채우기
   _setText('ds-solves', stats.totalCount);
@@ -29,8 +35,8 @@ function _renderDashboard() {
   _setText('ds-ao100',  fmtStat(stats.ao100));
   _setText('ds-mean',   fmtStat(stats.mean));
 
-  _renderSparkline(stats);
-  _renderHistory();
+  _renderSparkline(history);
+  _renderHistory(history);
 }
 
 function _setText(id, val) {
@@ -39,77 +45,51 @@ function _setText(id, val) {
 }
 
 // 최근 최대 15개 솔브 타임을 막대 스파크라인으로 표시
-function _renderSparkline(stats) {
-  var container = document.getElementById('ds-sparkline');
-  if (!container) return;
-  container.innerHTML = '';
+function _renderSparkline(history) {
+  const container = document.getElementById('ds-sparkline');
+  const times = history.filter(entry => !entry.s).slice(-15).map(entry => entry.t);
+  document.getElementById('ds-sparkline-wrap').hidden = times.length < 2;
+  container.replaceChildren();
+  if (times.length < 2) return;
 
-  var all = getSolveHistory();
-  var legit = all.filter(function(e) { return !e.s; }).slice(-15);
-  if (legit.length < 2) {
-    const empty = document.createElement('span');
-    empty.className = 'ds-spark-empty';
-    empty.textContent = t('Need more solves');
-    container.appendChild(empty);
-    return;
-  }
+  const minTime = Math.min(...times);
+  const range = Math.max(...times) - minTime || 1;
 
-  var times = legit.map(function(e) { return e.t; });
-  var minT  = Math.min.apply(null, times);
-  var maxT  = Math.max.apply(null, times);
-  var range = maxT - minT || 1;
-
-  times.forEach(function(t) {
-    var pct = 20 + Math.round(((t - minT) / range) * 75); // 20%~95% height
-    var bar = document.createElement('div');
+  for (const time of times) {
+    const percent = 20 + Math.round(((time - minTime) / range) * 75);
+    const bar = document.createElement('div');
     bar.className = 'ds-bar';
-    bar.style.height = pct + '%';
+    bar.style.height = percent + '%';
     container.appendChild(bar);
-  });
+  }
 }
 
 // 최근 20개 솔브 리스트
-function _renderHistory() {
-  var list = document.getElementById('ds-history-list');
-  if (!list) return;
-  list.innerHTML = '';
+function _renderHistory(history) {
+  const list = document.getElementById('ds-history-list');
+  list.replaceChildren();
 
-  var all = getSolveHistory();
-  if (all.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'ds-empty';
-    empty.textContent = t('No solves yet');
-    list.appendChild(empty);
-    return;
-  }
+  for (const entry of history.slice(-20).reverse()) {
+    const row = document.createElement('li');
+    row.className = 'ds-row';
 
-  var recent = all.slice(-20).reverse();
-  recent.forEach(function(entry, i) {
-    var row = document.createElement('div');
-    row.className = 'ds-row' + (entry.s ? ' ds-row-solver' : '');
-
-    var numEl = document.createElement('span');
-    numEl.className = 'ds-row-num';
-    numEl.textContent = all.length - i;
-
-    var timeEl = document.createElement('span');
+    const timeEl = document.createElement('span');
     timeEl.className = 'ds-row-time';
     timeEl.textContent = fmtStat(entry.t);
 
-    var movesEl = document.createElement('span');
+    const movesEl = document.createElement('span');
     movesEl.className = 'ds-row-moves';
     movesEl.textContent = t('{count} moves', { count: entry.m });
 
-    var tagEl = document.createElement('span');
-    tagEl.className = 'ds-row-tag';
-    tagEl.textContent = entry.s ? t('Solver') : '';
-
-    row.appendChild(numEl);
-    row.appendChild(timeEl);
-    row.appendChild(movesEl);
-    row.appendChild(tagEl);
+    row.append(timeEl, movesEl);
+    if (entry.s) {
+      const tag = document.createElement('span');
+      tag.className = 'ds-row-tag';
+      tag.textContent = t('Solver');
+      row.appendChild(tag);
+    }
     list.appendChild(row);
-  });
+  }
 }
 
 // 배경 탭 → 닫기

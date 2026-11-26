@@ -26,6 +26,8 @@ const LEGACY_DAILY_COUNT = 14;
 const DAILY_CATALOG_START = Date.UTC(2026, 10, 15) / DAY_MS;
 const LESSON_MOVE = "U'";
 const CHALLENGE_FACES = { U: 'top', R: 'right', F: 'front', D: 'bottom', L: 'left', B: 'back' };
+const CHALLENGE_TITLES = { lesson: 'Practice', daily: 'Daily 3 Moves', bonus: 'Daily 5 Moves' };
+const HOME_MODES = ['play', 'daily', 'scan'];
 const challengeButton = document.getElementById('btn-daily');
 const bonusButton = document.getElementById('btn-daily-bonus');
 const bonusRestartButton = document.getElementById('btn-daily-bonus-restart');
@@ -40,6 +42,7 @@ const challengeData = loadChallengeData();
 let challenge = null;
 let freePlay = null;
 let challengeArrow = null;
+let homeMode = 'play';
 
 function isChallengeActive() { return challenge !== null; }
 function isChallengeComplete() { return !!challenge?.completed; }
@@ -200,8 +203,30 @@ function exitChallenge() {
   freePlay = null;
   applyFacelets();
   _refreshSolveLabel();
+  selectHomeMode('play');
   renderChallengeControls();
   return true;
+}
+
+function selectHomeMode(mode, focusTab = false) {
+  if (challenge || !HOME_MODES.includes(mode)) return;
+  if (mode !== homeMode) {
+    homeMode = mode;
+    for (const name of HOME_MODES) {
+      const tab = document.getElementById(`btn-mode-${name}`);
+      tab.setAttribute('aria-selected', String(name === mode));
+      tab.tabIndex = name === mode ? 0 : -1;
+    }
+    renderHomeMode();
+  }
+  if (focusTab) document.getElementById(`btn-mode-${mode}`).focus();
+}
+
+function renderHomeMode() {
+  document.getElementById('home-mode-tabs').hidden = !!challenge;
+  document.getElementById('free-play-controls').hidden = !!challenge || homeMode !== 'play';
+  document.getElementById('daily-panel').hidden = challenge ? !challenge.completed : homeMode !== 'daily';
+  document.getElementById('scan-panel').hidden = !!challenge || homeMode !== 'scan';
 }
 
 function renderChallengeControls() {
@@ -216,15 +241,15 @@ function renderChallengeControls() {
   bonusButton.hidden = !today?.best || !!playing || (challenge?.date != null && challenge.date !== date);
   bonusButton.textContent = t(dailyBonusLabel(date));
   bonusRestartButton.hidden = !(playing && challenge.kind === 'bonus');
-  document.getElementById('daily-controls').hidden = lesson && !!playing;
-  document.getElementById('free-play-controls').hidden = !!challenge;
-  document.getElementById('scan-entry-actions').hidden = !!challenge && !lesson;
+  document.getElementById('game-title').textContent = t(CHALLENGE_TITLES[challenge?.kind] ?? 'Cubie');
   document.getElementById('challenge-controls').hidden = !challenge;
+  document.getElementById('btn-lesson-scan').hidden = !lesson || !playing;
   lessonButton.hidden = !lesson || !playing;
   lessonButton.disabled = undoStack.length !== 0;
   hintButton.hidden = lesson || !playing;
   document.getElementById('btn-reset').hidden = !!challenge;
   document.getElementById('btn-practice').hidden = lesson && !!playing;
+  renderHomeMode();
   refreshScanResumeControls();
   updateUndoRedoButtons();
 }
@@ -449,6 +474,19 @@ document.addEventListener('visibilitychange', () => {
 const options = document.getElementById('app-options');
 document.addEventListener('pointerdown', event => {
   if (!options.contains(event.target)) options.open = false;
+});
+
+document.addEventListener('keydown', event => {
+  const current = HOME_MODES.indexOf(homeMode);
+  if (event.target !== document.getElementById(`btn-mode-${homeMode}`)) return;
+  const offsets = { ArrowLeft: -1, ArrowRight: 1 };
+  let next;
+  if (event.key === 'Home') next = 0;
+  else if (event.key === 'End') next = HOME_MODES.length - 1;
+  else if (event.key in offsets) next = (current + offsets[event.key] + HOME_MODES.length) % HOME_MODES.length;
+  else return;
+  event.preventDefault();
+  selectHomeMode(HOME_MODES[next], true);
 });
 
 if (restoreFreePlaySession()) {

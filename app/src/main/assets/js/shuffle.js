@@ -6,7 +6,7 @@ function shuffleCube() {
   if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {
     AndroidBridge.onShuffleOrReset();
   }
-  _solveAdRequired = true;  // 셔플 후 다음 솔브는 다시 광고 필요
+  _solveAdRequired = !!window.AndroidBridge?.requestSolve;
   isScanSolve = false;
   resetActiveFaceColors();  // 스캔 팔레트 폐기 → 일반 게임 모드
   resetSolution();  // 진행 중인 솔브 초기화
@@ -78,7 +78,7 @@ function resetCube({ preserveFreePlay = false } = {}) {
   if (window.AndroidBridge && window.AndroidBridge.onShuffleOrReset) {
     AndroidBridge.onShuffleOrReset();
   }
-  _solveAdRequired = true;  // 리셋 후 다음 솔브는 다시 광고 필요
+  _solveAdRequired = !!window.AndroidBridge?.requestSolve;
   isScanSolve = false;
   resetActiveFaceColors();  // 스캔 팔레트 폐기 → 일반 게임 모드
   resetSolution();

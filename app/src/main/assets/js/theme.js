@@ -1,7 +1,5 @@
 // ─── 다크 모드 토글 ────────────────────────────────────────────────────────
 (function () {
-  var LIGHT_BG = 0xe8eaf0;
-  var DARK_BG  = 0x1c1c1e;
   var btnTheme = document.getElementById('btn-theme');
   var saved = localStorage.getItem('cube-theme');
   applyTheme(saved === 'dark' ? 'dark' : 'light');
@@ -9,8 +7,7 @@
   function applyTheme(theme) {
     var isDark = theme === 'dark';
     document.body.setAttribute('data-theme', isDark ? 'dark' : '');
-    btnTheme.textContent = isDark ? '☀️ ' + t('Light mode') : '🌙 ' + t('Dark mode');
-    setSceneBg(isDark ? DARK_BG : LIGHT_BG);
+    btnTheme.textContent = t(isDark ? 'Light mode' : 'Dark mode');
     localStorage.setItem('cube-theme', theme);
   }
 
